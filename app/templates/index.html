@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Página principal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+
+  <!-- Barra superior con el botón -->
+  <header class="bg-white shadow-md py-4 px-8 flex justify-between items-center">
+    <h1 class="text-2xl font-bold text-gray-800">Mi Plataforma</h1>
+
+    <!-- Botón Iniciar Sesión -->
+    <a href="{{ url_for('auth.login') }}"
+       class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition">
+      Iniciar Sesión
+    </a>
+  </header>
+
+  <!-- Mensajes Flash -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="max-w-xl mx-auto mt-6">
+        {% for category, message in messages %}
+          <div class="bg-{{ 'green' if category == 'success' else 'red' }}-100 border border-{{ 'green' if category == 'success' else 'red' }}-400 text-{{ 'green' if category == 'success' else 'red' }}-700 px-4 py-3 rounded relative mb-4">
+            <strong class="font-bold">{{ message }}</strong>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Contenido principal -->
+  <main class="text-center mt-20">
+    <h2 class="text-3xl font-bold text-gray-800">Bienvenido</h2>
+    <p class="mt-4 text-gray-600">Esta es la página de inicio de tu plataforma de etapa productiva.</p>
+  </main>
+
+</body>
+</html>
