@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Evidencia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-2xl mx-auto bg-white shadow rounded-lg p-6">
+        <h1 class="text-xl font-bold mb-4">Editar Evidencia</h1>
+        <form method="POST">
+            <label class="block mb-2">Nombre del Archivo</label>
+            <input type="text" name="nombre_archivo" value="{{ evidencia.nombre_archivo }}" required class="w-full border p-2 rounded mb-4">
+
+            <label class="block mb-2">Formato</label>
+            <input type="text" name="formato" value="{{ evidencia.formato }}" required class="w-full border p-2 rounded mb-4">
+
+            <label class="block mb-2">URL del Archivo</label>
+            <input type="text" name="url_archivo" value="{{ evidencia.url_archivo }}" required class="w-full border p-2 rounded mb-4">
+
+            <label class="block mb-2">Fecha de Subida</label>
+            <input type="date" name="fecha_subida" value="{{ evidencia.fecha_subida }}" required class="w-full border p-2 rounded mb-4">
+
+            <label class="block mb-2">Tipo</label>
+            <input type="text" name="tipo" value="{{ evidencia.tipo }}" required class="w-full border p-2 rounded mb-4">
+
+            <label class="block mb-2">ID Aprendiz</label>
+            <input type="number" name="aprendiz_id_aprendiz" value="{{ evidencia.aprendiz_id_aprendiz }}" required class="w-full border p-2 rounded mb-4">
+
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Actualizar</button>
+            <a href="{{ url_for('evidencia_bp.listar_evidencias') }}" class="ml-2 text-gray-600">Cancelar</a>
+        </form>
+    </div>
+</body>
+</html>

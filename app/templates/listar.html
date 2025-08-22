@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Estudiantes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-100 to-purple-200 min-h-screen p-4">
+    <div class="container mx-auto bg-white shadow-lg rounded-xl p-8">
+        <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Lista de Estudiantes</h2>
+
+        <!-- Mostrar mensajes flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-4">
+                    {% for category, message in messages %}
+                        <div class="p-4 rounded-lg text-white {% if category == 'success' %}bg-green-500{% elif category == 'danger' %}bg-red-500{% elif category == 'warning' %}bg-yellow-500{% else %}bg-blue-500{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Filtro por ficha -->
+        <div class="mb-4 flex items-center gap-4">
+            <label for="ficha" class="text-sm font-semibold text-gray-700">Filtrar por Ficha:</label>
+            <input type="number" id="ficha" name="ficha" value="{{ ficha or '' }}" class="rounded-lg border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400 p-2">
+            <button id="filtrar" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition duration-200">
+                Filtrar
+            </button>
+        </div>
+
+        <!-- Tabla de estudiantes -->
+        <table id="tabla-estudiantes" class="w-full border-collapse">
+            <thead>
+                <tr class="bg-indigo-600 text-white">
+                    <th class="p-2 border">Nombre</th>
+                    <th class="p-2 border">Apellido</th>
+                    <th class="p-2 border">Tipo Documento</th>
+                    <th class="p-2 border">Documento</th>
+                    <th class="p-2 border">Email</th>
+                    <th class="p-2 border">Celular</th>
+                    <th class="p-2 border">Ficha</th>
+                    <th class="p-2 border">Contrato ID</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for estudiante in estudiantes %}
+                    <tr class="hover:bg-gray-100">
+                        <td class="p-2 border">{{ estudiante.nombre }}</td>
+                        <td class="p-2 border">{{ estudiante.apellido }}</td>
+                        <td class="p-2 border">{{ estudiante.tipo_documento }}</td>
+                        <td class="p-2 border">{{ estudiante.documento }}</td>
+                        <td class="p-2 border">{{ estudiante.email }}</td>
+                        <td class="p-2 border">{{ estudiante.celular }}</td>
+                        <td class="p-2 border">{{ estudiante.ficha }}</td>
+                        <td class="p-2 border">{{ estudiante.contrato_id_contrato }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            $('#filtrar').click(function() {
+                var ficha = $('#ficha').val();
+                if (!ficha) {
+                    alert('Por favor, ingrese un número de ficha.');
+                    return;
+                }
+                $.ajax({
+                    url: '{{ url_for("estudiantes.listar_estudiantes") }}',
+                    type: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    data: { ficha: ficha },
+                    success: function(data) {
+                        var tbody = $('#tabla-estudiantes tbody');
+                        tbody.empty();
+                        if (data.length === 0) {
+                            tbody.append('<tr><td colspan="8" class="p-2 text-center text-gray-600">No hay estudiantes para esta ficha.</td></tr>');
+                        } else {
+                            data.forEach(function(estudiante) {
+                                var row = `
+                                    <tr class="hover:bg-gray-100">
+                                        <td class="p-2 border">${estudiante.nombre}</td>
+                                        <td class="p-2 border">${estudiante.apellido}</td>
+                                        <td class="p-2 border">${estudiante.tipo_documento}</td>
+                                        <td class="p-2 border">${estudiante.documento}</td>
+                                        <td class="p-2 border">${estudiante.email}</td>
+                                        <td class="p-2 border">${estudiante.celular}</td>
+                                        <td class="p-2 border">${estudiante.ficha}</td>
+                                        <td class="p-2 border">${estudiante.contrato_id_contrato}</td>
+                                    </tr>`;
+                                tbody.append(row);
+                            });
+                        }
+                    },
+                    error: function() {
+                        alert('Error al filtrar estudiantes.');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

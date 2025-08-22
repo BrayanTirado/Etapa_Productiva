@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Evidencias</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-4xl mx-auto bg-white shadow rounded-lg p-6">
+        <h1 class="text-2xl font-bold mb-4">Evidencias Registradas</h1>
+
+        <a href="{{ url_for('evidencia_bp.nueva_evidencia') }}" 
+           class="bg-green-500 text-white px-4 py-2 rounded shadow hover:bg-green-600">
+            Nueva Evidencia
+        </a>
+
+        {% if evidencias %}
+            <table class="mt-6 w-full border-collapse border border-gray-300">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="border p-2">ID</th>
+                        <th class="border p-2">Nombre Archivo</th>
+                        <th class="border p-2">Formato</th>
+                        <th class="border p-2">URL</th>
+                        <th class="border p-2">Fecha Subida</th>
+                        <th class="border p-2">Tipo</th>
+                        <th class="border p-2">ID Aprendiz</th>
+                        <th class="border p-2">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for evidencia in evidencias %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="border p-2">{{ evidencia.id_evidencia }}</td>
+                        <td class="border p-2">{{ evidencia.nombre_archivo }}</td>
+                        <td class="border p-2">{{ evidencia.formato }}</td>
+                        <td class="border p-2"><a href="{{ evidencia.url_archivo }}" target="_blank" class="text-blue-500">Ver</a></td>
+                        <td class="border p-2">{{ evidencia.fecha_subida }}</td>
+                        <td class="border p-2">{{ evidencia.tipo }}</td>
+                        <td class="border p-2">{{ evidencia.aprendiz_id_aprendiz }}</td>
+                        <td class="border p-2">
+                            <a href="{{ url_for('evidencia_bp.editar_evidencia', id=evidencia.id_evidencia) }}" class="text-blue-500">Editar</a> |
+                            <a href="{{ url_for('evidencia_bp.eliminar_evidencia', id=evidencia.id_evidencia) }}" class="text-red-500" onclick="return confirm('¿Seguro de eliminar?')">Eliminar</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="mt-4 text-gray-600">No hay evidencias registradas aún.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

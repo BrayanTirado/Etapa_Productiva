@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Instructor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white shadow-md py-4 px-8 flex justify-between items-center">
+        <div class="flex-1 flex justify-center">
+            <div class="px-6 py-2 rounded-lg">
+                <h2 class="text-3xl font-extrabold text-center bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text text-transparent drop-shadow-lg uppercase">
+                    BIENVENIDO INSTRUCTOR {{ instructor.nombre_instructor }} {{ instructor.apellido_instructor }}
+                </h2>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <a href="/notificaciones" class="p-2 text-2xl bg-yellow-200 rounded-lg hover:bg-yellow-300 transition">🔔</a>
+            <a href="{{ url_for('auth.logout') }}" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition">
+                CERRAR SESIÓN
+            </a>
+        </div>
+    </header>
+
+    <!-- Contenido principal -->
+    <main class="flex-1 p-8 flex flex-col md:flex-row gap-8 justify-between">
+        <!-- Calendario -->
+        <div class="bg-white rounded-xl shadow-lg p-6 w-full md:w-1/3">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">CALENDARIO</h2>
+
+            <!-- Selección de mes -->
+            <div class="w-full max-w-lg mx-auto bg-white rounded-2xl shadow-xl p-6 mt-8">
+                <!-- Controles del calendario -->
+                <div class="flex justify-between items-center bg-blue-50 px-4 py-3 rounded-lg mb-4">
+                    <button id="mesAnterior" class="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-300 ease-in-out">&lt;</button>
+                    <select id="mes" class="border border-gray-200 bg-white rounded-lg px-3 py-2 text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        <option value="0">Enero</option>
+                        <option value="1">Febrero</option>
+                        <option value="2">Marzo</option>
+                        <option value="3">Abril</option>
+                        <option value="4">Mayo</option>
+                        <option value="5">Junio</option>
+                        <option value="6">Julio</option>
+                        <option value="7">Agosto</option>
+                        <option value="8">Septiembre</option>
+                        <option value="9">Octubre</option>
+                        <option value="10">Noviembre</option>
+                        <option value="11">Diciembre</option>
+                    </select>
+                    <button id="mesSiguiente" class="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-300 ease-in-out">&gt;</button>
+                </div>
+
+                <!-- Días de la semana -->
+                <div class="grid grid-cols-7 text-center text-gray-700 font-semibold border-b border-gray-200 mb-2">
+                    <div class="p-3">Lun</div>
+                    <div class="p-3">Mar</div>
+                    <div class="p-3">Mié</div>
+                    <div class="p-3">Jue</div>
+                    <div class="p-3">Vie</div>
+                    <div class="p-3 text-red-500">Sáb</div>
+                    <div class="p-3 text-red-500">Dom</div>
+                </div>
+
+                <!-- Fechas -->
+                <div id="calendario" class="grid grid-cols-7 gap-0 text-center"></div>
+            </div>
+        </div>
+
+        <!-- Rombos -->
+        <div class="flex justify-between w-full max-w-3xl mx-auto mt-8">
+            <a href="/estudiantes/listarEstudiantes" class="w-40 h-40 bg-blue-300 rounded-xl transform rotate-45 shadow-lg flex items-center justify-center text-gray-800 font-semibold hover:bg-blue-400 transition">
+                <span class="transform -rotate-45">ESTUDIANTES</span>
+            </a>
+            <a href="{{ url_for('instructor_bp.perfil_instructor') }}" 
+   class="w-40 h-40 bg-green-300 rounded-xl transform rotate-45 shadow-lg flex items-center justify-center text-gray-800 font-semibold hover:bg-green-400 transition">
+    <span class="transform -rotate-45">PERFIL</span>
+</a>
+
+        </div>
+    </main>
+
+    <!-- Footer decorativo -->
+    <footer class="mt-auto h-10">
+        <div class="w-full h-full bg-gradient-to-r from-green-300 via-green-400 to-green-500 rounded-t-full"></div>
+    </footer>
+
+    <script>
+        const calendario = document.getElementById("calendario");
+        const mesSelect = document.getElementById("mes");
+        const btnAnterior = document.getElementById("mesAnterior");
+        const btnSiguiente = document.getElementById("mesSiguiente");
+
+        const fechaHoy = new Date();
+        let mesActual = fechaHoy.getMonth();
+        let añoActual = fechaHoy.getFullYear();
+
+        function generarCalendario(mes) {
+            calendario.innerHTML = "";
+            const primerDia = new Date(añoActual, mes, 1).getDay();
+            const diasMes = new Date(añoActual, mes + 1, 0).getDate();
+            let inicio = primerDia === 0 ? 6 : primerDia - 1;
+
+            // Espacios vacíos antes del primer día
+            for (let i = 0; i < inicio; i++) {
+                const div = document.createElement("div");
+                div.className = "p-4 border border-gray-100";
+                calendario.appendChild(div);
+            }
+
+            // Crear días del mes
+            for (let d = 1; d <= diasMes; d++) {
+                const div = document.createElement("div");
+                div.textContent = d;
+                div.className = "p-4 border border-gray-100 hover:bg-blue-200 cursor-pointer transition duration-200 ease-in-out flex items-center justify-center rounded-lg";
+
+                // Día actual
+                if (mes === fechaHoy.getMonth() && d === fechaHoy.getDate() && añoActual === fechaHoy.getFullYear()) {
+                    div.className += " bg-blue-500 text-white font-bold rounded-full";
+                }
+
+                // Fines de semana
+                const pos = inicio + d - 1;
+                if (pos % 7 === 5 || pos % 7 === 6) {
+                    div.className += " text-red-500";
+                }
+
+                calendario.appendChild(div);
+            }
+        }
+
+        mesSelect.addEventListener("change", () => {
+            mesActual = parseInt(mesSelect.value);
+            generarCalendario(mesActual);
+        });
+
+        btnAnterior.addEventListener("click", () => {
+            mesActual = (mesActual - 1 + 12) % 12;
+            mesSelect.value = mesActual;
+            generarCalendario(mesActual);
+        });
+
+        btnSiguiente.addEventListener("click", () => {
+            mesActual = (mesActual + 1) % 12;
+            mesSelect.value = mesActual;
+            generarCalendario(mesActual);
+        });
+
+        // Inicializar calendario con el mes actual
+        mesSelect.value = mesActual;
+        generarCalendario(mesActual);
+    </script>
+</body>
+</html>

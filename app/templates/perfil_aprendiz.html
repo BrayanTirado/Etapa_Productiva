@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil Aprendiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-indigo-900 via-purple-900 to-gray-900 min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white shadow-2xl rounded-xl p-8 w-full max-w-2xl">
+        <h2 class="text-3xl font-extrabold text-center text-indigo-700 mb-8">
+            Perfil del Aprendiz
+        </h2>
+
+        {% if mode == 'edit' %}
+        <!-- Formulario de edición -->
+        <form method="POST" action="{{ url_for('aprendiz_bp.editar_aprendiz', id=aprendiz.id_aprendiz) }}" class="space-y-4 text-gray-700">
+            <div>
+                <label class="font-semibold">Nombre:</label>
+                <input type="text" name="nombre" value="{{ aprendiz.nombre }}" class="w-full border rounded px-2 py-1">
+            </div>
+            <div>
+                <label class="font-semibold">Apellido:</label>
+                <input type="text" name="apellido" value="{{ aprendiz.apellido }}" class="w-full border rounded px-2 py-1">
+            </div>
+            <div>
+                <label class="font-semibold">Tipo de documento:</label>
+                <input type="text" name="tipo_documento" value="{{ aprendiz.tipo_documento }}" class="w-full border rounded px-2 py-1">
+            </div>
+            <div>
+                <label class="font-semibold">Documento:</label>
+                <input type="text" name="documento" value="{{ aprendiz.documento }}" class="w-full border rounded px-2 py-1">
+            </div>
+            <div>
+                <label class="font-semibold">Email:</label>
+                <input type="email" name="email" value="{{ aprendiz.email }}" class="w-full border rounded px-2 py-1">
+            </div>
+            <div>
+                <label class="font-semibold">Celular:</label>
+                <input type="text" name="celular" value="{{ aprendiz.celular }}" class="w-full border rounded px-2 py-1">
+            </div>
+            <div>
+                <label class="font-semibold">Ficha:</label>
+                <input type="number" name="ficha" value="{{ aprendiz.ficha }}" class="w-full border rounded px-2 py-1">
+            </div>
+            <div>
+                <label class="font-semibold">ID Contrato:</label>
+                <input type="number" name="contrato_id_contrato" value="{{ aprendiz.contrato_id_contrato }}" class="w-full border rounded px-2 py-1">
+            </div>
+            <div>
+                <label class="font-semibold">Contraseña (dejar vacío si no cambia):</label>
+                <input type="password" name="password_aprendiz" class="w-full border rounded px-2 py-1">
+            </div>
+
+            <div class="mt-4 flex justify-between">
+                <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">Guardar Cambios</button>
+                <a href="{{ url_for('aprendiz_bp.perfil_aprendiz') }}" 
+                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+
+        {% else %}
+        <!-- Modo solo visualización -->
+        <div class="space-y-4 text-gray-700">
+            <p><strong>Nombre:</strong> {{ aprendiz.nombre }}</p>
+            <p><strong>Apellido:</strong> {{ aprendiz.apellido }}</p>
+            <p><strong>Tipo de documento:</strong> {{ aprendiz.tipo_documento }}</p>
+            <p><strong>Documento:</strong> {{ aprendiz.documento }}</p>
+            <p><strong>Email:</strong> {{ aprendiz.email }}</p>
+            <p><strong>Celular:</strong> {{ aprendiz.celular }}</p>
+            <p><strong>Ficha:</strong> {{ aprendiz.ficha }}</p>
+            <p><strong>ID Contrato:</strong> {{ aprendiz.contrato_id_contrato }}</p>
+        </div>
+
+        <div class="mt-8 flex justify-between">
+            <a href="{{ url_for('aprendiz_bp.editar_aprendiz', id=aprendiz.id_aprendiz) }}"
+               class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">
+               Editar Perfil
+            </a>
+
+            <a href="{{ url_for('index_bp.index') }}" 
+               class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
+                Volver
+            </a>
+        </div>
+        {% endif %}
+
+    </div>
+
+</body>
+</html>

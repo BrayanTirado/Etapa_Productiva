@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil Instructor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-indigo-900 via-purple-900 to-gray-900 min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white shadow-2xl rounded-xl p-8 w-full max-w-2xl">
+        <h2 class="text-3xl font-extrabold text-center text-indigo-700 mb-8">
+            Perfil del Instructor
+        </h2>
+
+        <div class="space-y-4 text-gray-700">
+            <p><strong>Nombre:</strong> {{ instructor.nombre_instructor }}</p>
+            <p><strong>Apellido:</strong> {{ instructor.apellido_instructor }}</p>
+            <p><strong>Tipo de documento:</strong> {{ instructor.tipo_documento }}</p>
+            <p><strong>Documento:</strong> {{ instructor.documento }}</p>
+            <p><strong>Email:</strong> {{ instructor.correo_instructor }}</p>
+            <p><strong>Celular:</strong> {{ instructor.celular_instructor }}</p>
+        </div>
+
+        <div class="mt-8 flex justify-between">
+            <a href="{{ url_for('instructor_bp.editar_instructor', id=instructor.id_instructor) }}" 
+               class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">
+                Editar Perfil
+            </a>
+            <a href="{{ url_for('index_bp.index') }}" 
+               class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
+                Volver
+            </a>
+        </div>
+    </div>
+
+</body>
+</html>

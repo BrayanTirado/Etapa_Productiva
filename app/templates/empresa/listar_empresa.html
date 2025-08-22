@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Empresa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-3xl mx-auto bg-white shadow rounded-lg p-6">
+        <h1 class="text-2xl font-bold mb-4">Ya tienes empresa</h1>
+        <p class="mb-6 text-gray-700">Este espacio solo debes llenarlo cuando te esté patrocinando una empresa.</p>
+
+        <a href="{{ url_for('empresa_bp.nueva_empresa') }}" 
+           class="bg-green-500 text-white px-6 py-2 rounded-md shadow hover:bg-green-600">
+           Registrar Empresa
+        </a>
+
+        {% if empresas %}
+            <h2 class="text-xl font-semibold mt-8 mb-4">Empresas registradas</h2>
+            <table class="w-full border-collapse border border-gray-300">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="border p-2">ID</th>
+                        <th class="border p-2">Nombre</th>
+                        <th class="border p-2">NIT</th>
+                        <th class="border p-2">Sector</th>
+                        <th class="border p-2">Dirección</th>
+                        <th class="border p-2">Teléfono</th>
+                        <th class="border p-2">Correo Empresa</th>
+                        <th class="border p-2">Nombre Tutor</th>
+                        <th class="border p-2">Cargo Tutor</th>
+                        <th class="border p-2">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for empresa in empresas %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="border p-2">{{ empresa.id_empresa }}</td>
+                        <td class="border p-2">{{ empresa.nombre_empresa }}</td>
+                        <td class="border p-2">{{ empresa.nit }}</td>
+                        <td class="border p-2">{{ empresa.sector }}</td>
+                        <td class="border p-2">{{ empresa.direccion }}</td>
+                        <td class="border p-2">{{ empresa.telefono }}</td>
+                        <td class="border p-2">{{ empresa.correo_empresa }}</td>
+                        <td class="border p-2">{{ empresa.nombre_tutor }}</td>
+                        <td class="border p-2">{{ empresa.cargo_tutor }}</td>
+                        <td class="border p-2">
+                            <a href="{{ url_for('empresa_bp.editar_empresa', id=empresa.id_empresa) }}" class="text-blue-500">Editar</a> |
+                            <form action="{{ url_for('empresa_bp.eliminar_empresa', id=empresa.id_empresa) }}" method="POST" class="inline">
+                                <button type="submit" class="text-red-500" onclick="return confirm('¿Seguro de eliminar?')">Eliminar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="mt-4 text-gray-600">No hay empresas registradas aún.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

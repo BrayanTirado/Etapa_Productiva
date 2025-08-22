@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Programas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-4xl mx-auto bg-white shadow rounded-lg p-6">
+        <h1 class="text-2xl font-bold mb-4">Programas Registrados</h1>
+
+        <a href="{{ url_for('programa_bp.nuevo_programa') }}" 
+           class="bg-green-500 text-white px-4 py-2 rounded shadow hover:bg-green-600">
+            Nuevo Programa
+        </a>
+
+        {% if programas %}
+            <table class="mt-6 w-full border-collapse border border-gray-300">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="border p-2">ID</th>
+                        <th class="border p-2">Nombre</th>
+                        <th class="border p-2">Nivel</th>
+                        <th class="border p-2">Jornada</th>
+                        <th class="border p-2">Centro</th>
+                        <th class="border p-2">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for programa in programas %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="border p-2">{{ programa.id_programa }}</td>
+                        <td class="border p-2">{{ programa.nombre_programa }}</td>
+                        <td class="border p-2">{{ programa.nivel }}</td>
+                        <td class="border p-2">{{ programa.jornada }}</td>
+                        <td class="border p-2">{{ programa.centro_formacion }}</td>
+                        <td class="border p-2">
+                            <a href="{{ url_for('programa_bp.editar_programa', id=programa.id_programa) }}" class="text-blue-500">Editar</a> |
+                            <a href="{{ url_for('programa_bp.eliminar_programa', id=programa.id_programa) }}" class="text-red-500" onclick="return confirm('¿Seguro de eliminar?')">Eliminar</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="mt-4 text-gray-600">No hay programas registrados aún.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

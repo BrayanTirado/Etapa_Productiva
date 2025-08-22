@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Aprendiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-green-500 flex items-center justify-between px-6 py-3">
+        <!-- Logo -->
+        <div class="flex items-center space-x-4">
+        </div>
+
+        <!-- Notificaciones y cerrar sesión -->
+        <div class="flex items-center space-x-6">
+            <!-- Campana -->
+            <button class="text-black hover:text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                </svg>
+            </button>
+
+            <!-- Botón cerrar sesión -->
+            <a href="{{ url_for('auth.logout') }}" 
+               class="bg-gradient-to-r from-blue-200 to-green-200 px-4 py-2 rounded-md text-black font-semibold hover:from-blue-300 hover:to-green-300 transition">
+                Cerrar Sesión
+            </a>
+        </div>
+    </header>
+
+    <!-- Contenedor principal -->
+    <div class="flex flex-1">
+        <!-- Sidebar -->
+        <aside class="w-20 bg-white shadow-md p-4 flex flex-col items-center relative">
+            <!-- Botón menú hamburguesa -->
+            <button id="menuBtn" class="w-12 h-12 bg-black text-white flex items-center justify-center rounded-md">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+
+            <!-- Opciones desplegables al frente (verticales) -->
+            <div id="menuOptions" class="hidden absolute left-20 top-4 flex flex-col space-y-3">
+<a href="{{ url_for('programa_bp.listar_programas') }}" 
+   class="bg-gradient-to-r from-blue-200 to-green-200 px-6 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
+   PROGRAMA
+</a>
+<a href="{{ url_for('evidencia_bp.nueva_evidencia') }}" 
+   class="bg-gradient-to-r from-blue-200 to-green-200 px-6 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
+   EVIDENCIA
+</a>
+<a href="{{ url_for('empresa_bp.listar_empresas') }}" class="bg-gradient-to-r from-blue-200 to-green-200 px-6 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
+    EMPRESA
+</a>
+<a href="{{ url_for('aprendiz_bp.perfil_aprendiz') }}"  
+   class="bg-gradient-to-r from-blue-200 to-green-200 px-6 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
+   PERFIL
+</a>
+            </div>
+        </aside>
+
+        <!-- Contenido central -->
+        <main class="flex-1 flex items-center justify-center">
+            <h2 class="text-4xl font-extrabold text-center bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text text-transparent drop-shadow-lg">
+                ✨ BIENVENIDO, {{ aprendiz.nombre }} {{ aprendiz.apellido }} ✨
+            </h2>
+        </main>
+    </div>
+
+    <!-- Pie de página decorativo -->
+    <footer class="mt-auto">
+        <img src="decoracion-footer.png" alt="Decoración" class="w-full">
+    </footer>
+
+    <!-- Script para desplegar menú -->
+    <script>
+        const menuBtn = document.getElementById('menuBtn');
+        const menuOptions = document.getElementById('menuOptions');
+        menuBtn.addEventListener('click', () => {
+            menuOptions.classList.toggle('hidden');
+        });
+    </script>
+</body>
+</html>

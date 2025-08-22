@@ -1,50 +1,72 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Panel del Instructor</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Instructor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gradient-to-br from-indigo-900 via-purple-900 to-gray-900 min-h-screen flex items-center justify-center p-4">
 
-  <!-- Barra superior -->
-  <header class="bg-indigo-600 text-white shadow-md">
-    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-      <h1 class="text-xl font-bold">Panel del Instructor</h1>
-      <a href="{{ url_for('auth.logout') }}" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg font-semibold transition">
-        Cerrar sesión
-      </a>
+    <div class="bg-white shadow-2xl rounded-xl p-8 w-full max-w-2xl transform transition-all hover:scale-[1.01] duration-300">
+        <h2 class="text-3xl font-extrabold text-center text-indigo-700 mb-8">
+            {% if mode == 'edit' %}Editar Instructor{% else %}Crear cuenta de Instructor{% endif %}
+        </h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-4">
+                    {% for category, message in messages %}
+                        <div class="p-4 rounded-lg text-white 
+                            {% if category == 'success' %}bg-green-500
+                            {% elif category == 'danger' %}bg-red-500
+                            {% elif category == 'warning' %}bg-yellow-500
+                            {% else %}bg-blue-500{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('auth.instructor') if mode != 'edit' else url_for('instructor_bp.editar_instructor', id=instructor.id_instructor) }}" class="space-y-5">
+            <div class="flex items-center gap-4">
+                <label for="nombre_instructor" class="w-40 font-semibold text-gray-700">NOMBRES</label>
+                <input type="text" name="nombre_instructor" id="nombre_instructor" required class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400" value="{{ instructor.nombre_instructor if mode=='edit' else '' }}">
+            </div>
+            <div class="flex items-center gap-4">
+                <label for="apellido_instructor" class="w-40 font-semibold text-gray-700">APELLIDOS</label>
+                <input type="text" name="apellido_instructor" id="apellido_instructor" required class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400" value="{{ instructor.apellido_instructor if mode=='edit' else '' }}">
+            </div>
+            <div class="flex items-center gap-4">
+                <label for="tipo_documento" class="w-40 font-semibold text-gray-700">TIPO DE DOCUMENTO</label>
+                <select name="tipo_documento" id="tipo_documento" required class="w-28 rounded-lg border p-2 bg-white focus:ring-2 focus:ring-indigo-400">
+                    <option value="" disabled {% if mode != 'edit' %}selected{% endif %}>Elige una opción</option>
+                    <option value="CC" {% if mode=='edit' and instructor.tipo_documento=='CC' %}selected{% endif %}>Cédula de Ciudadanía (CC)</option>
+                    <option value="TI" {% if mode=='edit' and instructor.tipo_documento=='TI' %}selected{% endif %}>Tarjeta de Identidad (TI)</option>
+                    <option value="TE" {% if mode=='edit' and instructor.tipo_documento=='TE' %}selected{% endif %}>Cédula de Extranjería (TE)</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-4">
+                <label for="documento" class="w-40 font-semibold text-gray-700">DOCUMENTO</label>
+                <input type="text" name="documento" id="documento" required pattern="[0-9]+" class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400" value="{{ instructor.documento if mode=='edit' else '' }}">
+            </div>
+            <div class="flex items-center gap-4">
+                <label for="correo_instructor" class="w-40 font-semibold text-gray-700">EMAIL</label>
+                <input type="email" name="correo_instructor" id="correo_instructor" required class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400" value="{{ instructor.correo_instructor if mode=='edit' else '' }}">
+            </div>
+            <div class="flex items-center gap-4">
+                <label for="celular_instructor" class="w-40 font-semibold text-gray-700">CELULAR</label>
+                <input type="tel" name="celular_instructor" id="celular_instructor" required pattern="[0-9]{10}" class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400" value="{{ instructor.celular_instructor if mode=='edit' else '' }}">
+            </div>
+            <div class="flex items-center gap-4">
+                <label for="passwordInstructor" class="w-40 font-semibold text-gray-700">CONTRASEÑA</label>
+                <input type="password" name="passwordInstructor" id="passwordInstructor" class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400" {% if mode!='edit' %}required{% endif %}>
+            </div>
+            <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition">
+                {% if mode == 'edit' %}Actualizar{% else %}Registrar{% endif %}
+            </button>
+        </form>
     </div>
-  </header>
-
-  <!-- Contenido principal -->
-  <main class="max-w-7xl mx-auto px-6 py-8">
-    
-    <!-- Encabezado principal -->
-    <div class="mb-6">
-      <h2 class="text-2xl font-bold text-gray-800">Bienvenido, Instructor</h2>
-      <p class="text-gray-600">Gestiona tus cursos, estudiantes y actividades desde aquí.</p>
-    </div>
-
-    <!-- Botones de acciones rápidas -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <a href="#" class="bg-white shadow-lg p-6 rounded-lg text-center hover:shadow-xl transition">
-        <h3 class="text-lg font-semibold mb-2">Ver estudiantes</h3>
-        <p class="text-gray-500">Lista y detalles de los estudiantes.</p>
-      </a>
-      <a href="#" class="bg-white shadow-lg p-6 rounded-lg text-center hover:shadow-xl transition">
-        <h3 class="text-lg font-semibold mb-2">Agregar tarea</h3>
-        <p class="text-gray-500">Crea nuevas tareas para el curso.</p>
-      </a>
-      <a href="#" class="bg-white shadow-lg p-6 rounded-lg text-center hover:shadow-xl transition">
-        <h3 class="text-lg font-semibold mb-2">Revisar evidencias</h3>
-        <p class="text-gray-500">Ver y calificar los trabajos entregados.</p>
-      </a>
-    </div>
-
-   
-
-  </main>
-
 </body>
 </html>

@@ -7,45 +7,51 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-br from-blue-100 to-purple-200 min-h-screen flex items-center justify-center">
-
   <div class="bg-white shadow-lg rounded-xl w-full max-w-md p-8 space-y-6">
-    
     <h2 class="text-2xl font-bold text-center text-gray-800">Iniciar Sesión</h2>
-
+    
     {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="bg-{{ 'red' if category == 'danger' else 'green' }}-100 border border-{{ 'red' if category == 'danger' else 'green' }}-400 text-{{ 'red' if category == 'danger' else 'green' }}-700 px-4 py-3 rounded relative" role="alert">
-            <strong class="font-bold">{{ message }}</strong>
-          </div>
-        {% endfor %}
-      {% endif %}
+        {% if messages %}
+            <div class="mb-4">
+                {% for category, message in messages %}
+                    <div class="p-4 rounded-lg text-white 
+                        {% if category == 'success' %}bg-green-500
+                        {% elif category == 'danger' %}bg-red-500
+                        {% elif category == 'warning' %}bg-yellow-500
+                        {% else %}bg-blue-500{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
     {% endwith %}
 
     <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-4">
-
       <div>
-        <label for="nameUser" class="block text-sm font-medium text-gray-700">Usuario</label>
-        <input type="text" name="nameUser" id="nameUser" required
-               class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+        <label for="documento" class="block text-sm font-medium text-gray-700">Número de Documento</label>
+        <input type="text" name="documento" id="documento" required pattern="[0-9]+" title="Solo números"
+               class="mt-1 block w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
       </div>
-
       <div>
-        <label for="passwordUser" class="block text-sm font-medium text-gray-700">Contraseña</label>
-        <input type="password" name="passwordUser" id="passwordUser" required
-               class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+        <label for="password_aprendiz" class="block text-sm font-medium text-gray-700">Contraseña</label>
+        <input type="password" name="password_aprendiz" id="password_aprendiz" required minlength="8" title="Mínimo 8 caracteres"
+               class="mt-1 block w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
       </div>
-
-      <div class="flex justify-between items-center">
+      <div class="flex flex-col space-y-2">
         <button type="submit"
-                class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition duration-200">
+                class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition">
           Iniciar Sesión
         </button>
-        <a href="{{ url_for('auth.register') }}" class="text-sm text-indigo-600 hover:underline">¿No tienes cuenta?</a>
+        <a href="{{ url_for('auth.aprendiz') }}" 
+           class="text-sm text-indigo-600 hover:underline text-center">
+          ¿Eres aprendiz? Regístrate aquí
+        </a>
+        <a href="{{ url_for('auth.instructor') }}" 
+           class="text-sm text-purple-600 hover:underline text-center">
+          ¿Eres instructor? Regístrate aquí
+        </a>
       </div>
-
     </form>
   </div>
-
 </body>
 </html>

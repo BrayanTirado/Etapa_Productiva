@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Aprendiz</title>
+    <!-- TailwindCSS para estilos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<!-- Fondo con gradiente y centrado del contenido -->
+<body class="bg-gradient-to-br from-indigo-900 via-purple-900 to-gray-900 min-h-screen flex items-center justify-center p-4">
+
+    <!-- Contenedor principal del formulario -->
+    <div class="bg-white shadow-2xl rounded-xl p-8 w-full max-w-2xl transform transition-all hover:scale-[1.01] duration-300">
+        <h2 class="text-3xl font-extrabold text-center text-indigo-700 mb-8">Crear cuenta de Aprendiz</h2>
+
+        <!-- Mostrar mensajes flash (éxito, error, advertencia) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-4">
+                    {% for category, message in messages %}
+                        <div class="p-4 rounded-lg text-white 
+                            {% if category == 'success' %}bg-green-500
+                            {% elif category == 'danger' %}bg-red-500
+                            {% elif category == 'warning' %}bg-yellow-500
+                            {% else %}bg-blue-500{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Formulario de registro -->
+        <form method="post" action="{{ url_for('auth.aprendiz') }}" class="space-y-5">
+            
+            <!-- Nombres -->
+            <div class="flex items-center gap-4">
+                <label for="nombre" class="w-40 font-semibold text-gray-700">NOMBRES</label>
+                <input type="text" name="nombre" id="nombre" required class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400">
+            </div>
+
+            <!-- Apellidos -->
+            <div class="flex items-center gap-4">
+                <label for="apellido" class="w-40 font-semibold text-gray-700">APELLIDOS</label>
+                <input type="text" name="apellido" id="apellido" required class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400">
+            </div>
+
+            <!-- Tipo Documento -->
+            <div class="flex items-center gap-4">
+                <label for="tipo_documento" class="w-40 font-semibold text-gray-700">TIPO DE DOCUMENTO</label>
+                <select name="tipo_documento" id="tipo_documento" required class="w-28 rounded-lg border p-2 bg-white focus:ring-2 focus:ring-indigo-400">
+                    <option value="" disabled selected>Elige una opción</option>
+                    <option value="CC">Cédula de Ciudadanía (CC)</option>
+                    <option value="TI">Tarjeta de Identidad (TI)</option>
+                    <option value="TE">Cédula de Extranjería (TE)</option>
+                </select>
+            </div>
+
+            <!-- Documento -->
+            <div class="flex items-center gap-4">
+                <label for="documento" class="w-40 font-semibold text-gray-700">DOCUMENTO</label>
+                <input type="text" name="documento" id="documento" required pattern="[0-9]+" title="Solo números" class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400">
+            </div>
+
+            <!-- Email -->
+            <div class="flex items-center gap-4">
+                <label for="email" class="w-40 font-semibold text-gray-700">EMAIL</label>
+                <input type="email" name="email" id="email" required class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400">
+            </div>
+
+            <!-- Celular -->
+            <div class="flex items-center gap-4">
+                <label for="celular" class="w-40 font-semibold text-gray-700">CELULAR</label>
+                <input type="tel" name="celular" id="celular" required pattern="[0-9]{10}" title="Debe contener 10 dígitos" class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400">
+            </div>
+
+            <!-- Ficha -->
+            <div class="flex items-center gap-4">
+                <label for="ficha" class="w-40 font-semibold text-gray-700">FICHA</label>
+                <input type="number" name="ficha" id="ficha" required min="1" class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400">
+            </div>
+
+            <!-- Contrato -->
+            <div class="flex items-center gap-4">
+                <label for="contrato_id_contrato" class="w-40 font-semibold text-gray-700">ID CONTRATO</label>
+                <input type="number" name="contrato_id_contrato" id="contrato_id_contrato" required min="1" class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400">
+            </div>
+
+            <!-- Contraseña -->
+            <div class="flex items-center gap-4">
+                <label for="password_aprendiz" class="w-40 font-semibold text-gray-700">CONTRASEÑA</label>
+                <input type="password" name="password_aprendiz" id="password_aprendiz" required minlength="8" title="Mínimo 8 caracteres" class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400">
+            </div>
+
+            <!-- Botón de envío -->
+            <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition">
+                Registrar
+            </button>
+        </form>
+
+        <!-- Enlace a login si ya tiene cuenta -->
+        <p class="mt-6 text-sm text-center text-gray-600">
+            ¿Ya tienes una cuenta? 
+            <a href="{{ url_for('auth.login') }}" class="text-indigo-600 font-semibold hover:underline">Inicia sesión aquí</a>
+        </p>
+    </div>
+
+</body>
+</html>
