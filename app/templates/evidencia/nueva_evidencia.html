@@ -2,33 +2,57 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Nueva Evidencia</title>
+    <title>Subir Evidencia</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 p-6">
     <div class="max-w-2xl mx-auto bg-white shadow rounded-lg p-6">
-        <h1 class="text-xl font-bold mb-4">Registrar Nueva Evidencia</h1>
-        <form method="POST" enctype="multipart/form-data">
-            <label class="block mb-2">Nombre del Archivo</label>
-            <input type="text" name="nombre_archivo" required class="w-full border p-2 rounded mb-4">
+        <h1 class="text-2xl font-bold mb-4">Subir Evidencia de {{ tipo }}</h1>
 
-            <label class="block mb-2">Formato</label>
-            <input type="text" name="formato" required class="w-full border p-2 rounded mb-4">
+        <!-- Mensajes flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="mb-4 p-3 rounded 
+                        {% if category == 'success' %}bg-green-100 text-green-800
+                        {% elif category == 'danger' %}bg-red-100 text-red-800
+                        {% elif category == 'warning' %}bg-yellow-100 text-yellow-800
+                        {% else %}bg-blue-100 text-blue-800{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
-            <label class="block mb-2">Archivo</label>
-            <input type="file" name="archivo" required class="w-full border p-2 rounded mb-4">
+        <!-- Formulario de subida -->
+        <form action="{{ url_for('evidencia_bp.upload_evidencia', tipo=tipo|lower) }}" 
+              method="POST" enctype="multipart/form-data">
 
-            <label class="block mb-2">Fecha de Subida</label>
-            <input type="date" name="fecha_subida" required class="w-full border p-2 rounded mb-4">
+            <!-- Subir archivo -->
+            <div class="mb-4">
+                <label for="archivo" class="block font-medium mb-1">Selecciona tu archivo ({{ tipo }}):</label>
+                <input type="file" name="archivo" id="archivo" 
+                       class="border rounded p-2 w-full" required>
+            </div>
 
-            <label class="block mb-2">Tipo</label>
-            <input type="text" name="tipo" required class="w-full border p-2 rounded mb-4">
+            <!-- Nota -->
+            <div class="mb-4">
+                <label for="nota" class="block font-medium mb-1">Nota (opcional):</label>
+                <textarea name="nota" id="nota" rows="3" 
+                          class="border rounded p-2 w-full"></textarea>
+            </div>
 
-            <label class="block mb-2">ID Aprendiz</label>
-            <input type="number" name="aprendiz_id_aprendiz" required class="w-full border p-2 rounded mb-4">
-
-            <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Guardar</button>
-            <a href="{{ url_for('evidencia_bp.listar_evidencias') }}" class="ml-2 text-gray-600">Cancelar</a>
+            <!-- Botones -->
+            <div class="flex justify-between">
+                <a href="{{ url_for('evidencia_bp.mis_evidencias') }}" 
+                   class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                    ← Cancelar
+                </a>
+                <button type="submit" 
+                        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    Subir Evidencia
+                </button>
+            </div>
         </form>
     </div>
 </body>

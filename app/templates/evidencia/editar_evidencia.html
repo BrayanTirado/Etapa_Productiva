@@ -6,29 +6,47 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 p-6">
-    <div class="max-w-2xl mx-auto bg-white shadow rounded-lg p-6">
-        <h1 class="text-xl font-bold mb-4">Editar Evidencia</h1>
-        <form method="POST">
-            <label class="block mb-2">Nombre del Archivo</label>
-            <input type="text" name="nombre_archivo" value="{{ evidencia.nombre_archivo }}" required class="w-full border p-2 rounded mb-4">
+    <div class="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow">
+        <h1 class="text-2xl font-bold mb-4">Editar Evidencia</h1>
 
-            <label class="block mb-2">Formato</label>
-            <input type="text" name="formato" value="{{ evidencia.formato }}" required class="w-full border p-2 rounded mb-4">
+        <form action="{{ url_for('evidencia_bp.editar_evidencia', id=evidencia.id_evidencia) }}" method="POST" enctype="multipart/form-data">
+            
+            <!-- Archivo actual -->
+            <div class="mb-4">
+                <label class="block font-medium mb-1">Archivo actual:</label>
+                {% if evidencia.nombre_archivo %}
+                    <a href="{{ url_for('evidencia_bp.serve_file', id=evidencia.id_evidencia) }}" 
+                       target="_blank" 
+                       class="text-blue-600 underline hover:text-blue-800">
+📄 {{ evidencia.nombre_archivo.split('_', 1)[-1].rsplit('.', 1)[0] }}
+                    </a>
+                {% else %}
+                    <p class="text-gray-500">No hay archivo asociado</p>
+                {% endif %}
+            </div>
 
-            <label class="block mb-2">URL del Archivo</label>
-            <input type="text" name="url_archivo" value="{{ evidencia.url_archivo }}" required class="w-full border p-2 rounded mb-4">
+            <!-- Subir nuevo archivo -->
+            <div class="mb-4">
+                <label for="archivo" class="block font-medium mb-1">Actualizar archivo (opcional):</label>
+                <input type="file" name="archivo" id="archivo" class="border rounded p-2 w-full">
+            </div>
 
-            <label class="block mb-2">Fecha de Subida</label>
-            <input type="date" name="fecha_subida" value="{{ evidencia.fecha_subida }}" required class="w-full border p-2 rounded mb-4">
+            <!-- Nota -->
+            <div class="mb-4">
+                <label for="nota" class="block font-medium mb-1">Nota:</label>
+                <textarea name="nota" id="nota" class="border rounded p-2 w-full" rows="3">{{ evidencia.nota }}</textarea>
+            </div>
 
-            <label class="block mb-2">Tipo</label>
-            <input type="text" name="tipo" value="{{ evidencia.tipo }}" required class="w-full border p-2 rounded mb-4">
-
-            <label class="block mb-2">ID Aprendiz</label>
-            <input type="number" name="aprendiz_id_aprendiz" value="{{ evidencia.aprendiz_id_aprendiz }}" required class="w-full border p-2 rounded mb-4">
-
-            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Actualizar</button>
-            <a href="{{ url_for('evidencia_bp.listar_evidencias') }}" class="ml-2 text-gray-600">Cancelar</a>
+            <!-- Botones -->
+            <div class="flex justify-between mt-6">
+                <a href="{{ url_for('evidencia_bp.listar_evidencias') }}" 
+                   class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                    Cancelar
+                </a>
+                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    Guardar cambios
+                </button>
+            </div>
         </form>
     </div>
 </body>

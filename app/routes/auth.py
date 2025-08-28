@@ -4,6 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from app.models.users import Aprendiz, Instructor   
 from app import db
 from sqlalchemy.exc import IntegrityError
+from datetime import datetime  
 
 # Blueprint para manejar autenticación (rutas bajo /auth)
 bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -42,8 +43,6 @@ def login():
     return render_template('login.html')
 
 # --- DASHBOARD ---
-from datetime import datetime  
-
 @bp.route('/dashboard')
 @login_required
 def dashboard():
@@ -73,20 +72,13 @@ def aprendiz():
         email = request.form.get('email')
         celular = request.form.get('celular')
         ficha = request.form.get('ficha')
-        contrato_id_contrato = request.form.get('contrato_id_contrato')
         password_aprendiz = request.form.get('password_aprendiz')
 
         # Validación de campos obligatorios
-        if not all([nombre, apellido, tipo_documento, documento, email, celular, ficha, contrato_id_contrato, password_aprendiz]):
+        if not all([nombre, apellido, tipo_documento, documento, email, celular, ficha, password_aprendiz]):
             flash('Todos los campos son obligatorios.', 'warning')
             return redirect(url_for('auth.aprendiz'))
 
-        try:
-            ficha = int(ficha)
-            contrato_id_contrato = int(contrato_id_contrato)
-        except ValueError:
-            flash('La ficha y el ID del contrato deben ser números válidos.', 'danger')
-            return redirect(url_for('auth.aprendiz'))
 
         hashed_password = generate_password_hash(password_aprendiz)
 
@@ -98,7 +90,6 @@ def aprendiz():
             email=email,
             celular=celular,
             ficha=ficha,
-            contrato_id_contrato=contrato_id_contrato,
             password_aprendiz=hashed_password
         )
 
@@ -106,10 +97,6 @@ def aprendiz():
             db.session.add(nuevo)
             db.session.commit()
             flash('Aprendiz creado exitosamente.', 'success')
-
-            # Opcional: loguear inmediatamente al aprendiz después de registrarse
-            # login_user(nuevo)
-
             return redirect(url_for('auth.login'))
         except IntegrityError:
             db.session.rollback()
@@ -120,14 +107,13 @@ def aprendiz():
             flash(f'Error al crear el aprendiz: {str(e)}', 'danger')
             return redirect(url_for('auth.aprendiz'))
 
-    return render_template('aprendiz.html')  # ⚠ template en minúscula para consistencia
+    return render_template('aprendiz.html')  
 
 
 # --- REGISTRO DE INSTRUCTOR ---
 @bp.route('/instructor', methods=['GET', 'POST'])
 def instructor():
     if request.method == 'POST':
-        # 🔹 Usar los mismos nombres que los inputs en instructor.html
         nombre = request.form.get('nombre_instructor')
         apellido = request.form.get('apellido_instructor')
         tipo_documento = request.form.get('tipo_documento')
@@ -141,10 +127,9 @@ def instructor():
             flash('Todos los campos son obligatorios.', 'warning')
             return redirect(url_for('auth.instructor'))
 
-        # Generar hash de la contraseña
+
         hashed_password = generate_password_hash(password)
 
-        # Crear nuevo instructor
         nuevo = Instructor(
             nombre_instructor=nombre,
             apellido_instructor=apellido,
@@ -170,6 +155,3 @@ def instructor():
             return redirect(url_for('auth.instructor'))
 
     return render_template('instructor.html')
-
-
-

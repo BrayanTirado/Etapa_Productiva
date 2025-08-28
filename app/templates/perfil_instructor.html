@@ -13,9 +13,56 @@
             Perfil del Instructor
         </h2>
 
+        {% if mode == 'edit' %}
+        <!-- Formulario de edición -->
+        <form method="POST" action="{{ url_for('instructor_bp.editar_instructor', id=instructor.id_instructor) }}" class="space-y-4 text-gray-700">
+            <div>
+                <label class="font-semibold">Nombres:</label>
+                <input type="text" name="nombre_instructor" value="{{ instructor.nombre_instructor }}" class="w-full border rounded px-2 py-1">
+            </div>
+            <div>
+                <label class="font-semibold">Apellidos:</label>
+                <input type="text" name="apellido_instructor" value="{{ instructor.apellido_instructor }}" class="w-full border rounded px-2 py-1">
+            </div>
+            <div>
+                <label class="font-semibold">Tipo de documento:</label>
+                <select name="tipo_documento" class="w-full border rounded px-2 py-1">
+                    <option value="CC" {% if instructor.tipo_documento == 'CC' %}selected{% endif %}>Cédula de Ciudadanía (CC)</option>
+                    <option value="TI" {% if instructor.tipo_documento == 'TI' %}selected{% endif %}>Tarjeta de Identidad (TI)</option>
+                    <option value="TE" {% if instructor.tipo_documento == 'TE' %}selected{% endif %}>Cédula de Extranjería (TE)</option>
+                </select>
+            </div>
+            <div>
+                <label class="font-semibold">Documento:</label>
+                <input type="text" name="documento" value="{{ instructor.documento }}" class="w-full border rounded px-2 py-1">
+            </div>
+            <div>
+                <label class="font-semibold">Email:</label>
+                <input type="email" name="correo_instructor" value="{{ instructor.correo_instructor }}" class="w-full border rounded px-2 py-1">
+            </div>
+            <div>
+                <label class="font-semibold">Celular:</label>
+                <input type="text" name="celular_instructor" value="{{ instructor.celular_instructor }}" class="w-full border rounded px-2 py-1">
+            </div>
+            <div>
+                <label class="font-semibold">Contraseña (dejar vacío si no cambia):</label>
+                <input type="password" name="passwordInstructor" class="w-full border rounded px-2 py-1">
+            </div>
+
+            <div class="mt-4 flex justify-between">
+                <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">Guardar Cambios</button>
+                <a href="{{ url_for('instructor_bp.perfil_instructor') }}" 
+                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+
+        {% else %}
+        <!-- Modo solo visualización -->
         <div class="space-y-4 text-gray-700">
-            <p><strong>Nombre:</strong> {{ instructor.nombre_instructor }}</p>
-            <p><strong>Apellido:</strong> {{ instructor.apellido_instructor }}</p>
+            <p><strong>Nombres:</strong> {{ instructor.nombre_instructor }}</p>
+            <p><strong>Apellidos:</strong> {{ instructor.apellido_instructor }}</p>
             <p><strong>Tipo de documento:</strong> {{ instructor.tipo_documento }}</p>
             <p><strong>Documento:</strong> {{ instructor.documento }}</p>
             <p><strong>Email:</strong> {{ instructor.correo_instructor }}</p>
@@ -23,15 +70,18 @@
         </div>
 
         <div class="mt-8 flex justify-between">
-            <a href="{{ url_for('instructor_bp.editar_instructor', id=instructor.id_instructor) }}" 
+            <a href="{{ url_for('instructor_bp.editar_instructor', id=instructor.id_instructor) }}"
                class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">
-                Editar Perfil
+               Editar Perfil
             </a>
-            <a href="{{ url_for('index_bp.index') }}" 
+
+            <a href="{{ url_for('auth.dashboard') }}" 
                class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
                 Volver
             </a>
         </div>
+        {% endif %}
+
     </div>
 
 </body>

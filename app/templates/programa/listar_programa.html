@@ -6,45 +6,78 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 p-6">
-    <div class="max-w-4xl mx-auto bg-white shadow rounded-lg p-6">
-        <h1 class="text-2xl font-bold mb-4">Programas Registrados</h1>
+    <div class="max-w-5xl mx-auto bg-white shadow-lg rounded-lg p-6">
+        <h1 class="text-2xl font-bold mb-6 text-gray-800">📋 Programas Registrados</h1>
 
-        <a href="{{ url_for('programa_bp.nuevo_programa') }}" 
-           class="bg-green-500 text-white px-4 py-2 rounded shadow hover:bg-green-600">
-            Nuevo Programa
-        </a>
+        <!-- Mensajes flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="mb-4 p-4 rounded {% if category == 'success' %}bg-green-100 text-green-800{% elif category == 'danger' %}bg-red-100 text-red-800{% elif category == 'warning' %}bg-yellow-100 text-yellow-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Botón Nuevo Programa -->
+        <div class="mb-4">
+            <a href="{{ url_for('programa_bp.nuevo_programa') }}" 
+               class="bg-green-500 text-white px-4 py-2 rounded shadow hover:bg-green-600 transition">
+                Nuevo Programa
+            </a>
+        </div>
 
         {% if programas %}
-            <table class="mt-6 w-full border-collapse border border-gray-300">
-                <thead class="bg-gray-200">
-                    <tr>
-                        <th class="border p-2">ID</th>
-                        <th class="border p-2">Nombre</th>
-                        <th class="border p-2">Nivel</th>
-                        <th class="border p-2">Jornada</th>
-                        <th class="border p-2">Centro</th>
-                        <th class="border p-2">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for programa in programas %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="border p-2">{{ programa.id_programa }}</td>
-                        <td class="border p-2">{{ programa.nombre_programa }}</td>
-                        <td class="border p-2">{{ programa.nivel }}</td>
-                        <td class="border p-2">{{ programa.jornada }}</td>
-                        <td class="border p-2">{{ programa.centro_formacion }}</td>
-                        <td class="border p-2">
-                            <a href="{{ url_for('programa_bp.editar_programa', id=programa.id_programa) }}" class="text-blue-500">Editar</a> |
-                            <a href="{{ url_for('programa_bp.eliminar_programa', id=programa.id_programa) }}" class="text-red-500" onclick="return confirm('¿Seguro de eliminar?')">Eliminar</a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="overflow-x-auto">
+                <table class="w-full border border-gray-200 rounded-lg overflow-hidden">
+                    <thead class="bg-gray-200 text-gray-700">
+                        <tr>
+                            <th class="border p-3 text-left">ID</th>
+                            <th class="border p-3 text-left">Nombre</th>
+                            <th class="border p-3 text-left">Título</th>
+                            <th class="border p-3 text-left">Jornada</th>
+                            <th class="border p-3 text-left">Centro de Formación</th>
+                            <th class="border p-3 text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for programa in programas %}
+                        <tr class="hover:bg-gray-50 even:bg-gray-100">
+                            <td class="border p-3">{{ programa.id_programa }}</td>
+                            <td class="border p-3">{{ programa.nombre_programa }}</td>
+                            <td class="border p-3">{{ programa.titulo }}</td>
+                            <td class="border p-3">{{ programa.jornada }}</td>
+                            <td class="border p-3">{{ programa.centro_formacion }}</td>
+                            <td class="border p-3 text-center">
+                                <div class="flex justify-center space-x-4">
+                                    <a href="{{ url_for('programa_bp.editar_programa', id=programa.id_programa) }}" 
+                                       class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 transition">
+                                       Editar
+                                    </a>
+                                    <a href="{{ url_for('programa_bp.eliminar_programa', id=programa.id_programa) }}" 
+                                       class="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600 transition"
+                                       onclick="return confirm('¿Seguro de eliminar este programa?')">
+                                       Eliminar
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         {% else %}
-            <p class="mt-4 text-gray-600">No hay programas registrados aún.</p>
+            <p class="mt-6 text-gray-600 text-center">⚠️ No hay programas registrados aún.</p>
         {% endif %}
+
+        <!-- Botón Volver -->
+        <div class="mt-6 text-center">
+            <a href="{{ url_for('auth.dashboard') }}" 
+               class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
+               ⬅️ Volver
+            </a>
+        </div>
     </div>
 </body>
 </html>

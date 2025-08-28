@@ -1,5 +1,3 @@
-# Rutas CRUD de Aprendiz (Create, Update, Delete y Perfil)
-
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app.models.users import Aprendiz
@@ -9,7 +7,6 @@ from sqlalchemy.exc import IntegrityError
 
 # Blueprint para aprendices
 bp = Blueprint('aprendiz_bp', __name__, url_prefix='/aprendiz')
-
 
 # ---- CREAR NUEVO APRENDIZ ----
 @bp.route('/nuevo', methods=['GET', 'POST'])
@@ -23,19 +20,10 @@ def nuevo_aprendiz():
         email = request.form.get('email')
         celular = request.form.get('celular')
         ficha = request.form.get('ficha')
-        contrato_id_contrato = request.form.get('contrato_id_contrato')
         password_aprendiz = request.form.get('password_aprendiz')
 
-        # Validar que los campos estén completos
-        if not all([nombre, apellido, tipo_documento, documento, email, celular, ficha, contrato_id_contrato, password_aprendiz]):
+        if not all([nombre, apellido, tipo_documento, documento, email, celular, ficha, password_aprendiz]):
             flash('Todos los campos son obligatorios.', 'warning')
-            return redirect(url_for('aprendiz_bp.nuevo_aprendiz'))
-
-        try:
-            ficha = int(ficha)
-            contrato_id_contrato = int(contrato_id_contrato)
-        except ValueError:
-            flash('Ficha y contrato deben ser números válidos.', 'danger')
             return redirect(url_for('aprendiz_bp.nuevo_aprendiz'))
 
         hashed_password = generate_password_hash(password_aprendiz)
@@ -48,7 +36,6 @@ def nuevo_aprendiz():
             email=email,
             celular=celular,
             ficha=ficha,
-            contrato_id_contrato=contrato_id_contrato,
             password_aprendiz=hashed_password
         )
 
@@ -66,8 +53,7 @@ def nuevo_aprendiz():
             flash(f'Error al crear el aprendiz: {str(e)}', 'danger')
             return redirect(url_for('aprendiz_bp.nuevo_aprendiz'))
 
-    return render_template('aprendiz/nuevo.html')  # Asegúrate de tener este template
-
+    return render_template('aprendiz/nuevo.html')  
 
 # ---- EDITAR APRENDIZ ----
 @bp.route('/editar/<int:id>', methods=['GET', 'POST'])
@@ -75,29 +61,36 @@ def nuevo_aprendiz():
 def editar_aprendiz(id):
     aprendiz = Aprendiz.query.get_or_404(id)
 
+    # Opciones válidas (tienen que coincidir EXACTO con lo que tienes en tu modelo Enum)
+    tipos_documento = [
+        'Cedula de Ciudadania',
+        'Tarjeta de Identidad',
+        'Cedula Extrangeria',
+        'Registro Civil'
+    ]
+    fichas = ['2931558', '2674567', '5434234']
+
     if request.method == 'POST':
-        nombre = request.form.get('nombre')
-        apellido = request.form.get('apellido')
+        nombre = request.form.get('nombre', '').strip()
+        apellido = request.form.get('apellido', '').strip()
         tipo_documento = request.form.get('tipo_documento')
-        documento = request.form.get('documento')
-        email = request.form.get('email')
-        celular = request.form.get('celular')
+        documento = request.form.get('documento', '').strip()
+        email = request.form.get('email', '').strip()
+        celular = request.form.get('celular', '').strip()
         ficha = request.form.get('ficha')
-        contrato_id_contrato = request.form.get('contrato_id_contrato')
-        password_aprendiz = request.form.get('password_aprendiz')
+        password_aprendiz = request.form.get('password_aprendiz', '').strip()
 
-        if not all([nombre, apellido, tipo_documento, documento, email, celular, ficha, contrato_id_contrato]):
-            flash('Faltan campos obligatorios.', 'warning')
+        # Validación de campos obligatorios
+        if not all([nombre, apellido, tipo_documento, documento, email, celular, ficha]):
+            flash('⚠️ Faltan campos obligatorios.', 'warning')
             return redirect(url_for('aprendiz_bp.editar_aprendiz', id=id))
 
-        try:
-            ficha = int(ficha)
-            contrato_id_contrato = int(contrato_id_contrato)
-        except ValueError:
-            flash('Ficha y contrato deben ser numéricos.', 'danger')
+        # Validar que los valores estén dentro de los permitidos
+        if tipo_documento not in tipos_documento or ficha not in fichas:  # Corregido
+            flash('❌ Valor de tipo de documento o ficha inválido.', 'danger')
             return redirect(url_for('aprendiz_bp.editar_aprendiz', id=id))
 
-        # Actualizar datos
+        # Actualizar datos en el objeto
         aprendiz.nombre = nombre
         aprendiz.apellido = apellido
         aprendiz.tipo_documento = tipo_documento
@@ -105,25 +98,30 @@ def editar_aprendiz(id):
         aprendiz.email = email
         aprendiz.celular = celular
         aprendiz.ficha = ficha
-        aprendiz.contrato_id_contrato = contrato_id_contrato
+
+        # Si se proporciona contraseña, actualizarla
         if password_aprendiz:
             aprendiz.password_aprendiz = generate_password_hash(password_aprendiz)
 
         try:
             db.session.commit()
-            flash('Aprendiz actualizado correctamente.', 'success')
-            # Redirige a la lista de estudiantes o al perfil del aprendiz según tu flujo
-            return redirect(url_for('estudiantes_bp.listar_estudiantes'))
+            flash('✅ Aprendiz actualizado correctamente.', 'success')
+            return redirect(url_for('aprendiz_bp.perfil_aprendiz'))  # Corregido: blueprint 'estudiantes'
         except IntegrityError:
             db.session.rollback()
-            flash('Documento, email o celular duplicado.', 'danger')
+            flash('⚠️ Documento, email o celular duplicado.', 'danger')
         except Exception as e:
             db.session.rollback()
-            flash(f'Error: {str(e)}', 'danger')
+            flash(f'❌ Error: {str(e)}', 'danger')
 
-    # Reutilizamos el perfil para la edición
-    return render_template('perfil_aprendiz.html', aprendiz=aprendiz, mode='edit')
-
+    # Renderizar plantilla
+    return render_template(
+        'perfil_aprendiz.html',
+        aprendiz=aprendiz,
+        mode='edit',
+        tipos_documento=tipos_documento,
+        fichas=fichas
+    )
 
 # ---- ELIMINAR APRENDIZ ----
 @bp.route('/eliminar/<int:id>')
@@ -137,8 +135,7 @@ def eliminar_aprendiz(id):
     except Exception as e:
         db.session.rollback()
         flash(f'Error: {str(e)}', 'danger')
-    return redirect(url_for('estudiantes_bp.listar_estudiantes'))
-
+    return redirect(url_for('estudiantes.listar_estudiantes'))  # Corregido: blueprint 'estudiantes'
 
 # ---- PERFIL DEL APRENDIZ ----
 @bp.route('/perfil')
@@ -146,5 +143,5 @@ def eliminar_aprendiz(id):
 def perfil_aprendiz():
     if not hasattr(current_user, "id_aprendiz"):
         flash("No tienes permiso para acceder a este perfil.", "danger")
-        return redirect(url_for("auth.dashboard"))  # Redirigir a un dashboard seguro
+        return redirect(url_for("auth.dashboard"))
     return render_template("perfil_aprendiz.html", aprendiz=current_user)

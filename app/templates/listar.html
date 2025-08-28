@@ -25,13 +25,22 @@
         {% endwith %}
 
         <!-- Filtro por ficha -->
-        <div class="mb-4 flex items-center gap-4">
-            <label for="ficha" class="text-sm font-semibold text-gray-700">Filtrar por Ficha:</label>
-            <input type="number" id="ficha" name="ficha" value="{{ ficha or '' }}" class="rounded-lg border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400 p-2">
-            <button id="filtrar" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition duration-200">
-                Filtrar
-            </button>
-        </div>
+        <div class="mb-4 flex items-center justify-between">
+    <div class="flex items-center gap-4">
+        <label for="ficha" class="text-sm font-semibold text-gray-700">Filtrar por Ficha:</label>
+        <input type="number" id="ficha" name="ficha" value="{{ ficha or '' }}" class="rounded-lg border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400 p-2">
+        <button id="filtrar" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition duration-200">
+            Filtrar
+        </button>     
+    </div>
+
+    <a href="{{ url_for('auth.dashboard') }}" 
+       class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">
+        Volver
+    </a>
+</div>
+
+
 
         <!-- Tabla de estudiantes -->
         <table id="tabla-estudiantes" class="w-full border-collapse">
