@@ -63,7 +63,7 @@ def logout():
 
 # --- REGISTRO DE APRENDIZ ---
 @bp.route('/aprendiz', methods=['GET', 'POST'])
-def aprendiz():
+def registro_aprendiz():
     if request.method == 'POST':
         nombre = request.form.get('nombre')
         apellido = request.form.get('apellido')
