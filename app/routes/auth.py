@@ -77,8 +77,7 @@ def registro_aprendiz():
         # Validación de campos obligatorios
         if not all([nombre, apellido, tipo_documento, documento, email, celular, ficha, password_aprendiz]):
             flash('Todos los campos son obligatorios.', 'warning')
-            return redirect(url_for('auth.aprendiz'))
-
+            return redirect(url_for('auth.registro_aprendiz'))
 
         hashed_password = generate_password_hash(password_aprendiz)
 
@@ -101,13 +100,14 @@ def registro_aprendiz():
         except IntegrityError:
             db.session.rollback()
             flash('Error: Ya existe un aprendiz con ese documento, email o celular.', 'danger')
-            return redirect(url_for('auth.aprendiz'))
+            return redirect(url_for('auth.registro_aprendiz'))
         except Exception as e:
             db.session.rollback()
             flash(f'Error al crear el aprendiz: {str(e)}', 'danger')
-            return redirect(url_for('auth.aprendiz'))
+            return redirect(url_for('auth.registro_aprendiz'))
 
-    return render_template('aprendiz.html')  
+    return render_template('aprendiz.html')
+  
 
 
 # --- REGISTRO DE INSTRUCTOR ---

@@ -82,12 +82,12 @@ def editar_aprendiz(id):
 
         # Validación de campos obligatorios
         if not all([nombre, apellido, tipo_documento, documento, email, celular, ficha]):
-            flash('⚠️ Faltan campos obligatorios.', 'warning')
+            flash('Faltan campos obligatorios.', 'warning')
             return redirect(url_for('aprendiz_bp.editar_aprendiz', id=id))
 
         # Validar que los valores estén dentro de los permitidos
         if tipo_documento not in tipos_documento or ficha not in fichas:  # Corregido
-            flash('❌ Valor de tipo de documento o ficha inválido.', 'danger')
+            flash('Valor de tipo de documento o ficha inválido.', 'danger')
             return redirect(url_for('aprendiz_bp.editar_aprendiz', id=id))
 
         # Actualizar datos en el objeto
@@ -105,14 +105,14 @@ def editar_aprendiz(id):
 
         try:
             db.session.commit()
-            flash('✅ Aprendiz actualizado correctamente.', 'success')
+            flash('Aprendiz actualizado correctamente.', 'success')
             return redirect(url_for('aprendiz_bp.perfil_aprendiz'))  # Corregido: blueprint 'estudiantes'
         except IntegrityError:
             db.session.rollback()
-            flash('⚠️ Documento, email o celular duplicado.', 'danger')
+            flash('Documento, email o celular duplicado.', 'danger')
         except Exception as e:
             db.session.rollback()
-            flash(f'❌ Error: {str(e)}', 'danger')
+            flash(f'Error: {str(e)}', 'danger')
 
     # Renderizar plantilla
     return render_template(
