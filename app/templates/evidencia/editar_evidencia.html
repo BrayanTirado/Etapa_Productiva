@@ -18,7 +18,7 @@
                     <a href="{{ url_for('evidencia_bp.serve_file', id=evidencia.id_evidencia) }}" 
                        target="_blank" 
                        class="text-blue-600 underline hover:text-blue-800">
-📄 {{ evidencia.nombre_archivo.split('_', 1)[-1].rsplit('.', 1)[0] }}
+📄 {{ evidencia.nombre_archivo.split('_', 1)[-1] }}
                     </a>
                 {% else %}
                     <p class="text-gray-500">No hay archivo asociado</p>
@@ -28,7 +28,7 @@
             <!-- Subir nuevo archivo -->
             <div class="mb-4">
                 <label for="archivo" class="block font-medium mb-1">Actualizar archivo (opcional):</label>
-                <input type="file" name="archivo" id="archivo" class="border rounded p-2 w-full">
+                <input type="file" name="archivo" id="archivo" class="border rounded p-2 w-full" accept=".doc,.docx,.xls,.xlsx,.pdf">
             </div>
 
             <!-- Nota -->

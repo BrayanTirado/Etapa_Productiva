@@ -5,6 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Instructor</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Estilos para el modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .modal-content h3 {
+            margin-top: 0;
+            color: #1f2937;
+        }
+        .modal-content button {
+            background-color: #ef4444;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .modal-content button:hover {
+            background-color: #dc2626;
+        }
+    </style>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
 
@@ -32,9 +70,7 @@
         <div class="bg-white rounded-xl shadow-lg p-6 w-full md:w-1/3">
             <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">CALENDARIO</h2>
 
-            <!-- Selección de mes -->
             <div class="w-full max-w-lg mx-auto bg-white rounded-2xl shadow-xl p-6 mt-8">
-                <!-- Controles del calendario -->
                 <div class="flex justify-between items-center bg-blue-50 px-4 py-3 rounded-lg mb-4">
                     <button id="mesAnterior" class="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-300 ease-in-out">&lt;</button>
                     <select id="mes" class="border border-gray-200 bg-white rounded-lg px-3 py-2 text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-blue-400">
@@ -54,7 +90,6 @@
                     <button id="mesSiguiente" class="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-300 ease-in-out">&gt;</button>
                 </div>
 
-                <!-- Días de la semana -->
                 <div class="grid grid-cols-7 text-center text-gray-700 font-semibold border-b border-gray-200 mb-2">
                     <div class="p-3">Lun</div>
                     <div class="p-3">Mar</div>
@@ -65,7 +100,6 @@
                     <div class="p-3 text-red-500">Dom</div>
                 </div>
 
-                <!-- Fechas -->
                 <div id="calendario" class="grid grid-cols-7 gap-0 text-center"></div>
             </div>
         </div>
@@ -76,82 +110,140 @@
                 <span class="transform -rotate-45">ESTUDIANTES</span>
             </a>
             <a href="{{ url_for('instructor_bp.perfil_instructor') }}" 
-   class="w-40 h-40 bg-green-300 rounded-xl transform rotate-45 shadow-lg flex items-center justify-center text-gray-800 font-semibold hover:bg-green-400 transition">
-    <span class="transform -rotate-45">PERFIL</span>
-</a>
-
+               class="w-40 h-40 bg-green-300 rounded-xl transform rotate-45 shadow-lg flex items-center justify-center text-gray-800 font-semibold hover:bg-green-400 transition">
+                <span class="transform -rotate-45">PERFIL</span>
+            </a>
         </div>
     </main>
 
-    <!-- Footer decorativo -->
+    <!-- Modal para mostrar detalles del evento -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h3>Detalles del Aprendiz</h3>
+            <div id="modal-body"></div>
+            <button onclick="cerrarModal()">Cerrar</button>
+        </div>
+    </div>
+
     <footer class="mt-auto h-10">
         <div class="w-full h-full bg-gradient-to-r from-green-300 via-green-400 to-green-500 rounded-t-full"></div>
     </footer>
 
     <script>
-        const calendario = document.getElementById("calendario");
-        const mesSelect = document.getElementById("mes");
-        const btnAnterior = document.getElementById("mesAnterior");
-        const btnSiguiente = document.getElementById("mesSiguiente");
+    const calendario = document.getElementById("calendario");
+    const mesSelect = document.getElementById("mes");
+    const btnAnterior = document.getElementById("mesAnterior");
+    const btnSiguiente = document.getElementById("mesSiguiente");
+    const modal = document.getElementById("modal");
+    const modalBody = document.getElementById("modal-body");
 
-        const fechaHoy = new Date();
-        let mesActual = fechaHoy.getMonth();
-        let añoActual = fechaHoy.getFullYear();
+    const fechaHoy = new Date();
+    let mesActual = fechaHoy.getMonth();
+    let añoActual = fechaHoy.getFullYear();
 
-        function generarCalendario(mes) {
-            calendario.innerHTML = "";
-            const primerDia = new Date(añoActual, mes, 1).getDay();
-            const diasMes = new Date(añoActual, mes + 1, 0).getDate();
-            let inicio = primerDia === 0 ? 6 : primerDia - 1;
+    // Eventos recibidos desde Flask
+    const eventos = {{ eventos|tojson }};
 
-            // Espacios vacíos antes del primer día
-            for (let i = 0; i < inicio; i++) {
-                const div = document.createElement("div");
-                div.className = "p-4 border border-gray-100";
-                calendario.appendChild(div);
-            }
+    function generarCalendario(mes) {
+        calendario.innerHTML = "";
+        const primerDia = new Date(añoActual, mes, 1).getDay();
+        const diasMes = new Date(añoActual, mes + 1, 0).getDate();
+        let inicio = primerDia === 0 ? 6 : primerDia - 1;
 
-            // Crear días del mes
-            for (let d = 1; d <= diasMes; d++) {
-                const div = document.createElement("div");
-                div.textContent = d;
-                div.className = "p-4 border border-gray-100 hover:bg-blue-200 cursor-pointer transition duration-200 ease-in-out flex items-center justify-center rounded-lg";
-
-                // Día actual
-                if (mes === fechaHoy.getMonth() && d === fechaHoy.getDate() && añoActual === fechaHoy.getFullYear()) {
-                    div.className += " bg-blue-500 text-white font-bold rounded-full";
-                }
-
-                // Fines de semana
-                const pos = inicio + d - 1;
-                if (pos % 7 === 5 || pos % 7 === 6) {
-                    div.className += " text-red-500";
-                }
-
-                calendario.appendChild(div);
-            }
+        // Espacios vacíos antes del primer día
+        for (let i = 0; i < inicio; i++) {
+            const div = document.createElement("div");
+            div.className = "p-4 border border-gray-100";
+            calendario.appendChild(div);
         }
 
-        mesSelect.addEventListener("change", () => {
-            mesActual = parseInt(mesSelect.value);
-            generarCalendario(mesActual);
-        });
+        // Generar días del mes
+        for (let d = 1; d <= diasMes; d++) {
+            const div = document.createElement("div");
+            div.textContent = d;
+            div.className = "p-4 border border-gray-100 hover:bg-blue-200 cursor-pointer transition duration-200 ease-in-out flex items-center justify-center rounded-lg";
 
-        btnAnterior.addEventListener("click", () => {
-            mesActual = (mesActual - 1 + 12) % 12;
-            mesSelect.value = mesActual;
-            generarCalendario(mesActual);
-        });
+            const fechaActualStr = `${añoActual}-${String(mes + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+            const fechaActualDate = new Date(fechaActualStr);
 
-        btnSiguiente.addEventListener("click", () => {
-            mesActual = (mesActual + 1) % 12;
-            mesSelect.value = mesActual;
-            generarCalendario(mesActual);
-        });
+            // Resaltar día actual
+            if (mes === fechaHoy.getMonth() && d === fechaHoy.getDate() && añoActual === fechaHoy.getFullYear()) {
+                div.classList.add("bg-blue-500", "text-white", "font-bold", "rounded-full");
+            }
 
-        // Inicializar calendario con el mes actual
+            // Resaltar fines de semana
+            const pos = inicio + d - 1;
+            if (pos % 7 === 5 || pos % 7 === 6) {
+                div.classList.add("text-red-500");
+            }
+
+            // Eventos exactos
+            const eventosDelDia = eventos.filter(e => e.fecha_fin === fechaActualStr);
+            
+            // Eventos próximos a terminar (7 días)
+            const eventosProximos = eventos.filter(e => {
+                const fechaFin = new Date(e.fecha_fin);
+                const diffDias = Math.floor((fechaFin - fechaHoy) / (1000 * 60 * 60 * 24));
+                return diffDias > 0 && diffDias <= 7;
+            });
+
+            if (eventosDelDia.length > 0) {
+                div.classList.add("bg-red-500", "text-white", "font-bold", "rounded-full");
+            } else if (eventosProximos.some(e => new Date(e.fecha_fin).toDateString() === fechaActualDate.toDateString())) {
+                div.classList.add("bg-yellow-400", "text-gray-900", "font-bold", "rounded-full");
+            }
+
+            const todosEventos = [...eventosDelDia, ...eventosProximos.filter(e => new Date(e.fecha_fin).toDateString() === fechaActualDate.toDateString())];
+            if (todosEventos.length > 0) {
+                div.title = todosEventos.map(e => `Nombre: ${e.nombre}\nFicha: ${e.ficha}\nInicio: ${e.fecha_inicio}\nFin: ${e.fecha_fin}`).join("\n\n");
+
+                div.addEventListener("click", () => {
+                    modalBody.innerHTML = todosEventos.map(e =>
+                        `<p><strong>Nombre:</strong> ${e.nombre}</p>
+                         <p><strong>Ficha:</strong> ${e.ficha}</p>
+                         <p><strong>Fecha Inicio:</strong> ${e.fecha_inicio}</p>
+                         <p><strong>Fecha Fin:</strong> ${e.fecha_fin}</p>`).join("<hr>");
+                    modal.style.display = "flex";
+                });
+            }
+
+            calendario.appendChild(div);
+        }
+    }
+
+    function cerrarModal() {
+        modal.style.display = "none";
+    }
+
+    mesSelect.addEventListener("change", () => {
+        mesActual = parseInt(mesSelect.value);
+        generarCalendario(mesActual);
+    });
+
+    btnAnterior.addEventListener("click", () => {
+        mesActual = (mesActual - 1 + 12) % 12;
+        if (mesActual === 11) añoActual--;
         mesSelect.value = mesActual;
         generarCalendario(mesActual);
+    });
+
+    btnSiguiente.addEventListener("click", () => {
+        mesActual = (mesActual + 1) % 12;
+        if (mesActual === 0) añoActual++;
+        mesSelect.value = mesActual;
+        generarCalendario(mesActual);
+    });
+
+    mesSelect.value = mesActual;
+    generarCalendario(mesActual);
+
+    // Cerrar modal al hacer clic fuera del contenido
+    window.addEventListener("click", (event) => {
+        if (event.target === modal) {
+            cerrarModal();
+        }
+    });
     </script>
+
 </body>
 </html>

@@ -1,7 +1,7 @@
 from flask_login import UserMixin
 from app import db
 
-class User(db.Model, UserMixin):
+class User(db.Model):
     __tablename__ = 'user'
     id_user = db.Column(db.Integer, primary_key=True)
     name_user = db.Column(db.String(80), unique=True, nullable=False, index=True)
@@ -14,23 +14,34 @@ class User(db.Model, UserMixin):
 
 class Aprendiz(db.Model, UserMixin):
     __tablename__ = 'aprendiz'
-
     id_aprendiz = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(45), nullable=False)
     apellido = db.Column(db.String(45), nullable=False)
-    tipo_documento = db.Column(db.Enum('Cedula de Ciudadania', 'Tarjeta de Identidad', 'Cedula Extrangeria', 'Registro Civil'), nullable=False)
+    tipo_documento = db.Column(db.Enum(
+        'Cedula de Ciudadania',
+        'Tarjeta de Identidad',
+        'Cedula Extrangeria',
+        'Registro Civil'
+    ), nullable=False)
     documento = db.Column(db.String(45), unique=True, nullable=False, index=True)
     email = db.Column(db.String(100), unique=True, nullable=False, index=True)
     celular = db.Column(db.String(45), unique=True, nullable=False, index=True)
-    ficha = db.Column(db.Enum('2931558','2674567','5434234'), nullable=False)
     password_aprendiz = db.Column(db.String(250), nullable=False)
-
-    # 🔑 Clave foránea que conecta con contrato
+    
     contrato_id = db.Column(db.Integer, db.ForeignKey('contrato.id_contrato'), nullable=True)
+    contrato = db.relationship('Contrato', back_populates='aprendices_rel', uselist=False)
 
-    programas = db.relationship('Programa', backref='aprendiz', lazy=True, cascade='all, delete-orphan')
-    seguimientos = db.relationship('Seguimiento', backref='aprendiz', lazy=True, cascade='all, delete-orphan')
-    evidencias = db.relationship('Evidencia', backref='aprendiz', lazy=True, cascade='all, delete-orphan')
+    programa_id = db.Column(db.Integer, db.ForeignKey('programa.id_programa'), nullable=True)
+    programa = db.relationship('Programa', back_populates='aprendices_rel')
+    
+    instructor_id = db.Column(db.Integer, db.ForeignKey('instructor.id_instructor'), nullable=True)
+    instructor = db.relationship('Instructor', back_populates='aprendices_rel')
+
+    # 🔑 Relaciones añadidas
+    empresas = db.relationship('Empresa', back_populates='aprendiz', cascade="all, delete-orphan")
+    evidencias = db.relationship('Evidencia', back_populates='aprendiz_rel', lazy=True, cascade='all, delete-orphan')
+
+    seguimiento = db.relationship('Seguimiento', back_populates='aprendiz_rel', lazy=True, uselist=False, cascade='all, delete-orphan')
 
     def get_id(self):
         return f"aprendiz-{self.id_aprendiz}"
@@ -47,9 +58,9 @@ class Contrato(db.Model):
     tipo_contrato = db.Column(db.Enum('Contrato de Aprendizaje', 'Contrato laboral'), nullable=False)
 
     empresa_id_empresa = db.Column(db.Integer, db.ForeignKey('empresa.id_empresa'), nullable=False)
+    empresa = db.relationship('Empresa', back_populates='contratos')
 
-    # Relación inversa con aprendiz
-    aprendices = db.relationship('Aprendiz', backref='contrato', lazy=True, cascade='all, delete-orphan')
+    aprendices_rel = db.relationship('Aprendiz', back_populates='contrato', lazy=True)
 
     def __repr__(self):
         return f'<Contrato {self.tipo_contrato}>'
@@ -63,11 +74,15 @@ class Empresa(db.Model, UserMixin):
     direccion = db.Column(db.String(200), nullable=False)
     telefono = db.Column(db.String(20), nullable=False)
     correo_empresa = db.Column(db.String(100), nullable=False)
+    nombre_jefe = db.Column(db.String(150), nullable=False, unique=True)
+    correo_jefe = db.Column(db.String(150), nullable=False, unique=True)
+    telefono_jefe = db.Column(db.String(50),nullable=False, unique=True)
 
-    contratos = db.relationship('Contrato', backref='empresa', lazy=True, cascade='all, delete-orphan')
-    
-    def __repr__(self):
-        return f'<Empresa {self.nombre_empresa}>'
+    # 🔑 FK hacia Aprendiz
+    aprendiz_id_aprendiz = db.Column(db.Integer, db.ForeignKey('aprendiz.id_aprendiz'), nullable=False)
+    aprendiz = db.relationship('Aprendiz', back_populates='empresas')
+
+    contratos = db.relationship('Contrato', back_populates='empresa', lazy=True, cascade='all, delete-orphan')
 
 
 class Evidencia(db.Model):
@@ -79,12 +94,10 @@ class Evidencia(db.Model):
     url_archivo = db.Column(db.String(255), nullable=False)
     fecha_subida = db.Column(db.Date, nullable=False)
     tipo = db.Column(db.String(50), nullable=False)
-    nota = db.Column(db.String(255), nullable=True)  # Nuevo campo para mensaje/nota
+    nota = db.Column(db.String(255), nullable=True)
 
     aprendiz_id_aprendiz = db.Column(db.Integer, db.ForeignKey('aprendiz.id_aprendiz'), nullable=False)
-
-    def __repr__(self):
-        return f'<Evidencia {self.nombre_archivo}>'
+    aprendiz_rel = db.relationship('Aprendiz', back_populates='evidencias', lazy=True)
 
 
 class Instructor(db.Model, UserMixin):
@@ -99,14 +112,15 @@ class Instructor(db.Model, UserMixin):
     documento = db.Column(db.String(45), nullable=False)
     passwordInstructor = db.Column(db.String(250), nullable=False)
 
-    programas = db.relationship('Programa', backref='instructor', lazy=True, cascade='all, delete-orphan')
-    seguimientos = db.relationship('Seguimiento', backref='instructor', lazy=True, cascade='all, delete-orphan')
-
+    programas = db.relationship('Programa', back_populates='instructor_rel', lazy=True, cascade='all, delete-orphan')
+    seguimientos = db.relationship('Seguimiento', back_populates='instructor_rel', lazy=True, cascade='all, delete-orphan')
+    aprendices_rel = db.relationship('Aprendiz', back_populates='instructor')
     def __repr__(self):
         return f'<Instructor {self.nombre_instructor} {self.apellido_instructor}>'
 
     def get_id(self):
          return f"instructor-{self.id_instructor}"
+
 
 class Programa(db.Model):
     __tablename__ = 'programa'
@@ -115,6 +129,8 @@ class Programa(db.Model):
     nombre_programa = db.Column(db.String(45), nullable=False)
     titulo = db.Column(db.Enum('Auxiliar', 'Tecnico', 'Tecnologo'), nullable=False)
     jornada = db.Column(db.Enum('Mañana', 'Tarde', 'Noche'), nullable=False)
+    ficha = db.Column(db.Integer, nullable=False)
+
     centro_formacion = db.Column(db.Enum(
         'Centro de Electricidad, Electrónica y Telecomunicaciones - Bogotá',
         'Centro de Gestión Industrial - Bogotá',
@@ -134,11 +150,12 @@ class Programa(db.Model):
         'Centro de Comercio y Turismo - Pereira',
         'Centro de Procesos Industriales y Construcción - Barrancabermeja'), nullable=False)
 
-    aprendiz_id_aprendiz = db.Column(db.Integer, db.ForeignKey('aprendiz.id_aprendiz'), nullable=True)
     instructor_id_instructor = db.Column(db.Integer, db.ForeignKey('instructor.id_instructor'), nullable=True)
 
-    def __repr__(self):
-        return f'<Programa {self.nombre_programa}>'
+    # 🔑 Relación con Aprendiz (1 Programa -> N Aprendices)
+    aprendices_rel = db.relationship('Aprendiz', back_populates='programa', lazy=True)
+
+    instructor_rel = db.relationship('Instructor', back_populates='programas', lazy=True)
 
 
 class Seguimiento(db.Model):
@@ -150,7 +167,10 @@ class Seguimiento(db.Model):
     observaciones = db.Column(db.String(255), nullable=False)
 
     instructor_id_instructor = db.Column(db.Integer, db.ForeignKey('instructor.id_instructor'), nullable=False)
-    aprendiz_id_aprendiz = db.Column(db.Integer, db.ForeignKey('aprendiz.id_aprendiz'), nullable=False)
+    aprendiz_id_aprendiz = db.Column(db.Integer, db.ForeignKey('aprendiz.id_aprendiz'), nullable=False, unique=True)
+
+    instructor_rel = db.relationship('Instructor', back_populates='seguimientos', lazy=True)
+    aprendiz_rel = db.relationship('Aprendiz', back_populates='seguimiento', lazy=True)
 
     def __repr__(self):
         return f'<Seguimiento {self.tipo} - {self.fecha}>'

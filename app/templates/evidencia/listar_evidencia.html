@@ -48,7 +48,9 @@
                         <td class="px-4 py-2 border text-center">
                             <div class="flex justify-center gap-2 flex-nowrap">
                                 <a href="{{ url_for('evidencia_bp.serve_file', id=evidencia.id_evidencia) }}" 
-                                   class="bg-green-500 text-white px-3 py-1 rounded-md shadow hover:bg-green-600 transition">Descargar</a>
+                                   class="bg-green-500 text-white px-3 py-1 rounded-md shadow hover:bg-green-600 transition">
+                                   Descargar
+                                </a>
                                 <a href="{{ url_for('evidencia_bp.editar_evidencia', id=evidencia.id_evidencia) }}" 
                                    class="bg-blue-500 text-white px-3 py-1 rounded-md shadow hover:bg-blue-600 transition">Editar</a>
                                 <a href="{{ url_for('evidencia_bp.eliminar_evidencia', id=evidencia.id_evidencia) }}" 
@@ -97,7 +99,9 @@
                         <td class="px-4 py-2 border text-center">
                             <div class="flex justify-center gap-2 flex-nowrap">
                                 <a href="{{ url_for('evidencia_bp.serve_file', id=evidencia.id_evidencia) }}" 
-                                   class="bg-green-500 text-white px-3 py-1 rounded-md shadow hover:bg-green-600 transition">Descargar</a>
+                                   class="bg-green-500 text-white px-3 py-1 rounded-md shadow hover:bg-green-600 transition">
+                                   Descargar
+                                </a>
                                 <a href="{{ url_for('evidencia_bp.editar_evidencia', id=evidencia.id_evidencia) }}" 
                                    class="bg-blue-500 text-white px-3 py-1 rounded-md shadow hover:bg-blue-600 transition">Editar</a>
                                 <a href="{{ url_for('evidencia_bp.eliminar_evidencia', id=evidencia.id_evidencia) }}" 
@@ -115,13 +119,78 @@
             </table>
         </div>
 
-        <!-- Botón volver -->
-        <div class="mt-6">
-            <a href="{{ url_for('auth.dashboard') }}" 
-               class="bg-gray-600 text-white px-5 py-2 rounded-lg shadow hover:bg-gray-700 transition">
-                ← Volver
-            </a>
+        <!-- Archivos PDF -->
+        <h2 class="text-xl font-semibold text-gray-700 mb-2">📕 Archivos PDF Firmados</h2>
+        <div class="overflow-x-auto mb-6">
+            <table class="w-full table-fixed border border-gray-300 rounded-lg shadow-sm bg-white">
+                <thead class="bg-red-100 text-gray-800 font-medium">
+                    <tr>
+                        <th class="w-1/12 px-4 py-3 border">#</th>
+                        <th class="w-4/12 px-4 py-3 border">Archivo</th>
+                        <th class="w-2/12 px-4 py-3 border">Fecha</th>
+                        <th class="w-3/12 px-4 py-3 border">Nota</th>
+                        <th class="w-1/12 px-4 py-3 border">Tipo</th>
+                        <th class="w-3/12 px-4 py-3 border">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for evidencia in evidencias_pdf %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-2 border text-center">{{ evidencia.id_evidencia }}</td>
+                        <td class="px-4 py-2 border font-medium text-gray-800 truncate whitespace-nowrap">
+                            {{ evidencia.nombre_archivo.split('_', 1)[-1].rsplit('.', 1)[0] }}
+                        </td>
+                        <td class="px-4 py-2 border text-center truncate whitespace-nowrap">{{ evidencia.fecha_subida }}</td>
+                        <td class="px-4 py-2 border truncate whitespace-nowrap">{{ evidencia.nota or '---' }}</td>
+                        <td class="px-4 py-2 border text-center whitespace-nowrap">
+                            <span class="bg-red-200 text-red-800 px-2 py-1 rounded-full text-xs font-semibold">
+                                PDF
+                            </span>
+                        </td>
+                        <td class="px-4 py-2 border text-center">
+                            <div class="flex justify-center gap-2 flex-nowrap">
+                                <a href="{{ url_for('evidencia_bp.view_file', id=evidencia.id_evidencia) }}" 
+   class="bg-blue-500 text-white px-3 py-1 rounded-md shadow hover:bg-blue-600 transition"
+   target="_blank">
+   Ver
+</a>
+
+                                <a href="{{ url_for('evidencia_bp.serve_file', id=evidencia.id_evidencia) }}" 
+                                   class="bg-green-500 text-white px-3 py-1 rounded-md shadow hover:bg-green-600 transition">
+                                   Descargar
+                                </a>
+                                <a href="{{ url_for('evidencia_bp.editar_evidencia', id=evidencia.id_evidencia) }}" 
+                                   class="bg-yellow-500 text-white px-3 py-1 rounded-md shadow hover:bg-yellow-600 transition">Editar</a>
+                                <a href="{{ url_for('evidencia_bp.eliminar_evidencia', id=evidencia.id_evidencia) }}" 
+                                   class="bg-red-500 text-white px-3 py-1 rounded-md shadow hover:bg-red-600 transition"
+                                   onclick="return confirm('¿Seguro que deseas eliminar esta evidencia?');">Eliminar</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-gray-500">No hay evidencias PDF registradas.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+
+        <!-- Botón volver -->
+        <div class="mt-6 text-center">
+    {% if aprendiz %}
+        <a href="{{ url_for('aprendiz_bp.ver_dashboard_aprendiz', id=aprendiz.id_aprendiz) }}" 
+           class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
+           ⬅️ Volver
+        </a>
+    {% else %}
+        <a href="{{ url_for('auth.dashboard') }}" 
+           class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
+           ⬅️ Volver
+        </a>
+    {% endif %}
+</div>
+
     </div>
 </body>
 </html>

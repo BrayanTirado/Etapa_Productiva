@@ -25,22 +25,20 @@
         {% endwith %}
 
         <!-- Filtro por ficha -->
-        <div class="mb-4 flex items-center justify-between">
-    <div class="flex items-center gap-4">
-        <label for="ficha" class="text-sm font-semibold text-gray-700">Filtrar por Ficha:</label>
-        <input type="number" id="ficha" name="ficha" value="{{ ficha or '' }}" class="rounded-lg border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400 p-2">
-        <button id="filtrar" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition duration-200">
-            Filtrar
-        </button>     
-    </div>
+        <form method="get" action="{{ url_for('aprendiz_bp.listar_aprendices') }}" class="mb-4 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <label for="ficha" class="text-sm font-semibold text-gray-700">Filtrar por Ficha:</label>
+                <input type="number" id="ficha" name="ficha" value="{{ ficha_seleccionada or '' }}" class="rounded-lg border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400 p-2">
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition duration-200">
+                    Filtrar
+                </button>
+            </div>
 
-    <a href="{{ url_for('auth.dashboard') }}" 
-       class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">
-        Volver
-    </a>
-</div>
-
-
+            <a href="{{ url_for('auth.dashboard') }}" 
+            class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">
+                Volver
+            </a>
+        </form>
 
         <!-- Tabla de estudiantes -->
         <table id="tabla-estudiantes" class="w-full border-collapse">
@@ -52,68 +50,31 @@
                     <th class="p-2 border">Documento</th>
                     <th class="p-2 border">Email</th>
                     <th class="p-2 border">Celular</th>
-                    <th class="p-2 border">Ficha</th>
-                    <th class="p-2 border">Contrato ID</th>
+                    <th class="p-2 border">Ver Proceso</th>
                 </tr>
             </thead>
             <tbody>
-                {% for estudiante in estudiantes %}
-                    <tr class="hover:bg-gray-100">
-                        <td class="p-2 border">{{ estudiante.nombre }}</td>
-                        <td class="p-2 border">{{ estudiante.apellido }}</td>
-                        <td class="p-2 border">{{ estudiante.tipo_documento }}</td>
-                        <td class="p-2 border">{{ estudiante.documento }}</td>
-                        <td class="p-2 border">{{ estudiante.email }}</td>
-                        <td class="p-2 border">{{ estudiante.celular }}</td>
-                        <td class="p-2 border">{{ estudiante.ficha }}</td>
-                        <td class="p-2 border">{{ estudiante.contrato_id_contrato }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
+    {% for estudiante in aprendices %}
+        <tr class="hover:bg-gray-100">
+            <td class="p-2 border">{{ estudiante.nombre }}</td>
+            <td class="p-2 border">{{ estudiante.apellido }}</td>
+            <td class="p-2 border">{{ estudiante.tipo_documento }}</td>
+            <td class="p-2 border">{{ estudiante.documento }}</td>
+            <td class="p-2 border">{{ estudiante.email }}</td>
+            <td class="p-2 border">{{ estudiante.celular }}</td>
+            <td class="p-2 border text-center">
+    <a href="{{ url_for('aprendiz_bp.ver_dashboard_aprendiz', id=estudiante.id_aprendiz) }}"
+       target="_blank"
+       class="inline-block bg-blue-500 text-white px-4 py-1 rounded-lg hover:bg-blue-600 transition duration-200 font-medium">
+        Ver
+    </a>
+</td>
+
+        </tr>
+    {% endfor %}
+</tbody>
+
         </table>
     </div>
-
-    <script>
-        $(document).ready(function() {
-            $('#filtrar').click(function() {
-                var ficha = $('#ficha').val();
-                if (!ficha) {
-                    alert('Por favor, ingrese un número de ficha.');
-                    return;
-                }
-                $.ajax({
-                    url: '{{ url_for("estudiantes.listar_estudiantes") }}',
-                    type: 'GET',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                    data: { ficha: ficha },
-                    success: function(data) {
-                        var tbody = $('#tabla-estudiantes tbody');
-                        tbody.empty();
-                        if (data.length === 0) {
-                            tbody.append('<tr><td colspan="8" class="p-2 text-center text-gray-600">No hay estudiantes para esta ficha.</td></tr>');
-                        } else {
-                            data.forEach(function(estudiante) {
-                                var row = `
-                                    <tr class="hover:bg-gray-100">
-                                        <td class="p-2 border">${estudiante.nombre}</td>
-                                        <td class="p-2 border">${estudiante.apellido}</td>
-                                        <td class="p-2 border">${estudiante.tipo_documento}</td>
-                                        <td class="p-2 border">${estudiante.documento}</td>
-                                        <td class="p-2 border">${estudiante.email}</td>
-                                        <td class="p-2 border">${estudiante.celular}</td>
-                                        <td class="p-2 border">${estudiante.ficha}</td>
-                                        <td class="p-2 border">${estudiante.contrato_id_contrato}</td>
-                                    </tr>`;
-                                tbody.append(row);
-                            });
-                        }
-                    },
-                    error: function() {
-                        alert('Error al filtrar estudiantes.');
-                    }
-                });
-            });
-        });
-    </script>
 </body>
 </html>

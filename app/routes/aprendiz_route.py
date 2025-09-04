@@ -1,12 +1,13 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from app.models.users import Aprendiz
+from app.models.users import Aprendiz, Evidencia, Programa, Instructor
 from app import db
 from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import IntegrityError
 
-# Blueprint para aprendices
+# Blueprint para todas las rutas relacionadas con Aprendiz
 bp = Blueprint('aprendiz_bp', __name__, url_prefix='/aprendiz')
+
 
 # ---- CREAR NUEVO APRENDIZ ----
 @bp.route('/nuevo', methods=['GET', 'POST'])
@@ -19,15 +20,13 @@ def nuevo_aprendiz():
         documento = request.form.get('documento')
         email = request.form.get('email')
         celular = request.form.get('celular')
-        ficha = request.form.get('ficha')
         password_aprendiz = request.form.get('password_aprendiz')
 
-        if not all([nombre, apellido, tipo_documento, documento, email, celular, ficha, password_aprendiz]):
+        if not all([nombre, apellido, tipo_documento, documento, email, celular, password_aprendiz]):
             flash('Todos los campos son obligatorios.', 'warning')
             return redirect(url_for('aprendiz_bp.nuevo_aprendiz'))
 
         hashed_password = generate_password_hash(password_aprendiz)
-
         nuevo = Aprendiz(
             nombre=nombre,
             apellido=apellido,
@@ -35,10 +34,8 @@ def nuevo_aprendiz():
             documento=documento,
             email=email,
             celular=celular,
-            ficha=ficha,
             password_aprendiz=hashed_password
         )
-
         try:
             db.session.add(nuevo)
             db.session.commit()
@@ -53,7 +50,8 @@ def nuevo_aprendiz():
             flash(f'Error al crear el aprendiz: {str(e)}', 'danger')
             return redirect(url_for('aprendiz_bp.nuevo_aprendiz'))
 
-    return render_template('aprendiz/nuevo.html')  
+    return render_template('aprendiz/nuevo.html')
+
 
 # ---- EDITAR APRENDIZ ----
 @bp.route('/editar/<int:id>', methods=['GET', 'POST'])
@@ -61,14 +59,16 @@ def nuevo_aprendiz():
 def editar_aprendiz(id):
     aprendiz = Aprendiz.query.get_or_404(id)
 
-    # Opciones válidas (tienen que coincidir EXACTO con lo que tienes en tu modelo Enum)
+    if not (hasattr(current_user, 'id_aprendiz') and current_user.id_aprendiz == id) and not hasattr(current_user, 'id_instructor'):
+        flash('No tienes permiso para editar este perfil.', 'danger')
+        return redirect(url_for('auth.dashboard'))
+
     tipos_documento = [
         'Cedula de Ciudadania',
         'Tarjeta de Identidad',
-        'Cedula Extrangeria',
+        'Cedula Extrangera',
         'Registro Civil'
     ]
-    fichas = ['2931558', '2674567', '5434234']
 
     if request.method == 'POST':
         nombre = request.form.get('nombre', '').strip()
@@ -77,57 +77,59 @@ def editar_aprendiz(id):
         documento = request.form.get('documento', '').strip()
         email = request.form.get('email', '').strip()
         celular = request.form.get('celular', '').strip()
-        ficha = request.form.get('ficha')
         password_aprendiz = request.form.get('password_aprendiz', '').strip()
 
-        # Validación de campos obligatorios
-        if not all([nombre, apellido, tipo_documento, documento, email, celular, ficha]):
+        if not all([nombre, apellido, tipo_documento, documento, email, celular]):
             flash('Faltan campos obligatorios.', 'warning')
             return redirect(url_for('aprendiz_bp.editar_aprendiz', id=id))
 
-        # Validar que los valores estén dentro de los permitidos
-        if tipo_documento not in tipos_documento or ficha not in fichas:  # Corregido
-            flash('Valor de tipo de documento o ficha inválido.', 'danger')
+        if tipo_documento not in tipos_documento:
+            flash('Valor de tipo de documento inválido.', 'danger')
             return redirect(url_for('aprendiz_bp.editar_aprendiz', id=id))
 
-        # Actualizar datos en el objeto
         aprendiz.nombre = nombre
         aprendiz.apellido = apellido
         aprendiz.tipo_documento = tipo_documento
         aprendiz.documento = documento
         aprendiz.email = email
         aprendiz.celular = celular
-        aprendiz.ficha = ficha
 
-        # Si se proporciona contraseña, actualizarla
         if password_aprendiz:
             aprendiz.password_aprendiz = generate_password_hash(password_aprendiz)
 
         try:
             db.session.commit()
             flash('Aprendiz actualizado correctamente.', 'success')
-            return redirect(url_for('aprendiz_bp.perfil_aprendiz'))  # Corregido: blueprint 'estudiantes'
+            return redirect(url_for('aprendiz_bp.perfil', id=id if hasattr(current_user, 'id_instructor') else None))
         except IntegrityError:
             db.session.rollback()
             flash('Documento, email o celular duplicado.', 'danger')
+            return redirect(url_for('aprendiz_bp.editar_aprendiz', id=id))
         except Exception as e:
             db.session.rollback()
             flash(f'Error: {str(e)}', 'danger')
+            return redirect(url_for('aprendiz_bp.editar_aprendiz', id=id))
 
-    # Renderizar plantilla
     return render_template(
         'perfil_aprendiz.html',
         aprendiz=aprendiz,
         mode='edit',
         tipos_documento=tipos_documento,
-        fichas=fichas
+        es_aprendiz=(hasattr(current_user, 'id_aprendiz') and current_user.id_aprendiz == id),
+        aprendiz_id=id if hasattr(current_user, 'id_instructor') else None
     )
+
 
 # ---- ELIMINAR APRENDIZ ----
 @bp.route('/eliminar/<int:id>')
 @login_required
 def eliminar_aprendiz(id):
     aprendiz = Aprendiz.query.get_or_404(id)
+
+    if not hasattr(current_user, 'id_instructor'):
+        flash('No tienes permiso para eliminar aprendices.', 'danger')
+        return redirect(url_for('auth.dashboard'))
+
     try:
         db.session.delete(aprendiz)
         db.session.commit()
@@ -135,13 +137,141 @@ def eliminar_aprendiz(id):
     except Exception as e:
         db.session.rollback()
         flash(f'Error: {str(e)}', 'danger')
-    return redirect(url_for('estudiantes.listar_estudiantes'))  # Corregido: blueprint 'estudiantes'
 
-# ---- PERFIL DEL APRENDIZ ----
-@bp.route('/perfil')
+    return redirect(url_for('aprendiz_bp.listar_aprendices'))
+
+
+# ---- PERFIL DEL PROPIO APRENDIZ O VISTO POR INSTRUCTOR ----
+@bp.route('/perfil', defaults={'id': None}, endpoint='perfil')
+@bp.route('/perfil/<int:id>', endpoint='perfil')
 @login_required
-def perfil_aprendiz():
-    if not hasattr(current_user, "id_aprendiz"):
-        flash("No tienes permiso para acceder a este perfil.", "danger")
-        return redirect(url_for("auth.dashboard"))
-    return render_template("perfil_aprendiz.html", aprendiz=current_user)
+def perfil_aprendiz(id):
+    aprendiz = None
+    aprendiz_id = None
+    es_aprendiz = False
+    es_instructor = hasattr(current_user, 'id_instructor')
+
+    # Aprendiz ve su propio perfil
+    if isinstance(current_user, Aprendiz) and id is None:
+        aprendiz = current_user
+        aprendiz_id = current_user.id_aprendiz
+        es_aprendiz = True
+
+    # Instructor ve el perfil de un aprendiz seleccionado
+    elif isinstance(current_user, Instructor):
+        aprendiz_id = id or request.args.get('aprendiz_id', type=int)
+        if aprendiz_id:
+            aprendiz = Aprendiz.query.get_or_404(aprendiz_id)
+        else:
+            flash('Selecciona un aprendiz para ver su perfil.', 'warning')
+            return redirect(url_for('aprendiz_bp.listar_aprendices'))
+    else:
+        flash('No tienes permiso para acceder a esta página.', 'danger')
+        return redirect(url_for('auth.dashboard'))
+
+    total_requerido = 17
+    evidencias_subidas = len(aprendiz.evidencias)
+    progreso = int((evidencias_subidas / total_requerido) * 100) if total_requerido > 0 else 0
+
+    return render_template(
+        'perfil_aprendiz.html',
+        aprendiz=aprendiz,
+        progreso=progreso,
+        contrato=aprendiz.contrato,
+        es_aprendiz=es_aprendiz,
+        es_instructor=es_instructor,
+        mode='view',
+        aprendiz_id=aprendiz_id
+    )
+
+
+# ---- DASHBOARD DEL PROPIO APRENDIZ ----
+@bp.route('/dashboard')
+@login_required
+def ver_mi_dashboard():
+    if not hasattr(current_user, 'id_aprendiz'):
+        flash('No tienes permiso para acceder a este dashboard.', 'danger')
+        return redirect(url_for('auth.dashboard'))
+
+    aprendiz = current_user
+    total_requerido = 17
+    evidencias_subidas = len(aprendiz.evidencias)
+    progreso = int((evidencias_subidas / total_requerido) * 100) if total_requerido > 0 else 0
+    contrato = aprendiz.contrato
+
+    return render_template(
+        'dasboardh_aprendiz.html',
+        aprendiz=aprendiz,
+        progreso=progreso,
+        contrato=contrato,
+        es_instructor=False
+    )
+
+
+# ---- VER PROCESO DE UN APRENDIZ (para instructores) ----
+@bp.route('/ver/<int:id>', methods=['GET'])
+@login_required
+def ver_aprendiz(id):
+    if not hasattr(current_user, 'id_instructor'):
+        flash('No tienes permiso para acceder a esta página.', 'danger')
+        return redirect(url_for('auth.dashboard'))
+
+    aprendiz = Aprendiz.query.get_or_404(id)
+    total_requerido = 17
+    evidencias_subidas = len(aprendiz.evidencias)
+    progreso = int((evidencias_subidas / total_requerido) * 100) if total_requerido > 0 else 0
+
+    return render_template(
+        'perfil_aprendiz.html',
+        aprendiz=aprendiz,
+        progreso=progreso,
+        es_aprendiz=False,
+        es_instructor=True,
+        mode='view',
+        aprendiz_id=id
+    )
+
+
+# ---- LISTAR APRENDICES ----
+@bp.route('/listar', methods=['GET'])
+@login_required
+def listar_aprendices():
+    if not hasattr(current_user, 'id_instructor'):
+        flash('No tienes permiso para acceder a esta página.', 'danger')
+        return redirect(url_for('auth.dashboard'))
+
+    ficha_busqueda = request.args.get('ficha', type=int)
+    if ficha_busqueda:
+        aprendices = Aprendiz.query.filter(Aprendiz.programa.has(ficha=ficha_busqueda)).all()
+        if aprendices:
+            flash(f'Mostrando aprendices con ficha {ficha_busqueda}.', 'info')
+        else:
+            flash(f'No se encontraron aprendices para la ficha {ficha_busqueda}.', 'warning')
+    else:
+        aprendices = Aprendiz.query.all()
+
+    return render_template('listar.html', aprendices=aprendices, ficha_seleccionada=ficha_busqueda)
+
+
+# ---- DASHBOARD DE UN APRENDIZ (para instructores) ----
+@bp.route('/dashboard/<int:id>', methods=['GET'])
+@login_required
+def ver_dashboard_aprendiz(id):
+    es_instructor = hasattr(current_user, 'id_instructor')
+    if not es_instructor:
+        flash('No tienes permiso para ver el proceso de un aprendiz.', 'danger')
+        return redirect(url_for('auth.dashboard'))
+
+    aprendiz = Aprendiz.query.get_or_404(id)
+    total_requerido = 17
+    evidencias_subidas = len(aprendiz.evidencias)
+    progreso = int((evidencias_subidas / total_requerido) * 100) if total_requerido > 0 else 0
+    contrato = aprendiz.contrato
+
+    return render_template(
+        'dasboardh_aprendiz.html',
+        aprendiz=aprendiz,
+        progreso=progreso,
+        contrato=contrato,
+        es_instructor=es_instructor
+    )

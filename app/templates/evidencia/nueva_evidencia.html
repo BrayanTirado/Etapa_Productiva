@@ -7,7 +7,7 @@
 </head>
 <body class="bg-gray-100 p-6">
     <div class="max-w-2xl mx-auto bg-white shadow rounded-lg p-6">
-        <h1 class="text-2xl font-bold mb-4">Subir Evidencia de {{ tipo }}</h1>
+        <h1 class="text-2xl font-bold mb-4">Subir Evidencia de {{ tipo|capitalize }}</h1>
 
         <!-- Mensajes flash -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -30,9 +30,10 @@
 
             <!-- Subir archivo -->
             <div class="mb-4">
-                <label for="archivo" class="block font-medium mb-1">Selecciona tu archivo ({{ tipo }}):</label>
+                <label for="archivo" class="block font-medium mb-1">Selecciona tu archivo ({{ tipo|capitalize }}):</label>
                 <input type="file" name="archivo" id="archivo" 
-                       class="border rounded p-2 w-full" required>
+                       class="border rounded p-2 w-full" 
+                       required accept=".doc,.docx,.xls,.xlsx,.pdf">
             </div>
 
             <!-- Nota -->

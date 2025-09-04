@@ -20,6 +20,7 @@
             {% endif %}
         {% endwith %}
 
+        {% if current_user.__class__.__name__ == 'Aprendiz' %}
         <form method="POST">
             <!-- Nombre del Programa -->
             <label class="block mb-2">Nombre del Programa</label>
@@ -52,10 +53,22 @@
                 {% endfor %}
             </select>
 
+            <!-- Ficha -->
+            <div class="flex items-center gap-4 mb-4">
+                <label for="ficha" class="w-40 font-semibold text-gray-700">FICHA</label>
+                <input type="number" name="ficha" id="ficha" required class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400" min="1" placeholder="Ingrese número de ficha">
+            </div>
+
             <!-- Botones -->
             <button type="submit" class="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600">Guardar</button>
             <a href="{{ url_for('programa_bp.listar_programas') }}" class="ml-4 text-gray-600">Cancelar</a>
         </form>
+        {% else %}
+            <p class="text-gray-600 text-center mt-6">⚠️ Solo los aprendices pueden registrar un programa.</p>
+            <div class="mt-4 text-center">
+                <a href="{{ url_for('programa_bp.listar_programas') }}" class="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600">⬅️ Volver</a>
+            </div>
+        {% endif %}
     </div>
 </body>
 </html>

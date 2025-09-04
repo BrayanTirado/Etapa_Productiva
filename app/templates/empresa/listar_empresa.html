@@ -25,7 +25,7 @@
         {% endwith %}
 
         <!-- Botón Nuevo Empresa -->
-        {% if not empresas %}
+        {% if not empresas and es_aprendiz %}
         <div class="mb-4">
             <a href="{{ url_for('empresa_bp.nueva_empresa') }}" 
                class="bg-green-500 text-white px-4 py-2 rounded shadow hover:bg-green-600 transition">
@@ -47,6 +47,9 @@
                             <th class="border p-3 text-left w-32">Correo</th>
                             <th class="border p-3 text-left w-48">Fecha Inicio Contrato</th>
                             <th class="border p-3 text-left w-48">Fecha Fin Contrato</th>
+                            <th class="border p-3 text-left w-48">Nombre Jefe</th>
+                            <th class="border p-3 text-left w-48">Correo Jefe</th>
+                            <th class="border p-3 text-left w-32">Teléfono Jefe</th>
                             <th class="border p-3 text-center w-48">Acciones</th>
                         </tr>
                     </thead>
@@ -73,18 +76,31 @@
                                     -
                                 {% endif %}
                             </td>
+                            <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">
+                                {{ empresa.nombre_jefe if empresa.nombre_jefe else '-' }}
+                            </td>
+                            <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">
+                                {{ empresa.correo_jefe if empresa.correo_jefe else '-' }}
+                            </td>
+                            <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">
+                                {{ empresa.telefono_jefe if empresa.telefono_jefe else '-' }}
+                            </td>
                             <td class="border p-3 text-center">
                                 <div class="flex justify-center space-x-2">
-                                    <a href="{{ url_for('empresa_bp.editar_empresa', id=empresa.id_empresa) }}" 
-                                       class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition">
-                                       Editar
-                                    </a>
-                                    <form action="{{ url_for('empresa_bp.eliminar_empresa', id=empresa.id_empresa) }}" method="POST" class="inline">
-                                        <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
-                                                onclick="return confirm('¿Seguro de eliminar esta empresa?')">
-                                            Eliminar
-                                        </button>
-                                    </form>
+                                    {% if es_aprendiz and current_user.id_aprendiz == empresa.aprendiz_id_aprendiz %}
+                                        <a href="{{ url_for('empresa_bp.editar_empresa', id=empresa.id_empresa) }}" 
+                                           class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition">
+                                           Editar
+                                        </a>
+                                        <form action="{{ url_for('empresa_bp.eliminar_empresa', id=empresa.id_empresa) }}" method="POST" class="inline">
+                                            <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
+                                                    onclick="return confirm('¿Seguro de eliminar esta empresa?')">
+                                                Eliminar
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <span class="text-gray-400 italic">No disponible</span>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -96,12 +112,21 @@
             <p class="mt-6 text-gray-600 text-center">⚠️ No hay empresas registradas aún.</p>
         {% endif %}
 
+        <!-- Botón Volver con lógica dinámica según rol -->
         <div class="mt-6 text-center">
-            <a href="{{ url_for('auth.dashboard') }}" 
-               class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
-             Volver
-            </a>
+            {% if aprendiz_id %}
+                <a href="{{ url_for('aprendiz_bp.ver_dashboard_aprendiz', id=aprendiz_id) }}" 
+                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">
+                   Volver
+                </a>
+            {% else %}
+                <a href="{{ url_for('auth.dashboard') }}" 
+                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">
+                   Volver
+                </a>
+            {% endif %}
         </div>
+
     </div>
 </body>
 </html>

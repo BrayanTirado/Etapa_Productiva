@@ -21,12 +21,21 @@
         {% endwith %}
 
         <div class="flex flex-col space-y-4">
-            <a href="{{ url_for('evidencia_bp.upload_evidencia', tipo='word') }}" class="bg-blue-500 text-white px-6 py-4 rounded-lg hover:bg-blue-600 transition text-lg font-medium">Subir Documento Word (.doc / .docx)</a>
-            <a href="{{ url_for('evidencia_bp.upload_evidencia', tipo='excel') }}" class="bg-green-500 text-white px-6 py-4 rounded-lg hover:bg-green-600 transition text-lg font-medium">Subir Documento Excel (.xls / .xlsx)</a>
+            <a href="{{ url_for('evidencia_bp.upload_evidencia', tipo='word') }}" class="bg-blue-500 text-white px-6 py-4 rounded-lg hover:bg-blue-600 transition text-lg font-medium">
+                Subir Documento Word (.doc / .docx)
+            </a>
+            <a href="{{ url_for('evidencia_bp.upload_evidencia', tipo='excel') }}" class="bg-green-500 text-white px-6 py-4 rounded-lg hover:bg-green-600 transition text-lg font-medium">
+                Subir Documento Excel (.xls / .xlsx)
+            </a>
+            <a href="{{ url_for('evidencia_bp.upload_evidencia', tipo='pdf') }}" class="bg-red-500 text-white px-6 py-4 rounded-lg hover:bg-red-600 transition text-lg font-medium">
+                Subir Documento PDF (.pdf)
+            </a>
         </div>
 
         <div class="mt-8">
-            <a href="{{ url_for('auth.dashboard') }}" class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition">Volver al Menú Principal</a>
+            <a href="{{ url_for('auth.dashboard') }}" class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition">
+                Volver al Menú Principal
+            </a>
         </div>
     </div>
 </body>

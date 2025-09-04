@@ -9,13 +9,35 @@
 <body class="bg-white min-h-screen flex flex-col">
 
     <!-- Header -->
-    <header class="bg-green-500 flex items-center justify-between px-6 py-3">
-        <!-- Logo -->
+    <header class="bg-green-500 flex items-center px-6 py-3">
+        <!-- Logo + Menú horizontal escritorio -->
         <div class="flex items-center space-x-4">
+            <!-- Logo SENA -->
+            <img src="logo-sena.png" alt="SENA" class="h-12 w-auto">
+
+            <!-- Menú horizontal (solo escritorio) -->
+            <div class="hidden md:flex space-x-3">
+                <a href="{{ url_for('programa_bp.listar_programas', aprendiz_id=aprendiz.id_aprendiz) }}" 
+                   class="bg-gradient-to-r from-blue-200 to-green-200 px-4 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
+                   PROGRAMA
+                </a>
+                <a href="{{ url_for('evidencia_bp.listar_evidencias', aprendiz_id=aprendiz.id_aprendiz) }}"
+                   class="bg-gradient-to-r from-blue-200 to-green-200 px-4 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
+                   EVIDENCIA
+                </a>
+                <a href="{{ url_for('empresa_bp.listar_empresas', aprendiz_id=aprendiz.id_aprendiz) }}" 
+                   class="bg-gradient-to-r from-blue-200 to-green-200 px-4 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
+                   EMPRESA
+                </a>
+                <a href="{{ url_for('aprendiz_bp.perfil', aprendiz_id=aprendiz.id_aprendiz) }}"  
+                   class="bg-gradient-to-r from-blue-200 to-green-200 px-4 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
+                   PERFIL
+                </a>
+            </div>
         </div>
 
-        <!-- Notificaciones y cerrar sesión -->
-        <div class="flex items-center space-x-6">
+        <!-- Notificaciones, cerrar sesión y menú móvil -->
+        <div class="flex items-center ml-auto space-x-6">
             <!-- Campana -->
             <button class="text-black hover:text-gray-700">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -28,54 +50,76 @@
                class="bg-gradient-to-r from-blue-200 to-green-200 px-4 py-2 rounded-md text-black font-semibold hover:from-blue-300 hover:to-green-300 transition">
                 Cerrar Sesión
             </a>
-        </div>
-    </header>
 
-    <!-- Contenedor principal -->
-    <div class="flex flex-1">
-        <!-- Sidebar -->
-        <aside class="w-20 bg-white shadow-md p-4 flex flex-col items-center relative">
-            <!-- Botón menú hamburguesa -->
-            <button id="menuBtn" class="w-12 h-12 bg-black text-white flex items-center justify-center rounded-md">
+            <!-- Menú hamburguesa solo móvil -->
+            <button id="menuBtn" class="w-12 h-12 bg-black text-white flex items-center justify-center rounded-md md:hidden">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                 </svg>
             </button>
+        </div>
+    </header>
 
-            <!-- Opciones desplegables al frente (verticales) -->
-            <div id="menuOptions" class="hidden absolute left-20 top-4 flex flex-col space-y-3">
-<a href="{{ url_for('programa_bp.listar_programas') }}" 
-   class="bg-gradient-to-r from-blue-200 to-green-200 px-6 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
-   PROGRAMA
-</a>
-<a href="{{ url_for('evidencia_bp.listar_evidencias') }}"
-   class="bg-gradient-to-r from-blue-200 to-green-200 px-6 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
-   EVIDENCIA
-</a>
-<a href="{{ url_for('empresa_bp.listar_empresas') }}" class="bg-gradient-to-r from-blue-200 to-green-200 px-6 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
-    EMPRESA
-</a>
-<a href="{{ url_for('aprendiz_bp.perfil_aprendiz') }}"  
-   class="bg-gradient-to-r from-blue-200 to-green-200 px-6 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
-   PERFIL
-</a>
-            </div>
-        </aside>
-
-        <!-- Contenido central -->
-        <main class="flex-1 flex items-center justify-center">
-            <h2 class="text-4xl font-extrabold text-center bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text text-transparent drop-shadow-lg">
-                ✨ BIENVENIDO, {{ aprendiz.nombre }} {{ aprendiz.apellido }} ✨
-            </h2>
-        </main>
+    <!-- Menú desplegable móvil -->
+    <div id="menuOptions" class="hidden bg-white shadow-md flex flex-col md:hidden px-4 py-2 space-y-2">
+        <a href="{{ url_for('programa_bp.listar_programas', aprendiz_id=aprendiz.id_aprendiz) }}" 
+           class="bg-gradient-to-r from-blue-200 to-green-200 px-4 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
+           PROGRAMA
+        </a>
+        <a href="{{ url_for('evidencia_bp.listar_evidencias', aprendiz_id=aprendiz.id_aprendiz) }}"
+           class="bg-gradient-to-r from-blue-200 to-green-200 px-4 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
+           EVIDENCIA
+        </a>
+        <a href="{{ url_for('empresa_bp.listar_empresas', aprendiz_id=aprendiz.id_aprendiz) }}" 
+           class="bg-gradient-to-r from-blue-200 to-green-200 px-4 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
+           EMPRESA
+        </a>
+        <a href="{{ url_for('aprendiz_bp.perfil', aprendiz_id=aprendiz.id_aprendiz) }}"  
+           class="bg-gradient-to-r from-blue-200 to-green-200 px-4 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
+           PERFIL
+        </a>
     </div>
 
-    <!-- Pie de página decorativo -->
+    <!-- Contenido central -->
+    <main class="flex-1 flex flex-col items-center justify-center px-6 mt-4">
+        <h2 class="text-4xl font-extrabold text-center bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text text-transparent drop-shadow-lg mb-8">
+            ✨ BIENVENIDO, {{ aprendiz.nombre }} {{ aprendiz.apellido }} ✨
+        </h2>
+
+        <!-- Progreso de evidencias -->
+        <div class="w-full max-w-2xl">
+            <h2 class="text-xl font-bold mb-4 text-left text-center">Progreso de Evidencias</h2>
+            <div class="w-full bg-gray-200 rounded-full h-6 shadow-md">
+                <div class="bg-green-500 h-6 rounded-full text-center text-white text-sm font-bold transition-all duration-500"
+                     style="width: {{ progreso }}%">
+                     {{ progreso }}%
+                </div>
+            </div>
+
+            <!-- Fechas del contrato -->
+            {% if contrato %}
+                <div class="mt-6 w-full max-w-2xl mx-auto p-4 bg-gradient-to-r from-green-100 to-blue-100 rounded-xl shadow-lg flex flex-col md:flex-row justify-between items-center">
+                    <div class="text-center md:text-left mb-2 md:mb-0">
+                        <span class="text-gray-500 uppercase font-semibold text-sm">Fecha de inicio</span>
+                        <p class="text-green-600 font-bold text-lg md:text-xl">{{ contrato.fecha_inicio.strftime('%d/%m/%Y') }}</p>
+                    </div>
+                    <div class="text-center md:text-left">
+                        <span class="text-gray-500 uppercase font-semibold text-sm">Fecha de fin</span>
+                        <p class="text-red-600 font-bold text-lg md:text-xl">{{ contrato.fecha_fin.strftime('%d/%m/%Y') }}</p>
+                    </div>
+                </div>
+            {% else %}
+                <p class="mt-2 text-center text-gray-500 font-medium">No hay contrato registrado.</p>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Pie de página -->
     <footer class="mt-auto">
         <img src="decoracion-footer.png" alt="Decoración" class="w-full">
     </footer>
 
-    <!-- Script para desplegar menú -->
+    <!-- Script menú hamburguesa -->
     <script>
         const menuBtn = document.getElementById('menuBtn');
         const menuOptions = document.getElementById('menuOptions');

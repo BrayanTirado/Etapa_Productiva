@@ -1,13 +1,14 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from app.models.users import Aprendiz, Instructor   
+from app.models.users import Aprendiz, Instructor, Contrato, Programa
 from app import db
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime  
 
 # Blueprint para manejar autenticación (rutas bajo /auth)
 bp = Blueprint('auth', __name__, url_prefix='/auth')
+
 
 # --- LOGIN ---
 @bp.route('/login', methods=['GET', 'POST'])
@@ -37,19 +38,66 @@ def login():
                 login_user(user)
                 flash('Inicio de sesión exitoso', 'success')
                 return redirect(url_for('auth.dashboard'))
+
         flash('Documento o contraseña incorrectos.', 'danger')
         return redirect(url_for('auth.login'))
 
     return render_template('login.html')
+
 
 # --- DASHBOARD ---
 @bp.route('/dashboard')
 @login_required
 def dashboard():
     if isinstance(current_user, Aprendiz):
-        return render_template('dasboardh_aprendiz.html', aprendiz=current_user)
+        total_requerido = 17
+        evidencias_subidas = len(current_user.evidencias)
+        progreso = int((evidencias_subidas / total_requerido) * 100) if total_requerido > 0 else 0
+
+        contrato = current_user.contrato
+
+        return render_template(
+            'dasboardh_aprendiz.html',
+            aprendiz=current_user,
+            progreso=progreso,
+            contrato=contrato
+        )
+
+
+    # --- Dashboard para Instructor ---
     elif isinstance(current_user, Instructor):
-        return render_template('dasboardh_instructor.html', instructor=current_user, current_year=datetime.now().year)
+        # Consulta cruzada Aprendiz - Contrato - Programa para fechas de finalización
+        aprendices_finalizan = (
+            db.session.query(Aprendiz, Contrato, Programa)
+            .join(Contrato, Aprendiz.contrato_id == Contrato.id_contrato)
+            .join(Programa, Aprendiz.programa_id == Programa.id_programa)
+            .filter(Contrato.fecha_fin.isnot(None))  # Asegurar que fecha_fin no sea nula
+            .all()
+        )
+        print("DEBUG: Aprendices con contratos y programas:", aprendices_finalizan)
+
+        # Crear lista de eventos para el calendario
+        eventos = []
+        for aprendiz, contrato, programa in aprendices_finalizan:
+            eventos.append({
+                "fecha_fin": contrato.fecha_fin.strftime("%Y-%m-%d"),
+                "fecha_inicio": contrato.fecha_inicio.strftime("%Y-%m-%d"),
+                "nombre": f"{aprendiz.nombre} {aprendiz.apellido}",
+                "ficha": programa.ficha
+            })
+        print("DEBUG: Eventos para calendario:", eventos)
+
+        return render_template(
+            'dasboardh_instructor.html',
+            instructor=current_user,
+            eventos=eventos,
+            current_year=datetime.now().year
+        )
+
+    # --- Usuario no permitido ---
+    else:
+        flash("No tienes permisos para acceder al dashboard.", "danger")
+        return redirect(url_for("auth.login"))
 
 
 # --- LOGOUT ---
@@ -71,11 +119,9 @@ def registro_aprendiz():
         documento = request.form.get('documento')
         email = request.form.get('email')
         celular = request.form.get('celular')
-        ficha = request.form.get('ficha')
         password_aprendiz = request.form.get('password_aprendiz')
 
-        # Validación de campos obligatorios
-        if not all([nombre, apellido, tipo_documento, documento, email, celular, ficha, password_aprendiz]):
+        if not all([nombre, apellido, tipo_documento, documento, email, celular, password_aprendiz]):
             flash('Todos los campos son obligatorios.', 'warning')
             return redirect(url_for('auth.registro_aprendiz'))
 
@@ -88,7 +134,6 @@ def registro_aprendiz():
             documento=documento,
             email=email,
             celular=celular,
-            ficha=ficha,
             password_aprendiz=hashed_password
         )
 
@@ -107,7 +152,6 @@ def registro_aprendiz():
             return redirect(url_for('auth.registro_aprendiz'))
 
     return render_template('aprendiz.html')
-  
 
 
 # --- REGISTRO DE INSTRUCTOR ---
@@ -122,11 +166,9 @@ def instructor():
         celular = request.form.get('celular_instructor')
         password = request.form.get('passwordInstructor')
 
-        # Validar que todos los campos estén completos
         if not all([nombre, apellido, tipo_documento, documento, correo, celular, password]):
             flash('Todos los campos son obligatorios.', 'warning')
             return redirect(url_for('auth.instructor'))
-
 
         hashed_password = generate_password_hash(password)
 

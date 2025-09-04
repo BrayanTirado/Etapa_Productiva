@@ -9,7 +9,7 @@ estudiantes_bp = Blueprint('estudiantes', __name__, url_prefix='/estudiantes')
 @estudiantes_bp.route('/listarEstudiantes', methods=['GET'])
 @login_required
 def listar_estudiantes():
-    # Obtener filtro de ficha
+    # Obtener filtro de ficha como número
     ficha = request.args.get('ficha', type=int)
 
     # Lista vacía por defecto
@@ -35,7 +35,7 @@ def listar_estudiantes():
                 'email': e.email,
                 'celular': e.celular,
                 'ficha': e.ficha,
-                'contrato_id_contrato': e.contrato_id_contrato
+                'contrato_id': e.contrato_id  # <-- corregido
             }
             for e in estudiantes
         ])

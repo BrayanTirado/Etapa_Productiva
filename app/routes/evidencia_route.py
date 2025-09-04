@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_from_directory
 from flask_login import login_required, current_user
-from app.models.users import Evidencia, Aprendiz
+from app.models.users import Evidencia, Aprendiz, Instructor
 from app import db
 import os
 from werkzeug.utils import secure_filename
@@ -9,20 +9,15 @@ from uuid import uuid4
 
 bp = Blueprint('evidencia_bp', __name__, url_prefix='/evidencia')
 
-# Carpeta donde se guardarán los archivos (ajustada con base_dir)
+# Carpeta donde se guardarán los archivos
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-# Soportar tanto formatos antiguos como nuevos
-ALLOWED_EXTENSIONS = {'doc', 'docx', 'xls', 'xlsx'}
-
+ALLOWED_EXTENSIONS = {'doc', 'docx', 'xls', 'xlsx', 'pdf'}
 
 def allowed_file(filename: str, tipo: str) -> bool:
-    """
-    Verifica la extensión según el tipo ('word' o 'excel').
-    """
     if '.' not in filename:
         return False
     ext = filename.rsplit('.', 1)[1].lower()
@@ -30,38 +25,86 @@ def allowed_file(filename: str, tipo: str) -> bool:
         return ext in {'doc', 'docx'}
     elif tipo == 'excel':
         return ext in {'xls', 'xlsx'}
+    elif tipo == 'pdf':
+        return ext == 'pdf'
     return False
 
+# --- LISTAR EVIDENCIAS SEGÚN ROL ---
+@bp.route('/')
+@login_required
+def listar_evidencias():
+    aprendiz_id = None
 
-# --- SERVIR ARCHIVO ---
+    # Aprendiz: solo sus evidencias
+    if isinstance(current_user, Aprendiz):
+        aprendiz_id = current_user.id_aprendiz
+
+    # Instructor: puede pasar aprendiz_id por GET
+    elif isinstance(current_user, Instructor):
+        aprendiz_id = request.args.get('aprendiz_id', type=int)
+        if not aprendiz_id:
+            flash('Debes seleccionar un aprendiz.', 'warning')
+            return redirect(url_for('auth.dashboard'))
+
+    if not aprendiz_id:
+        flash('Acceso denegado.', 'danger')
+        return redirect(url_for('auth.dashboard'))
+
+    aprendiz = Aprendiz.query.get_or_404(aprendiz_id)
+
+    evidencias_word = Evidencia.query.filter_by(aprendiz_id_aprendiz=aprendiz.id_aprendiz, tipo='Word').all()
+    evidencias_excel = Evidencia.query.filter_by(aprendiz_id_aprendiz=aprendiz.id_aprendiz, tipo='Excel').all()
+    evidencias_pdf = Evidencia.query.filter_by(aprendiz_id_aprendiz=aprendiz.id_aprendiz, tipo='Pdf').all()
+
+    return render_template('evidencia/listar_evidencia.html',
+                           aprendiz=aprendiz,
+                           evidencias_word=evidencias_word,
+                           evidencias_excel=evidencias_excel,
+                           evidencias_pdf=evidencias_pdf)
+
+# --- SERVIR ARCHIVO PARA DESCARGA ---
 @bp.route('/archivo/<int:id>')
 @login_required
 def serve_file(id):
     evidencia = Evidencia.query.get_or_404(id)
 
-    if evidencia.aprendiz_id_aprendiz != current_user.id_aprendiz:
+    if isinstance(current_user, Aprendiz) and evidencia.aprendiz_id_aprendiz != current_user.id_aprendiz:
         flash('Acceso denegado.', 'danger')
-        return redirect(url_for('evidencia_bp.mis_evidencias'))
+        return redirect(url_for('evidencia_bp.listar_evidencias'))
 
     try:
-        # El archivo se guarda con nombre único en UPLOAD_FOLDER
         unique_filename = os.path.basename(evidencia.url_archivo)
-
-        return send_from_directory(
-            UPLOAD_FOLDER,                 # 👈 siempre desde la carpeta configurada
-            unique_filename,               # 👈 nombre físico único
-            as_attachment=True,
-            download_name=evidencia.nombre_archivo  # 👈 nombre original para el usuario
-        )
+        return send_from_directory(UPLOAD_FOLDER, unique_filename, as_attachment=True, download_name=evidencia.nombre_archivo)
     except FileNotFoundError:
         flash('El archivo no se encontró en el servidor.', 'danger')
-        return redirect(url_for('evidencia_bp.mis_evidencias'))
+        return redirect(url_for('evidencia_bp.listar_evidencias'))
     except Exception as e:
         flash(f'Error al servir el archivo: {str(e)}', 'danger')
-        return redirect(url_for('evidencia_bp.mis_evidencias'))
+        return redirect(url_for('evidencia_bp.listar_evidencias'))
 
+# --- VER PDF EN NAVEGADOR ---
+@bp.route('/ver/<int:id>')
+@login_required
+def view_file(id):
+    evidencia = Evidencia.query.get_or_404(id)
 
+    if isinstance(current_user, Aprendiz) and evidencia.aprendiz_id_aprendiz != current_user.id_aprendiz:
+        flash('Acceso denegado.', 'danger')
+        return redirect(url_for('evidencia_bp.listar_evidencias'))
 
+    if evidencia.tipo.lower() != 'pdf':
+        flash('Solo se pueden ver archivos PDF en el navegador.', 'warning')
+        return redirect(url_for('evidencia_bp.listar_evidencias'))
+
+    try:
+        unique_filename = os.path.basename(evidencia.url_archivo)
+        return send_from_directory(UPLOAD_FOLDER, unique_filename, as_attachment=False)
+    except FileNotFoundError:
+        flash('El archivo no se encontró en el servidor.', 'danger')
+        return redirect(url_for('evidencia_bp.listar_evidencias'))
+    except Exception as e:
+        flash(f'Error al abrir el archivo: {str(e)}', 'danger')
+        return redirect(url_for('evidencia_bp.listar_evidencias'))
 
 # --- ELEGIR TIPO ---
 @bp.route('/choose_type')
@@ -72,7 +115,6 @@ def choose_type():
         return redirect(url_for('auth.dashboard'))
     return render_template('evidencia/choose_type.html')
 
-
 # --- SUBIR POR TIPO ---
 @bp.route('/upload/<string:tipo>', methods=['GET', 'POST'])
 @login_required
@@ -81,7 +123,7 @@ def upload_evidencia(tipo):
         flash('Acceso denegado.', 'danger')
         return redirect(url_for('auth.dashboard'))
 
-    if tipo not in ['word', 'excel']:
+    if tipo not in ['word', 'excel', 'pdf']:
         flash('Tipo inválido.', 'danger')
         return redirect(url_for('evidencia_bp.choose_type'))
 
@@ -94,14 +136,19 @@ def upload_evidencia(tipo):
             return redirect(request.url)
 
         if not allowed_file(archivo.filename, tipo):
-            allowed_text = '(.doc, .docx)' if tipo == 'word' else '(.xls, .xlsx)'
+            allowed_text = {
+                'word': '(.doc, .docx)',
+                'excel': '(.xls, .xlsx)',
+                'pdf': '(.pdf)'
+            }.get(tipo)
             flash(f'Archivo inválido. Solo se permiten {allowed_text}.', 'danger')
             return redirect(request.url)
 
-        original_name = secure_filename(archivo.filename)   # 👈 lo que verá el usuario
+        original_name = secure_filename(archivo.filename)
         ext = original_name.rsplit('.', 1)[1].lower()
-        unique_name = f"{uuid4().hex}_{original_name}"      # 👈 lo que se guarda en disco
+        unique_name = f"{uuid4().hex}_{original_name}"
         filepath = os.path.join(UPLOAD_FOLDER, unique_name)
+
         try:
             archivo.save(filepath)
         except Exception as e:
@@ -110,52 +157,29 @@ def upload_evidencia(tipo):
 
         nueva = Evidencia(
             formato=ext,
-            nombre_archivo=original_name,   # 👈 guardamos limpio
-            url_archivo=filepath,           # 👈 guardamos ruta real
+            nombre_archivo=original_name,
+            url_archivo=filepath,
             fecha_subida=date.today(),
-            tipo='Word' if tipo == 'word' else 'Excel',
+            tipo=tipo.capitalize(),
             nota=nota if nota else None,
             aprendiz_id_aprendiz=current_user.id_aprendiz
         )
         db.session.add(nueva)
         db.session.commit()
         flash('Evidencia subida con éxito ✅', 'success')
-        return redirect(url_for('evidencia_bp.mis_evidencias'))
+        return redirect(url_for('evidencia_bp.listar_evidencias'))
 
     return render_template('evidencia/nueva_evidencia.html', tipo=tipo.capitalize())
 
-
-# --- LISTAR MIS EVIDENCIAS ---
-@bp.route('/mis_evidencias')
-@login_required
-def mis_evidencias():
-    if not isinstance(current_user, Aprendiz):
-        flash('Acceso denegado.', 'danger')
-        return redirect(url_for('auth.dashboard'))
-    evidencias_word = Evidencia.query.filter_by(aprendiz_id_aprendiz=current_user.id_aprendiz, tipo='Word').all()
-    evidencias_excel = Evidencia.query.filter_by(aprendiz_id_aprendiz=current_user.id_aprendiz, tipo='Excel').all()
-    return render_template('evidencia/listar_evidencia.html',
-                           evidencias_word=evidencias_word, evidencias_excel=evidencias_excel)
-
-
-# --- LISTAR TODAS ---
-@bp.route('/')
-@login_required
-def listar_evidencias():
-    evidencias_word = Evidencia.query.filter_by(tipo='Word').all()
-    evidencias_excel = Evidencia.query.filter_by(tipo='Excel').all()
-    return render_template('evidencia/listar_evidencia.html',
-                           evidencias_word=evidencias_word, evidencias_excel=evidencias_excel)
-
-
-# --- EDITAR ---
+# --- EDITAR EVIDENCIA ---
 @bp.route('/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_evidencia(id):
     evidencia = Evidencia.query.get_or_404(id)
-    if evidencia.aprendiz_id_aprendiz != current_user.id_aprendiz:
+
+    if isinstance(current_user, Aprendiz) and evidencia.aprendiz_id_aprendiz != current_user.id_aprendiz:
         flash('Acceso denegado.', 'danger')
-        return redirect(url_for('evidencia_bp.mis_evidencias'))
+        return redirect(url_for('evidencia_bp.listar_evidencias'))
 
     if request.method == 'POST':
         nota = request.form.get('nota', '').strip()
@@ -166,7 +190,11 @@ def editar_evidencia(id):
         if archivo and archivo.filename:
             tipo_actual = evidencia.tipo.lower()
             if not allowed_file(archivo.filename, tipo_actual):
-                allowed_text = '(.doc, .docx)' if tipo_actual == 'word' else '(.xls, .xlsx)'
+                allowed_text = {
+                    'word': '(.doc, .docx)',
+                    'excel': '(.xls, .xlsx)',
+                    'pdf': '(.pdf)'
+                }.get(tipo_actual)
                 flash(f'Archivo inválido. Solo se permiten {allowed_text}.', 'danger')
                 return redirect(request.url)
 
@@ -180,7 +208,6 @@ def editar_evidencia(id):
                 flash(f'Error al guardar el archivo nuevo: {str(e)}', 'danger')
                 return redirect(request.url)
 
-            # Borrar el archivo anterior
             try:
                 if evidencia.url_archivo and os.path.exists(evidencia.url_archivo):
                     os.remove(evidencia.url_archivo)
@@ -188,30 +215,52 @@ def editar_evidencia(id):
                 pass
 
             evidencia.url_archivo = new_filepath
-            evidencia.nombre_archivo = original_name   # 👈 limpio para mostrar
+            evidencia.nombre_archivo = original_name
             evidencia.formato = ext
 
         db.session.commit()
         flash('Evidencia actualizada correctamente ✅', 'success')
-        return redirect(url_for('evidencia_bp.mis_evidencias'))
+        return redirect(url_for('evidencia_bp.listar_evidencias'))
 
     return render_template('evidencia/editar_evidencia.html', evidencia=evidencia)
 
-
-# --- ELIMINAR ---
+# --- ELIMINAR EVIDENCIA ---
 @bp.route('/eliminar/<int:id>')
 @login_required
 def eliminar_evidencia(id):
     evidencia = Evidencia.query.get_or_404(id)
-    if evidencia.aprendiz_id_aprendiz != current_user.id_aprendiz:
+
+    if isinstance(current_user, Aprendiz) and evidencia.aprendiz_id_aprendiz != current_user.id_aprendiz:
         flash('Acceso denegado.', 'danger')
-        return redirect(url_for('evidencia_bp.mis_evidencias'))
+        return redirect(url_for('evidencia_bp.listar_evidencias'))
+
     try:
         if evidencia.url_archivo and os.path.exists(evidencia.url_archivo):
             os.remove(evidencia.url_archivo)
     except Exception:
         pass
+
     db.session.delete(evidencia)
     db.session.commit()
     flash('Evidencia eliminada correctamente ✅', 'success')
-    return redirect(url_for('evidencia_bp.mis_evidencias'))
+    return redirect(url_for('evidencia_bp.listar_evidencias'))
+
+# --- LISTAR EVIDENCIAS DE UN APRENDIZ (INSTRUCTOR) ---
+@bp.route('/aprendiz/<int:id_aprendiz>')
+@login_required
+def evidencias_aprendiz(id_aprendiz):
+    if not isinstance(current_user, Instructor):
+        flash('Acceso denegado.', 'danger')
+        return redirect(url_for('auth.dashboard'))
+
+    aprendiz = Aprendiz.query.get_or_404(id_aprendiz)
+
+    evidencias_word = Evidencia.query.filter_by(aprendiz_id_aprendiz=aprendiz.id_aprendiz, tipo='Word').all()
+    evidencias_excel = Evidencia.query.filter_by(aprendiz_id_aprendiz=aprendiz.id_aprendiz, tipo='Excel').all()
+    evidencias_pdf = Evidencia.query.filter_by(aprendiz_id_aprendiz=aprendiz.id_aprendiz, tipo='Pdf').all()
+
+    return render_template('evidencia/listar_evidencia.html',
+                           aprendiz=aprendiz,
+                           evidencias_word=evidencias_word,
+                           evidencias_excel=evidencias_excel,
+                           evidencias_pdf=evidencias_pdf)
