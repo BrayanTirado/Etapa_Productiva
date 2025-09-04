@@ -67,7 +67,9 @@
                     </div>
                     <div class="mt-4 flex justify-between">
                         <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">Guardar Cambios</button>
-                        <a href="{{ url_for('aprendiz_bp.perfil', aprendiz_id=aprendiz_id) }}"
+
+                        <!-- ← Here: apuntamos al endpoint del dashboard del aprendiz -->
+                        <a href="{{ url_for('aprendiz_bp.ver_dashboard_aprendiz', id=aprendiz.id_aprendiz) }}"
                            class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
                             Cancelar
                         </a>
@@ -94,9 +96,11 @@
                            Editar Perfil
                         </a>
                     {% endif %}
-                    <a href="{{ url_for('aprendiz_bp.perfil', aprendiz_id=aprendiz_id) }}"
+
+                    <!-- ← Here: apuntamos al endpoint del dashboard del aprendiz -->
+                    <a href="{{ url_for('aprendiz_bp.ver_dashboard_aprendiz', id=aprendiz.id_aprendiz) }}"
                        class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition ml-4">
-                       Volver
+                       Volver al Dashboard
                     </a>
                 </div>
             {% endif %}
@@ -105,7 +109,7 @@
             <div class="mt-8 flex justify-center">
                 <a href="{{ url_for('auth.dashboard') }}"
                    class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
-                   Volver al Dashboard
+                   Volver
                 </a>
             </div>
         {% endif %}
