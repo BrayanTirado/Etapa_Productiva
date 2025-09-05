@@ -3,9 +3,21 @@ from flask_login import login_required, current_user
 from app.models.users import Empresa, Contrato, Aprendiz, Instructor
 from app import db
 from sqlalchemy.exc import SQLAlchemyError
-from datetime import datetime
+from datetime import datetime, date
+import calendar
 
 bp = Blueprint('empresa_bp', __name__, url_prefix='/empresa')
+
+def add_months(sourcedate: date, months: int) -> date:
+    """
+    Suma `months` meses a `sourcedate` cuidando los días de mes (ej: 31 ene -> 30 jun si aplica).
+    Evita dependencia externa (dateutil).
+    """
+    month = sourcedate.month - 1 + months
+    year = sourcedate.year + month // 12
+    month = month % 12 + 1
+    day = min(sourcedate.day, calendar.monthrange(year, month)[1])
+    return date(year, month, day)
 
 
 # --- LISTAR EMPRESAS ---
@@ -62,21 +74,31 @@ def nueva_empresa():
                 aprendiz_id_aprendiz=current_user.id_aprendiz
             )
             db.session.add(nueva)
-            db.session.flush()
+            db.session.flush()  # <-- aquí ya tenemos id_empresa disponible
 
-            # Crear contrato si se ingresan fechas
+            # Crear contrato si se ingresa fecha_inicio (ahora fecha_fin se calcula si no se envía)
             fecha_inicio_raw = request.form.get('fecha_inicio')
             fecha_fin_raw = request.form.get('fecha_fin')
             contrato_creado = None
 
-            if fecha_inicio_raw and fecha_fin_raw:
+            if fecha_inicio_raw:
                 try:
                     fecha_inicio = datetime.strptime(fecha_inicio_raw, '%Y-%m-%d').date()
-                    fecha_fin = datetime.strptime(fecha_fin_raw, '%Y-%m-%d').date()
                 except ValueError:
                     db.session.rollback()
-                    flash('Formato de fecha inválido. Usa YYYY-MM-DD.', 'danger')
+                    flash('Formato de fecha de inicio inválido. Usa YYYY-MM-DD.', 'danger')
                     return redirect(url_for('empresa_bp.nueva_empresa'))
+
+                # Si el frontend envía fecha_fin la usamos; si no, la calculamos +6 meses
+                if fecha_fin_raw:
+                    try:
+                        fecha_fin = datetime.strptime(fecha_fin_raw, '%Y-%m-%d').date()
+                    except ValueError:
+                        db.session.rollback()
+                        flash('Formato de fecha de fin inválido. Usa YYYY-MM-DD.', 'danger')
+                        return redirect(url_for('empresa_bp.nueva_empresa'))
+                else:
+                    fecha_fin = add_months(fecha_inicio, 6)
 
                 contrato_creado = Contrato(
                     fecha_inicio=fecha_inicio,
@@ -87,6 +109,7 @@ def nueva_empresa():
                 db.session.add(contrato_creado)
                 db.session.flush()
 
+                # Vincular contrato al aprendiz si existe
                 aprendiz_db = Aprendiz.query.get(current_user.id_aprendiz)
                 if aprendiz_db:
                     aprendiz_db.contrato_id = contrato_creado.id_contrato
@@ -125,12 +148,44 @@ def editar_empresa(id):
             empresa.correo_jefe = request.form.get('correo_jefe')
             empresa.telefono_jefe = request.form.get('telefono_jefe')
 
-            if contrato:
-                fecha_inicio_raw = request.form.get('fecha_inicio')
-                fecha_fin_raw = request.form.get('fecha_fin')
-                if fecha_inicio_raw and fecha_fin_raw:
-                    contrato.fecha_inicio = datetime.strptime(fecha_inicio_raw, '%Y-%m-%d').date()
-                    contrato.fecha_fin = datetime.strptime(fecha_fin_raw, '%Y-%m-%d').date()
+            # Manejo de contrato: si se envía fecha_inicio, actualizamos (o creamos) contrato
+            fecha_inicio_raw = request.form.get('fecha_inicio')
+            fecha_fin_raw = request.form.get('fecha_fin')
+
+            if fecha_inicio_raw:
+                try:
+                    fecha_inicio = datetime.strptime(fecha_inicio_raw, '%Y-%m-%d').date()
+                except ValueError:
+                    db.session.rollback()
+                    flash('Formato de fecha de inicio inválido. Usa YYYY-MM-DD.', 'danger')
+                    return redirect(url_for('empresa_bp.editar_empresa', id=id))
+
+                if fecha_fin_raw:
+                    try:
+                        fecha_fin = datetime.strptime(fecha_fin_raw, '%Y-%m-%d').date()
+                    except ValueError:
+                        db.session.rollback()
+                        flash('Formato de fecha de fin inválido. Usa YYYY-MM-DD.', 'danger')
+                        return redirect(url_for('empresa_bp.editar_empresa', id=id))
+                else:
+                    fecha_fin = add_months(fecha_inicio, 6)
+
+                if contrato:
+                    contrato.fecha_inicio = fecha_inicio
+                    contrato.fecha_fin = fecha_fin
+                    contrato.tipo_contrato = request.form.get('tipo_contrato')
+                else:
+                    # crear nuevo contrato si antes no existía
+                    nuevo_contrato = Contrato(
+                        fecha_inicio=fecha_inicio,
+                        fecha_fin=fecha_fin,
+                        tipo_contrato=request.form.get('tipo_contrato'),
+                        empresa_id_empresa=empresa.id_empresa
+                    )
+                    db.session.add(nuevo_contrato)
+
+            # Si no se envía fecha_inicio, no tocamos el contrato (se mantiene igual)
+            if contrato and request.form.get('tipo_contrato') is not None:
                 contrato.tipo_contrato = request.form.get('tipo_contrato')
 
             db.session.commit()

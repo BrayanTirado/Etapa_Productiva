@@ -87,31 +87,56 @@
         </h2>
 
         <!-- Progreso de evidencias -->
-        <div class="w-full max-w-2xl">
-            <h2 class="text-xl font-bold mb-4 text-left text-center">Progreso de Evidencias</h2>
+        <div class="w-full max-w-2xl mb-8">
+            <h2 class="text-xl font-bold mb-4 text-center">Progreso de Evidencias</h2>
             <div class="w-full bg-gray-200 rounded-full h-6 shadow-md">
                 <div class="bg-green-500 h-6 rounded-full text-center text-white text-sm font-bold transition-all duration-500"
                      style="width: {{ progreso }}%">
                      {{ progreso }}%
                 </div>
             </div>
-
-            <!-- Fechas del contrato -->
-            {% if contrato %}
-                <div class="mt-6 w-full max-w-2xl mx-auto p-4 bg-gradient-to-r from-green-100 to-blue-100 rounded-xl shadow-lg flex flex-col md:flex-row justify-between items-center">
-                    <div class="text-center md:text-left mb-2 md:mb-0">
-                        <span class="text-gray-500 uppercase font-semibold text-sm">Fecha de inicio</span>
-                        <p class="text-green-600 font-bold text-lg md:text-xl">{{ contrato.fecha_inicio.strftime('%d/%m/%Y') }}</p>
-                    </div>
-                    <div class="text-center md:text-left">
-                        <span class="text-gray-500 uppercase font-semibold text-sm">Fecha de fin</span>
-                        <p class="text-red-600 font-bold text-lg md:text-xl">{{ contrato.fecha_fin.strftime('%d/%m/%Y') }}</p>
-                    </div>
-                </div>
-            {% else %}
-                <p class="mt-2 text-center text-gray-500 font-medium">No hay contrato registrado.</p>
-            {% endif %}
         </div>
+
+        {% if contrato and contrato.fecha_inicio and contrato.fecha_fin %}
+        <div class="w-full max-w-2xl mb-8">
+            <h2 class="text-xl font-bold mb-4 text-center">Progreso en Tiempo</h2>
+            <div class="w-full bg-gray-200 rounded-full h-6 shadow-md">
+                <div 
+                    class="bg-green-500 h-6 rounded-full text-center text-white text-sm font-bold transition-all duration-500"
+                    style="width: {{ progreso_tiempo }}%;">
+                    {{ progreso_tiempo }}%
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Fechas del contrato -->
+        {% if contrato %}
+            <div class="mt-6 w-full max-w-2xl mx-auto p-4 bg-gradient-to-r from-green-100 to-blue-100 rounded-xl shadow-lg flex flex-col md:flex-row justify-between items-center">
+                <div class="text-center md:text-left mb-2 md:mb-0">
+                    <span class="text-gray-500 uppercase font-semibold text-sm">Fecha de inicio</span>
+                    <p class="text-green-600 font-bold text-lg md:text-xl">
+                        {% if contrato.fecha_inicio %}
+                            {{ contrato.fecha_inicio.strftime('%d/%m/%Y') }}
+                        {% else %}
+                            No registrada
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="text-center md:text-left">
+                    <span class="text-gray-500 uppercase font-semibold text-sm">Fecha de fin</span>
+                    <p class="text-red-600 font-bold text-lg md:text-xl">
+                        {% if contrato.fecha_fin %}
+                            {{ contrato.fecha_fin.strftime('%d/%m/%Y') }}
+                        {% else %}
+                            No registrada
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        {% else %}
+            <p class="mt-2 text-center text-gray-500 font-medium">No hay contrato registrado.</p>
+        {% endif %}
     </main>
 
     <!-- Pie de página -->

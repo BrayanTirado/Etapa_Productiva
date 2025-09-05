@@ -48,13 +48,14 @@
             <!-- Campos del contrato ocultos por defecto -->
             <div id="campos_contrato" style="display: none;" class="space-y-4 mt-2 max-w-2xl mx-auto">
                 <label class="block mb-1 font-medium">Fecha Inicio Contrato</label>
-                <input type="date" name="fecha_inicio" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400">
+                <input type="date" id="fecha_inicio" name="fecha_inicio" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400">
 
                 <label class="block mb-1 font-medium">Fecha Fin Contrato</label>
-                <input type="date" name="fecha_fin" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400">
+                <!-- dejamos el campo fecha_fin (por compatibilidad) pero lo llenamos/mostrar readonly para UX -->
+                <input type="date" id="fecha_fin" name="fecha_fin" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400" readonly>
 
                 <label class="block mb-1 font-medium">Tipo de Contrato</label>
-                <select name="tipo_contrato" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400">
+                <select name="tipo_contrato" id="tipo_contrato" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400">
                     <option value="Contrato de Aprendizaje">Contrato de Aprendizaje</option>
                     <option value="Contrato laboral">Contrato laboral</option>
                 </select>
@@ -93,14 +94,52 @@
     <script>
         const checkboxContrato = document.getElementById('registrar_contrato');
         const camposContrato = document.getElementById('campos_contrato');
+        const fechaInicio = document.getElementById('fecha_inicio');
+        const fechaFin = document.getElementById('fecha_fin');
+        const tipoContrato = document.getElementById('tipo_contrato');
+
         checkboxContrato.addEventListener('change', () => {
-            camposContrato.style.display = checkboxContrato.checked ? 'block' : 'none';
+            const show = checkboxContrato.checked;
+            camposContrato.style.display = show ? 'block' : 'none';
+            // Si se muestran los campos, ponemos required en fecha_inicio y tipo_contrato
+            fechaInicio.required = show;
+            tipoContrato.required = show;
+            // Cuando ocultamos limpiamos los campos para evitar envíos accidentales
+            if (!show) {
+                fechaInicio.value = '';
+                fechaFin.value = '';
+                tipoContrato.selectedIndex = 0;
+            }
+        });
+
+        // Al cambiar la fecha de inicio calculamos fecha_fin (+6 meses) para mostrar al usuario
+        fechaInicio && fechaInicio.addEventListener('change', function() {
+            const v = this.value;
+            if (!v) {
+                fechaFin.value = '';
+                return;
+            }
+            const d = new Date(v);
+            if (isNaN(d)) {
+                fechaFin.value = '';
+                return;
+            }
+            // Sumar 6 meses (JS ajusta días de mes automáticamente)
+            d.setMonth(d.getMonth() + 6);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            fechaFin.value = `${year}-${month}-${day}`;
         });
 
         const checkboxJefe = document.getElementById('registrar_jefe');
         const camposJefe = document.getElementById('campos_jefe');
         checkboxJefe.addEventListener('change', () => {
             camposJefe.style.display = checkboxJefe.checked ? 'block' : 'none';
+            if (!checkboxJefe.checked) {
+                // limpiar campos al ocultar (UX)
+                camposJefe.querySelectorAll('input').forEach(i => i.value = '');
+            }
         });
     </script>
 </body>

@@ -1,9 +1,10 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, request
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app.models.users import Aprendiz, Evidencia, Programa, Instructor
 from app import db
 from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import IntegrityError
+from datetime import date
 
 # Blueprint para todas las rutas relacionadas con Aprendiz
 bp = Blueprint('aprendiz_bp', __name__, url_prefix='/aprendiz')
@@ -151,13 +152,19 @@ def perfil_aprendiz(id):
     es_aprendiz = False
     es_instructor = hasattr(current_user, 'id_instructor')
 
-    # Aprendiz ve su propio perfil
+    progreso = None
+    progreso_tiempo = None
+    contrato = None
+    mostrar_progreso = False
+    mostrar_contrato = False
+
+    # Caso: el aprendiz entra a su propio perfil
     if isinstance(current_user, Aprendiz) and id is None:
         aprendiz = current_user
         aprendiz_id = current_user.id_aprendiz
         es_aprendiz = True
 
-    # Instructor ve el perfil de un aprendiz seleccionado
+    # Caso: instructor ve el perfil de un aprendiz
     elif isinstance(current_user, Instructor):
         aprendiz_id = id or request.args.get('aprendiz_id', type=int)
         if aprendiz_id:
@@ -169,46 +176,48 @@ def perfil_aprendiz(id):
         flash('No tienes permiso para acceder a esta página.', 'danger')
         return redirect(url_for('auth.dashboard'))
 
-    total_requerido = 17
-    evidencias_subidas = len(aprendiz.evidencias)
-    progreso = int((evidencias_subidas / total_requerido) * 100) if total_requerido > 0 else 0
+    if aprendiz:
+        # --- Calcular progreso evidencias ---
+        total_requerido = 17
+        evidencias_subidas = len(aprendiz.evidencias)
+        progreso = int((evidencias_subidas / total_requerido) * 100) if total_requerido > 0 else 0
+
+        # --- Calcular progreso tiempo contrato ---
+        contrato_obj = aprendiz.contrato
+        if contrato_obj and contrato_obj.fecha_inicio and contrato_obj.fecha_fin:
+            fecha_inicio = contrato_obj.fecha_inicio.date() if hasattr(contrato_obj.fecha_inicio, "date") else contrato_obj.fecha_inicio
+            fecha_fin = contrato_obj.fecha_fin.date() if hasattr(contrato_obj.fecha_fin, "date") else contrato_obj.fecha_fin
+
+            total_dias = (fecha_fin - fecha_inicio).days
+            dias_transcurridos = (date.today() - fecha_inicio).days
+            if total_dias > 0:
+                progreso_tiempo = round((dias_transcurridos / total_dias) * 100, 2)
+                progreso_tiempo = min(max(progreso_tiempo, 0), 100)
+
+            contrato = {
+                'fecha_inicio': fecha_inicio,
+                'fecha_fin': fecha_fin
+            }
+
+        mostrar_progreso = True
+        mostrar_contrato = bool(contrato)
 
     return render_template(
         'perfil_aprendiz.html',
         aprendiz=aprendiz,
-        progreso=progreso,
-        contrato=aprendiz.contrato,
         es_aprendiz=es_aprendiz,
         es_instructor=es_instructor,
         mode='view',
-        aprendiz_id=aprendiz_id
-    )
-
-
-# ---- DASHBOARD DEL PROPIO APRENDIZ ----
-@bp.route('/dashboard')
-@login_required
-def ver_mi_dashboard():
-    if not hasattr(current_user, 'id_aprendiz'):
-        flash('No tienes permiso para acceder a este dashboard.', 'danger')
-        return redirect(url_for('auth.dashboard'))
-
-    aprendiz = current_user
-    total_requerido = 17
-    evidencias_subidas = len(aprendiz.evidencias)
-    progreso = int((evidencias_subidas / total_requerido) * 100) if total_requerido > 0 else 0
-    contrato = aprendiz.contrato
-
-    return render_template(
-        'dasboardh_aprendiz.html',
-        aprendiz=aprendiz,
+        aprendiz_id=aprendiz_id,
         progreso=progreso,
+        progreso_tiempo=progreso_tiempo,
         contrato=contrato,
-        es_instructor=False
+        mostrar_progreso=mostrar_progreso,
+        mostrar_contrato=mostrar_contrato
     )
 
 
-# ---- VER PROCESO DE UN APRENDIZ (para instructores) ----
+# ---- VER PROCESO DE UN APRENDIZ (SOLO INSTRUCTOR) ----
 @bp.route('/ver/<int:id>', methods=['GET'])
 @login_required
 def ver_aprendiz(id):
@@ -221,13 +230,38 @@ def ver_aprendiz(id):
     evidencias_subidas = len(aprendiz.evidencias)
     progreso = int((evidencias_subidas / total_requerido) * 100) if total_requerido > 0 else 0
 
+    contrato_obj = aprendiz.contrato
+    progreso_tiempo = 0
+    contrato = None
+    if contrato_obj and contrato_obj.fecha_inicio and contrato_obj.fecha_fin:
+        fecha_inicio = contrato_obj.fecha_inicio.date() if hasattr(contrato_obj.fecha_inicio, "date") else contrato_obj.fecha_inicio
+        fecha_fin = contrato_obj.fecha_fin.date() if hasattr(contrato_obj.fecha_fin, "date") else contrato_obj.fecha_fin
+
+        total_dias = (fecha_fin - fecha_inicio).days
+        dias_transcurridos = (date.today() - fecha_inicio).days
+        if total_dias > 0:
+            progreso_tiempo = round((dias_transcurridos / total_dias) * 100, 2)
+            if progreso_tiempo < 0:
+                progreso_tiempo = 0
+            elif progreso_tiempo > 100:
+                progreso_tiempo = 100
+
+        contrato = {
+            'fecha_inicio': fecha_inicio,
+            'fecha_fin': fecha_fin
+        }
+
     return render_template(
         'perfil_aprendiz.html',
         aprendiz=aprendiz,
         progreso=progreso,
+        progreso_tiempo=progreso_tiempo,
+        contrato=contrato,
         es_aprendiz=False,
         es_instructor=True,
         mode='view',
+        mostrar_progreso=True,
+        mostrar_contrato=bool(contrato),
         aprendiz_id=id
     )
 
@@ -253,7 +287,7 @@ def listar_aprendices():
     return render_template('listar.html', aprendices=aprendices, ficha_seleccionada=ficha_busqueda)
 
 
-# ---- DASHBOARD DE UN APRENDIZ (para instructores) ----
+# ---- DASHBOARD DE UN APRENDIZ (SOLO INSTRUCTOR) ----
 @bp.route('/dashboard/<int:id>', methods=['GET'])
 @login_required
 def ver_dashboard_aprendiz(id):
@@ -268,10 +302,22 @@ def ver_dashboard_aprendiz(id):
     progreso = int((evidencias_subidas / total_requerido) * 100) if total_requerido > 0 else 0
     contrato = aprendiz.contrato
 
+    progreso_tiempo = 0
+    if contrato and contrato.fecha_inicio and contrato.fecha_fin:
+        total_dias = (contrato.fecha_fin - contrato.fecha_inicio).days
+        dias_transcurridos = (date.today() - contrato.fecha_inicio).days
+        if total_dias > 0:
+            progreso_tiempo = round((dias_transcurridos / total_dias) * 100, 2)
+            if progreso_tiempo < 0:
+                progreso_tiempo = 0
+            elif progreso_tiempo > 100:
+                progreso_tiempo = 100
+
     return render_template(
         'dasboardh_aprendiz.html',
         aprendiz=aprendiz,
         progreso=progreso,
+        progreso_tiempo=progreso_tiempo,
         contrato=contrato,
-        es_instructor=es_instructor
+        es_instructor=False
     )

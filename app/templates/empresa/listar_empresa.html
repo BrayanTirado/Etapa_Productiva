@@ -63,15 +63,15 @@
                             <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">{{ empresa.telefono }}</td>
                             <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">{{ empresa.correo_empresa }}</td>
                             <td class="border p-3 text-center">
-                                {% if empresa.contratos %}
-                                    {{ empresa.contratos[0].fecha_inicio }}
+                                {% if empresa.contratos and empresa.contratos[0].fecha_inicio %}
+                                    {{ empresa.contratos[0].fecha_inicio.strftime('%Y-%m-%d') }}
                                 {% else %}
                                     -
                                 {% endif %}
                             </td>
                             <td class="border p-3 text-center">
-                                {% if empresa.contratos %}
-                                    {{ empresa.contratos[0].fecha_fin }}
+                                {% if empresa.contratos and empresa.contratos[0].fecha_fin %}
+                                    {{ empresa.contratos[0].fecha_fin.strftime('%Y-%m-%d') }}
                                 {% else %}
                                     -
                                 {% endif %}

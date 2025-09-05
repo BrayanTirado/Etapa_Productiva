@@ -4,7 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from app.models.users import Aprendiz, Instructor, Contrato, Programa
 from app import db
 from sqlalchemy.exc import IntegrityError
-from datetime import datetime  
+from datetime import datetime, date  
 
 # Blueprint para manejar autenticación (rutas bajo /auth)
 bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -49,34 +49,48 @@ def login():
 @bp.route('/dashboard')
 @login_required
 def dashboard():
+
+    # --- Dashboard Aprendiz ---
     if isinstance(current_user, Aprendiz):
+        aprendiz = current_user
+
+        # Progreso de evidencias
         total_requerido = 17
-        evidencias_subidas = len(current_user.evidencias)
+        evidencias_subidas = len(aprendiz.evidencias)
         progreso = int((evidencias_subidas / total_requerido) * 100) if total_requerido > 0 else 0
 
-        contrato = current_user.contrato
+        # Progreso de tiempo contrato
+        contrato = aprendiz.contrato
+        progreso_tiempo = 0
+        if contrato and contrato.fecha_inicio and contrato.fecha_fin:
+            fecha_inicio = contrato.fecha_inicio.date() if hasattr(contrato.fecha_inicio, "date") else contrato.fecha_inicio
+            fecha_fin = contrato.fecha_fin.date() if hasattr(contrato.fecha_fin, "date") else contrato.fecha_fin
+
+            total_dias = (fecha_fin - fecha_inicio).days
+            dias_transcurridos = (date.today() - fecha_inicio).days
+
+            if total_dias > 0:
+                progreso_tiempo = round((dias_transcurridos / total_dias) * 100, 2)
+                progreso_tiempo = min(max(progreso_tiempo, 0), 100)
 
         return render_template(
             'dasboardh_aprendiz.html',
-            aprendiz=current_user,
+            aprendiz=aprendiz,
             progreso=progreso,
+            progreso_tiempo=progreso_tiempo,
             contrato=contrato
         )
 
-
-    # --- Dashboard para Instructor ---
+    # --- Dashboard Instructor ---
     elif isinstance(current_user, Instructor):
-        # Consulta cruzada Aprendiz - Contrato - Programa para fechas de finalización
         aprendices_finalizan = (
             db.session.query(Aprendiz, Contrato, Programa)
             .join(Contrato, Aprendiz.contrato_id == Contrato.id_contrato)
             .join(Programa, Aprendiz.programa_id == Programa.id_programa)
-            .filter(Contrato.fecha_fin.isnot(None))  # Asegurar que fecha_fin no sea nula
+            .filter(Contrato.fecha_fin.isnot(None))
             .all()
         )
-        print("DEBUG: Aprendices con contratos y programas:", aprendices_finalizan)
 
-        # Crear lista de eventos para el calendario
         eventos = []
         for aprendiz, contrato, programa in aprendices_finalizan:
             eventos.append({
@@ -85,7 +99,6 @@ def dashboard():
                 "nombre": f"{aprendiz.nombre} {aprendiz.apellido}",
                 "ficha": programa.ficha
             })
-        print("DEBUG: Eventos para calendario:", eventos)
 
         return render_template(
             'dasboardh_instructor.html',

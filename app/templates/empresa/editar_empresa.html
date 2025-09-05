@@ -46,13 +46,14 @@
             <!-- Campos del contrato -->
             <div id="campos_contrato" style="display: {% if contrato %}block{% else %}none{% endif %};" class="space-y-4 mt-2">
                 <label class="block mb-1 font-medium">Fecha Inicio Contrato</label>
-                <input type="date" name="fecha_inicio" value="{{ contrato.fecha_inicio if contrato else '' }}" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400">
+                <input type="date" id="fecha_inicio" name="fecha_inicio" value="{{ contrato.fecha_inicio.strftime('%Y-%m-%d') if contrato and contrato.fecha_inicio else '' }}" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400">
 
                 <label class="block mb-1 font-medium">Fecha Fin Contrato</label>
-                <input type="date" name="fecha_fin" value="{{ contrato.fecha_fin if contrato else '' }}" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400">
+                <!-- Mostramos fecha_fin pero readonly (se calcula) -->
+                <input type="date" id="fecha_fin" name="fecha_fin" value="{{ contrato.fecha_fin.strftime('%Y-%m-%d') if contrato and contrato.fecha_fin else '' }}" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400" readonly>
 
                 <label class="block mb-1 font-medium">Tipo de Contrato</label>
-                <select name="tipo_contrato" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400">
+                <select name="tipo_contrato" id="tipo_contrato" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400">
                     <option value="Contrato de Aprendizaje" {% if contrato and contrato.tipo_contrato=='Contrato de Aprendizaje' %}selected{% endif %}>Contrato de Aprendizaje</option>
                     <option value="Contrato laboral" {% if contrato and contrato.tipo_contrato=='Contrato laboral' %}selected{% endif %}>Contrato laboral</option>
                 </select>
@@ -87,17 +88,55 @@
     </div>
 
     <script>
-        const checkboxContrato = document.getElementById('registrar_contrato');
+        const contratoCheck = document.getElementById('registrar_contrato');
         const camposContrato = document.getElementById('campos_contrato');
-        checkboxContrato.addEventListener('change', () => {
-            camposContrato.style.display = checkboxContrato.checked ? 'block' : 'none';
+        const fechaInicio = document.getElementById('fecha_inicio');
+        const fechaFin = document.getElementById('fecha_fin');
+        const tipoContrato = document.getElementById('tipo_contrato');
+
+        function toggleContrato() {
+            const show = contratoCheck.checked;
+            camposContrato.style.display = show ? 'block' : 'none';
+            fechaInicio.required = show;
+            tipoContrato.required = show;
+            if (!show) {
+                fechaInicio.value = '';
+                fechaFin.value = '';
+                tipoContrato.selectedIndex = 0;
+            }
+        }
+        contratoCheck.addEventListener('change', toggleContrato);
+        toggleContrato();
+
+        // Al cambiar fecha_inicio recalculamos fecha_fin (+6 meses) para mostrar al usuario
+        fechaInicio && fechaInicio.addEventListener('change', function() {
+            const v = this.value;
+            if (!v) {
+                fechaFin.value = '';
+                return;
+            }
+            const d = new Date(v);
+            if (isNaN(d)) {
+                fechaFin.value = '';
+                return;
+            }
+            d.setMonth(d.getMonth() + 6);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            fechaFin.value = `${year}-${month}-${day}`;
         });
 
-        const checkboxJefe = document.getElementById('registrar_jefe');
+        const jefeCheck = document.getElementById('registrar_jefe');
         const camposJefe = document.getElementById('campos_jefe');
-        checkboxJefe.addEventListener('change', () => {
-            camposJefe.style.display = checkboxJefe.checked ? 'block' : 'none';
-        });
+        function toggleJefe() {
+            camposJefe.style.display = jefeCheck.checked ? 'block' : 'none';
+            if (!jefeCheck.checked) {
+                camposJefe.querySelectorAll('input').forEach(i => i.value = '');
+            }
+        }
+        jefeCheck.addEventListener('change', toggleJefe);
+        toggleJefe();
     </script>
 </body>
 </html>
