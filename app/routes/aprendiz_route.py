@@ -291,8 +291,7 @@ def listar_aprendices():
 @bp.route('/dashboard/<int:id>', methods=['GET'])
 @login_required
 def ver_dashboard_aprendiz(id):
-    es_instructor = hasattr(current_user, 'id_instructor')
-    if not es_instructor:
+    if not hasattr(current_user, 'id_instructor'):
         flash('No tienes permiso para ver el proceso de un aprendiz.', 'danger')
         return redirect(url_for('auth.dashboard'))
 
@@ -308,10 +307,7 @@ def ver_dashboard_aprendiz(id):
         dias_transcurridos = (date.today() - contrato.fecha_inicio).days
         if total_dias > 0:
             progreso_tiempo = round((dias_transcurridos / total_dias) * 100, 2)
-            if progreso_tiempo < 0:
-                progreso_tiempo = 0
-            elif progreso_tiempo > 100:
-                progreso_tiempo = 100
+            progreso_tiempo = min(max(progreso_tiempo, 0), 100)
 
     return render_template(
         'dasboardh_aprendiz.html',
@@ -319,5 +315,6 @@ def ver_dashboard_aprendiz(id):
         progreso=progreso,
         progreso_tiempo=progreso_tiempo,
         contrato=contrato,
-        es_instructor=False
+        ocultar_notificaciones=True  # <-- nueva variable
     )
+
