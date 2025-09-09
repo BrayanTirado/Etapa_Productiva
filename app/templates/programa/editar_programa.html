@@ -9,7 +9,6 @@
     <div class="max-w-2xl mx-auto bg-white shadow rounded-lg p-6">
         <h1 class="text-xl font-bold mb-4">Editar Programa</h1>
 
-        <!-- Mensajes flash -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -25,7 +24,6 @@
             <label class="block mb-2">Nombre del Programa</label>
             <input type="text" name="nombre_programa" value="{{ programa.nombre_programa }}" required class="w-full border p-2 rounded mb-4">
 
-            <!-- Título -->
             <label class="block mb-2">Título</label>
             <select name="titulo" required class="w-full border p-2 rounded mb-4">
                 {% for t in titulo %}
@@ -33,7 +31,6 @@
                 {% endfor %}
             </select>
 
-            <!-- Jornada -->
             <label class="block mb-2">Jornada</label>
             <select name="jornada" required class="w-full border p-2 rounded mb-4">
                 {% for j in jornada %}
@@ -41,21 +38,9 @@
                 {% endfor %}
             </select>
 
-            <!-- Centro de Formación -->
-            <label class="block mb-2">Centro de Formación</label>
-            <select name="centro_formacion" required class="w-full border p-2 rounded mb-4">
-                {% for c in centro_formacion %}
-                    <option value="{{ c }}" {% if programa.centro_formacion == c %}selected{% endif %}>{{ c }}</option>
-                {% endfor %}
-            </select>
+            <label class="block mb-2">FICHA</label>
+            <input type="number" name="ficha" value="{{ programa.ficha }}" required class="w-full border p-2 rounded mb-4" min="1" placeholder="Ingrese número de ficha">
 
-            <!-- Ficha -->
-            <div class="flex items-center gap-4 mb-4">
-                <label for="ficha" class="w-40 font-semibold text-gray-700">FICHA</label>
-                <input type="number" name="ficha" id="ficha" value="{{ programa.ficha }}" required class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400" min="1" placeholder="Ingrese número de ficha">
-            </div>
-
-            <!-- Botones -->
             <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600">Actualizar</button>
             <a href="{{ url_for('programa_bp.listar_programas') }}" class="ml-4 text-gray-600">Cancelar</a>
         </form>

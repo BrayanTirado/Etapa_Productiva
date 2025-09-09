@@ -5,18 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lista de Estudiantes</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
-<body class="bg-gradient-to-br from-blue-100 to-purple-200 min-h-screen p-4">
-    <div class="container mx-auto bg-white shadow-lg rounded-xl p-8">
-        <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Lista de Estudiantes</h2>
+<body class="bg-gradient-to-br from-blue-100 to-purple-200 min-h-screen p-6">
 
-        <!-- Mostrar mensajes flash -->
+    <div class="container mx-auto bg-white shadow-xl rounded-2xl p-8">
+        <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">Lista de Estudiantes</h2>
+
+        <!-- Mensajes flash -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <div class="mb-4">
+                <div class="mb-6 space-y-2">
                     {% for category, message in messages %}
-                        <div class="p-4 rounded-lg text-white {% if category == 'success' %}bg-green-500{% elif category == 'danger' %}bg-red-500{% elif category == 'warning' %}bg-yellow-500{% else %}bg-blue-500{% endif %}">
+                        <div class="p-4 rounded-lg text-white font-medium
+                            {% if category == 'success' %}bg-green-500{% elif category == 'danger' %}bg-red-500{% elif category == 'warning' %}bg-yellow-500 text-gray-900{% else %}bg-blue-500{% endif %}">
                             {{ message }}
                         </div>
                     {% endfor %}
@@ -24,57 +25,70 @@
             {% endif %}
         {% endwith %}
 
-        <!-- Filtro por ficha -->
-        <form method="get" action="{{ url_for('aprendiz_bp.listar_aprendices') }}" class="mb-4 flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <label for="ficha" class="text-sm font-semibold text-gray-700">Filtrar por Ficha:</label>
-                <input type="number" id="ficha" name="ficha" value="{{ ficha_seleccionada or '' }}" class="rounded-lg border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400 p-2">
-                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition duration-200">
-                    Filtrar
-                </button>
-            </div>
-
-            <a href="{{ url_for('auth.dashboard') }}" 
-            class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">
-                Volver
+        <!-- Buscador por documento -->
+        <form method="GET" class="mb-6 flex gap-3">
+            <input type="text" name="documento" placeholder="Buscar por documento"
+                   value="{{ documento_seleccionado }}"
+                   class="flex-grow border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                Buscar
+            </button>
+            <a href="{{ url_for('estudiantes.listar_estudiantes') }}"
+               class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
+                Limpiar
             </a>
         </form>
 
+        <!-- Botón Volver -->
+        <div class="mb-6 text-right">
+            <a href="{{ url_for('auth.dashboard') }}"
+               class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
+                ⬅️ Volver
+            </a>
+        </div>
+
         <!-- Tabla de estudiantes -->
-        <table id="tabla-estudiantes" class="w-full border-collapse">
-            <thead>
-                <tr class="bg-indigo-600 text-white">
-                    <th class="p-2 border">Nombre</th>
-                    <th class="p-2 border">Apellido</th>
-                    <th class="p-2 border">Tipo Documento</th>
-                    <th class="p-2 border">Documento</th>
-                    <th class="p-2 border">Email</th>
-                    <th class="p-2 border">Celular</th>
-                    <th class="p-2 border">Ver Proceso</th>
-                </tr>
-            </thead>
-            <tbody>
-    {% for estudiante in aprendices %}
-        <tr class="hover:bg-gray-100">
-            <td class="p-2 border">{{ estudiante.nombre }}</td>
-            <td class="p-2 border">{{ estudiante.apellido }}</td>
-            <td class="p-2 border">{{ estudiante.tipo_documento }}</td>
-            <td class="p-2 border">{{ estudiante.documento }}</td>
-            <td class="p-2 border">{{ estudiante.email }}</td>
-            <td class="p-2 border">{{ estudiante.celular }}</td>
-            <td class="p-2 border text-center">
-    <a href="{{ url_for('aprendiz_bp.ver_dashboard_aprendiz', id=estudiante.id_aprendiz) }}"
-       target="_blank"
-       class="inline-block bg-blue-500 text-white px-4 py-1 rounded-lg hover:bg-blue-600 transition duration-200 font-medium">
-        Ver
-    </a>
-</td>
-
-        </tr>
-    {% endfor %}
-</tbody>
-
-        </table>
+        <div class="overflow-x-auto">
+            <table class="min-w-full border border-gray-300 shadow-sm rounded-lg overflow-hidden">
+                <thead class="bg-indigo-600 text-white text-left">
+                    <tr>
+                        <th class="p-3">Nombre</th>
+                        <th class="p-3">Apellido</th>
+                        <th class="p-3">Tipo Documento</th>
+                        <th class="p-3">Documento</th>
+                        <th class="p-3">Email</th>
+                        <th class="p-3">Celular</th>
+                        <th class="p-3 text-center">Ver Proceso</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for estudiante in estudiantes %}
+                    <tr class="hover:bg-gray-100 transition">
+                        <td class="p-3">{{ estudiante.nombre }}</td>
+                        <td class="p-3">{{ estudiante.apellido }}</td>
+                        <td class="p-3">{{ estudiante.tipo_documento }}</td>
+                        <td class="p-3">{{ estudiante.documento }}</td>
+                        <td class="p-3">{{ estudiante.email }}</td>
+                        <td class="p-3">{{ estudiante.celular }}</td>
+                        <td class="p-3 text-center">
+                            <a href="{{ url_for('aprendiz_bp.dasboardh_aprendiz', aprendiz_id=estudiante.id_aprendiz) }}"
+                               target="_blank"
+                               class="bg-blue-500 text-white px-4 py-1 rounded-lg hover:bg-blue-600 transition duration-200 font-medium">
+                                Ver
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if estudiantes|length == 0 %}
+                    <tr>
+                        <td colspan="7" class="text-center p-4 text-gray-500">
+                            No hay estudiantes asignados.
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </body>
 </html>

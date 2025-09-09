@@ -7,112 +7,83 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-br from-indigo-900 via-purple-900 to-gray-900 min-h-screen flex items-center justify-center p-4">
+
     <div class="bg-white shadow-2xl rounded-xl p-8 w-full max-w-2xl">
         <h2 class="text-3xl font-extrabold text-center text-indigo-700 mb-8">
             Perfil del Aprendiz
         </h2>
 
-        <!-- Mostrar mensajes flash -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="mb-4">
-                    {% for category, message in messages %}
-                        <div class="p-4 rounded-lg text-white
-                            {% if category == 'success' %} bg-green-500
-                            {% elif category == 'warning' %} bg-yellow-500
-                            {% elif category == 'danger' %} bg-red-500
-                            {% else %} bg-blue-500 {% endif %}">
-                            {{ message }}
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
+        {% if mode == 'edit' %}
+        <!-- Formulario de edición -->
+        <form method="POST" action="{{ url_for('aprendiz_bp.editar_aprendiz', id=aprendiz.id_aprendiz) }}" class="space-y-4 text-gray-700">
+            <div>
+                <label class="font-semibold">Nombres:</label>
+                <input type="text" name="nombre" value="{{ aprendiz.nombre }}" class="w-full border rounded px-2 py-1">
+            </div>
+            <div>
+                <label class="font-semibold">Apellidos:</label>
+                <input type="text" name="apellido" value="{{ aprendiz.apellido }}" class="w-full border rounded px-2 py-1">
+            </div>
+            <div>
+                <label class="font-semibold">Tipo de documento:</label>
+                <select name="tipo_documento" class="w-full border rounded px-2 py-1">
+                    <option value="Cedula de Ciudadania" {% if aprendiz.tipo_documento == 'Cedula de Ciudadania' %}selected{% endif %}>Cédula de Ciudadanía</option>
+                    <option value="Tarjeta de Identidad" {% if aprendiz.tipo_documento == 'Tarjeta de Identidad' %}selected{% endif %}>Tarjeta de Identidad</option>
+                    <option value="Cedula Extrangeria" {% if aprendiz.tipo_documento == 'Cedula Extrangeria' %}selected{% endif %}>Cédula de Extranjería</option>
+                    <option value="Registro Civil" {% if aprendiz.tipo_documento == 'Registro Civil' %}selected{% endif %}>Registro Civil</option>
+                </select>
+            </div>
+            <div>
+                <label class="font-semibold">Documento:</label>
+                <input type="text" name="documento" value="{{ aprendiz.documento }}" class="w-full border rounded px-2 py-1">
+            </div>
+            <div>
+                <label class="font-semibold">Email:</label>
+                <input type="email" name="email" value="{{ aprendiz.email }}" class="w-full border rounded px-2 py-1">
+            </div>
+            <div>
+                <label class="font-semibold">Celular:</label>
+                <input type="text" name="celular" value="{{ aprendiz.celular }}" class="w-full border rounded px-2 py-1">
+            </div>
+            <div>
+                <label class="font-semibold">Contraseña (dejar vacío si no cambia):</label>
+                <input type="password" name="password_aprendiz" class="w-full border rounded px-2 py-1">
+            </div>
 
-        {% if es_aprendiz or es_instructor %}
-            <!-- Formulario de edición -->
-            {% if mode == 'edit' %}
-                <form method="POST" action="{{ url_for('aprendiz_bp.editar_aprendiz', id=aprendiz.id_aprendiz) }}" class="space-y-4 text-gray-700">
-                    <div>
-                        <label class="font-semibold">Nombre:</label>
-                        <input type="text" name="nombre" value="{{ aprendiz.nombre }}" class="w-full border rounded px-2 py-1" required>
-                    </div>
-                    <div>
-                        <label class="font-semibold">Apellido:</label>
-                        <input type="text" name="apellido" value="{{ aprendiz.apellido }}" class="w-full border rounded px-2 py-1" required>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <label for="tipo_documento" class="w-40 font-semibold text-gray-700">TIPO DE DOCUMENTO</label>
-                        <select name="tipo_documento" id="tipo_documento" required class="w-50 rounded-lg border p-2 bg-white focus:ring-2 focus:ring-indigo-400">
-                            {% for tipo in tipos_documento %}
-                                <option value="{{ tipo }}" {% if aprendiz.tipo_documento == tipo %}selected{% endif %}>{{ tipo }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div>
-                        <label class="font-semibold">Documento:</label>
-                        <input type="text" name="documento" value="{{ aprendiz.documento }}" class="w-full border rounded px-2 py-1" required>
-                    </div>
-                    <div>
-                        <label class="font-semibold">Email:</label>
-                        <input type="email" name="email" value="{{ aprendiz.email }}" class="w-full border rounded px-2 py-1" required>
-                    </div>
-                    <div>
-                        <label class="font-semibold">Celular:</label>
-                        <input type="text" name="celular" value="{{ aprendiz.celular }}" class="w-full border rounded px-2 py-1" required>
-                    </div>
-                    <div>
-                        <label class="font-semibold">Contraseña (dejar vacío si no cambia):</label>
-                        <input type="password" name="password_aprendiz" class="w-full border rounded px-2 py-1">
-                    </div>
-                    <div class="mt-4 flex justify-between">
-                        <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">Guardar Cambios</button>
-
-                        <!-- ← Here: apuntamos al endpoint del dashboard del aprendiz -->
-                        <a href="{{ url_for('aprendiz_bp.ver_dashboard_aprendiz', id=aprendiz.id_aprendiz) }}"
-                           class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
-                            Cancelar
-                        </a>
-                    </div>
-                </form>
-            {% else %}
-                <!-- Modo visualización -->
-                <div class="space-y-4 text-gray-700">
-                    <p><strong>Nombre:</strong> {{ aprendiz.nombre }}</p>
-                    <p><strong>Apellido:</strong> {{ aprendiz.apellido }}</p>
-                    <p><strong>Tipo de documento:</strong> {{ aprendiz.tipo_documento }}</p>
-                    <p><strong>Documento:</strong> {{ aprendiz.documento }}</p>
-                    <p><strong>Email:</strong> {{ aprendiz.email }}</p>
-                    <p><strong>Celular:</strong> {{ aprendiz.celular }}</p>
-                    <p><strong>Progreso:</strong> {{ progreso }}%</p>
-                    {% if contrato %}
-                        <p><strong>Contrato:</strong> {{ contrato }}</p>
-                    {% endif %}
-                </div>
-                <div class="mt-8 flex justify-end">
-                    {% if es_aprendiz or es_instructor %}
-                        <a href="{{ url_for('aprendiz_bp.editar_aprendiz', id=aprendiz.id_aprendiz) }}"
-                           class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">
-                           Editar Perfil
-                        </a>
-                    {% endif %}
-
-                    <!-- ← Here: apuntamos al endpoint del dashboard del aprendiz -->
-                    <a href="{{ url_for('aprendiz_bp.ver_dashboard_aprendiz', id=aprendiz.id_aprendiz) }}"
-                       class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition ml-4">
-                       Volver al Dashboard
-                    </a>
-                </div>
-            {% endif %}
-        {% else %}
-            <p class="text-red-500 text-center">No tienes permiso para ver este perfil.</p>
-            <div class="mt-8 flex justify-center">
-                <a href="{{ url_for('auth.dashboard') }}"
+            <div class="mt-4 flex justify-between">
+                <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">Guardar Cambios</button>
+                <a href="{{ url_for('aprendiz_bp.perfil') }}" 
                    class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
-                   Volver
+                    Cancelar
                 </a>
             </div>
+        </form>
+
+        {% else %}
+        <!-- Modo solo visualización -->
+        <div class="space-y-4 text-gray-700">
+            <p><strong>Nombres:</strong> {{ aprendiz.nombre }}</p>
+            <p><strong>Apellidos:</strong> {{ aprendiz.apellido }}</p>
+            <p><strong>Tipo de documento:</strong> {{ aprendiz.tipo_documento }}</p>
+            <p><strong>Documento:</strong> {{ aprendiz.documento }}</p>
+            <p><strong>Email:</strong> {{ aprendiz.email }}</p>
+            <p><strong>Celular:</strong> {{ aprendiz.celular }}</p>
+        </div>
+
+        <div class="mt-8 flex justify-between">
+            <a href="{{ url_for('aprendiz_bp.editar_aprendiz', id=aprendiz.id_aprendiz) }}"
+               class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">
+               Editar Perfil
+            </a>
+
+            <a href="{{ url_for('auth.dashboard') }}" 
+               class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
+                Volver
+            </a>
+        </div>
         {% endif %}
+
     </div>
+
 </body>
 </html>

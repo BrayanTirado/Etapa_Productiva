@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Iniciar Sesión</title>
+  <title>Clave Secreta - Registro Administrador</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-br from-blue-100 to-purple-200 min-h-screen flex items-center justify-center">
   <div class="bg-white shadow-lg rounded-xl w-full max-w-md p-8 space-y-6">
-    <h2 class="text-2xl font-bold text-center text-gray-800">Iniciar Sesión</h2>
+    <h2 class="text-2xl font-bold text-center text-gray-800">Clave Secreta</h2>
     
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -26,37 +26,18 @@
         {% endif %}
     {% endwith %}
 
-    <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-4">
-      <!-- Documento -->
+    <form method="POST" action="{{ url_for('crear_adm.clave') }}" class="space-y-4">
       <div>
-        <label for="documento" class="block text-sm font-medium text-gray-700">Número de Documento</label>
-        <input type="text" name="documento" id="documento" required pattern="[0-9]+" title="Solo números"
+        <label for="clave" class="block text-sm font-medium text-gray-700">Ingresa la clave secreta</label>
+        <input type="password" name="clave" id="clave" required
                class="mt-1 block w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
       </div>
 
-      <!-- Contraseña -->
-      <div>
-        <label for="password" class="block text-sm font-medium text-gray-700">Contraseña</label>
-        <input type="password" name="password" id="password" required minlength="8" title="Mínimo 8 caracteres"
-               class="mt-1 block w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-      </div>
-
-      <!-- Botón de envío -->
-      <div class="flex flex-col space-y-2">
-        <button type="submit"
+      <div class="flex justify-center">
+        <button type="submit" 
                 class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition">
-          Iniciar Sesión
+          Validar
         </button>
-
-        <!-- Opciones de registro -->
-        <a href="{{ url_for('auth.registro_aprendiz') }}" 
-           class="text-sm text-indigo-600 hover:underline text-center">
-          ¿Eres aprendiz? Regístrate aquí
-        </a>
-        <a href="{{ url_for('auth.instructor') }}" 
-           class="text-sm text-purple-600 hover:underline text-center">
-          ¿Eres instructor? Regístrate aquí
-        </a>
       </div>
     </form>
   </div>

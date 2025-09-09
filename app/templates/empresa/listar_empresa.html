@@ -115,7 +115,7 @@
         <!-- Botón Volver con lógica dinámica según rol -->
         <div class="mt-6 text-center">
             {% if aprendiz_id %}
-                <a href="{{ url_for('aprendiz_bp.ver_dashboard_aprendiz', id=aprendiz_id) }}" 
+                <a href="{{ url_for('aprendiz_bp.dasboardh_aprendiz', aprendiz_id=current_user.id_aprendiz) }}" 
                    class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">
                    Volver
                 </a>

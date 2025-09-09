@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Administrador</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">Dashboard Administrador</h1>
+        <div class="flex items-center gap-4">
+            <!-- Campana con contador de notificaciones no leídas -->
+            <a href="{{ url_for('adm_bp.notificaciones') }}" class="relative text-2xl">
+              🔔
+              {% if notificaciones_no_leidas > 0 %}
+                <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full px-2">
+                  {{ notificaciones_no_leidas }}
+                </span>
+              {% endif %}
+            </a>
+            <a href="{{ url_for('adm_bp.logout') }}"
+               class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                Cerrar sesión
+            </a>
+        </div>
+    </header>
+
+    <main class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Formulario para generar token -->
+        <section class="bg-white p-6 rounded shadow">
+            <h2 class="text-xl font-semibold mb-4">Generar Token para Coordinador</h2>
+            <form method="POST" action="{{ url_for('adm_bp.generar_token') }}">
+                <label for="dias" class="block font-medium text-gray-700 mb-2">Días de validez:</label>
+                <input type="number" name="dias" id="dias" value="7" min="1"
+                       class="w-full border rounded px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <button type="submit"
+                        class="w-full bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-semibold">
+                    Generar Token
+                </button>
+            </form>
+        </section>
+
+        <!-- Lista de tokens generados -->
+        <section class="bg-white p-6 rounded shadow">
+            <h2 class="text-xl font-semibold mb-4">Tokens generados</h2>
+            {% if tokens %}
+                <ul>
+                    {% for token in tokens %}
+                        <li class="mb-2 p-2 border rounded flex justify-between items-center">
+                            <span>{{ token.token }}</span>
+                            <span class="text-gray-600 text-sm">
+                                {{ 'Activo' if not token.usado else 'Usado' }} -
+                                Expira: {{ token.fecha_expiracion.strftime('%Y-%m-%d') if token.fecha_expiracion else 'Sin fecha' }}
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-gray-600">No hay tokens generados aún.</p>
+            {% endif %}
+        </section>
+
+        <!-- Formulario para enviar mensaje -->
+        <section class="bg-white p-6 rounded shadow md:col-span-2">
+            <h2 class="text-xl font-semibold mb-4">Enviar Mensaje</h2>
+            <form method="POST" action="{{ url_for('adm_bp.enviar_mensaje') }}">
+                <div class="mb-4">
+                    <label for="rol_destinatario" class="block font-medium text-gray-700 mb-2">Selecciona el rol:</label>
+                    <select name="rol_destinatario" id="rol_destinatario"
+                            class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        <option value="">-- Selecciona un rol --</option>
+                        <option value="Coordinador">Coordinador</option>
+                        <option value="Instructor">Instructor</option>
+                        <option value="Aprendiz">Aprendiz</option>
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label for="motivo" class="block font-medium text-gray-700 mb-2">Motivo:</label>
+                    <input type="text" name="motivo" id="motivo"
+                           class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                           placeholder="Motivo del mensaje">
+                </div>
+
+                <div class="mb-4">
+                    <label for="mensaje" class="block font-medium text-gray-700 mb-2">Mensaje:</label>
+                    <textarea name="mensaje" id="mensaje" rows="4"
+                              class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                              placeholder="Escribe tu mensaje aquí"></textarea>
+                </div>
+
+                <button type="submit"
+                        class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded font-semibold">
+                    Enviar Mensaje
+                </button>
+            </form>
+        </section>
+
+        <!-- Lista de notificaciones -->
+        <section class="bg-white p-6 rounded shadow md:col-span-2">
+            <h2 class="text-xl font-semibold mb-4">Notificaciones</h2>
+            {% if notificaciones %}
+                <ul>
+                    {% for noti in notificaciones %}
+                        <li class="mb-2 p-2 border rounded flex justify-between items-center">
+                            <span>{{ noti.mensaje }}</span>
+                            {% if not noti.visto %}
+                                <a href="{{ url_for('adm_bp.ver_notificacion', noti_id=noti.id) }}"
+                                   class="text-blue-600 hover:underline ml-4">
+                                   Ver
+                                </a>
+                            {% else %}
+                                <span class="text-green-600 font-semibold ml-4">Leído</span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-gray-600">No hay notificaciones.</p>
+            {% endif %}
+        </section>
+
+    </main>
+
+</body>
+</html>

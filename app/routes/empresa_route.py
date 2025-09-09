@@ -9,26 +9,18 @@ import calendar
 bp = Blueprint('empresa_bp', __name__, url_prefix='/empresa')
 
 def add_months(sourcedate: date, months: int) -> date:
-    """
-    Suma `months` meses a `sourcedate` cuidando los días de mes (ej: 31 ene -> 30 jun si aplica).
-    Evita dependencia externa (dateutil).
-    """
+
     month = sourcedate.month - 1 + months
     year = sourcedate.year + month // 12
     month = month % 12 + 1
     day = min(sourcedate.day, calendar.monthrange(year, month)[1])
     return date(year, month, day)
 
-
 # --- LISTAR EMPRESAS ---
 @bp.route('/')
 @login_required
 def listar_empresas():
-    """
-    Listar empresas según el usuario:
-    - Aprendiz: solo su empresa y puede editar/eliminar.
-    - Instructor: solo puede ver empresas de un aprendiz, no editar/eliminar.
-    """
+
     aprendiz_id = None
     empresas = []
 

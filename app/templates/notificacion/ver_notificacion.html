@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Ver Notificación</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+<div class="container mx-auto bg-white shadow-xl rounded-xl p-6 max-w-xl">
+    <h2 class="text-2xl font-bold mb-4">Notificación</h2>
+
+    <div class="p-4 rounded-lg border bg-gray-100">
+        <p class="mb-4">{{ notificacion.mensaje }}</p>
+        <small class="text-gray-500">
+            De: {{ notificacion.remitente.nombre if notificacion.remitente else 'Sistema' }} | 
+            {{ notificacion.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}
+        </small>
+    </div>
+
+    <div class="mt-6 flex space-x-4">
+        <a href="
+            {% if current_user.__class__.__name__ == 'Administrador' %}
+                {{ url_for('adm_bp.dashboard') }}
+            {% elif current_user.__class__.__name__ == 'Coordinador' %}
+                {{ url_for('coordinador_bp.dashboard') }}
+            {% elif current_user.__class__.__name__ == 'Instructor' %}
+                {{ url_for('instructor_bp.dashboard_instructor', instructor_id=current_user.id_instructor) }}
+            {% elif current_user.__class__.__name__ == 'Aprendiz' %}
+                {{ url_for('aprendiz_bp.dasboardh_aprendiz', aprendiz_id=current_user.id_aprendiz) }}
+            {% endif %}
+        " class="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600">
+           Volver
+        </a>
+    </div>
+</div>
+</body>
+</html>

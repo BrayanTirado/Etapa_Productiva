@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, jsonify, flash
-from flask_login import login_required
+from flask_login import login_required, current_user
 from app import db
-from app.models.users import Aprendiz
+from app.models.users import Aprendiz, Instructor
 
 # Definición del Blueprint
 estudiantes_bp = Blueprint('estudiantes', __name__, url_prefix='/estudiantes')
@@ -9,20 +9,27 @@ estudiantes_bp = Blueprint('estudiantes', __name__, url_prefix='/estudiantes')
 @estudiantes_bp.route('/listarEstudiantes', methods=['GET'])
 @login_required
 def listar_estudiantes():
-    # Obtener filtro de ficha como número
-    ficha = request.args.get('ficha', type=int)
+    # Obtener filtro de documento
+    documento = request.args.get('documento', type=str)
 
     # Lista vacía por defecto
     estudiantes = []
 
-    # Solo ejecutar la query si se proporciona una ficha
-    if ficha is not None:
-        query = Aprendiz.query.filter(Aprendiz.ficha == ficha)
+    # Solo si el usuario es Instructor
+    if isinstance(current_user, Instructor):
+        query = Aprendiz.query.filter(Aprendiz.instructor_id == current_user.id_instructor)
+
+        # Filtrar por documento si se proporcionó
+        if documento:
+            query = query.filter(Aprendiz.documento.contains(documento))
+
         estudiantes = query.all()
         if estudiantes:
-            flash(f'Mostrando aprendices con ficha {ficha}.', 'info')
+            flash(f'Mostrando aprendices asignados al instructor.', 'info')
         else:
-            flash(f'No se encontraron aprendices para la ficha {ficha}.', 'warning')
+            flash(f'No se encontraron aprendices asignados.', 'warning')
+    else:
+        flash('No tienes permiso para ver aprendices.', 'danger')
 
     # Respuesta para AJAX
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -35,10 +42,10 @@ def listar_estudiantes():
                 'email': e.email,
                 'celular': e.celular,
                 'ficha': e.ficha,
-                'contrato_id': e.contrato_id  # <-- corregido
+                'contrato_id': e.contrato_id
             }
             for e in estudiantes
         ])
 
     # Respuesta para render normal
-    return render_template('listar.html', estudiantes=estudiantes, ficha=ficha)
+    return render_template('listar.html', estudiantes=estudiantes, documento=documento)

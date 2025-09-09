@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Asignar Aprendices</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+
+  <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
+    <h1 class="text-2xl font-bold mb-6">Asignar Aprendices a Instructores</h1>
+
+    <!-- FILTRO POR FICHA -->
+    <form method="GET" action="{{ url_for('coordinador_bp.asignar_aprendiz') }}" class="mb-6">
+      <label for="ficha" class="block text-gray-700 font-medium mb-2">Filtrar por ficha</label>
+      <select id="ficha" name="ficha" onchange="this.form.submit()" class="w-full border rounded px-3 py-2">
+        <option value="">-- Seleccione una ficha --</option>
+        {% for prog in programas %}
+          <option value="{{ prog.ficha }}" 
+            {% if programa and prog.ficha == programa.ficha %}selected{% endif %}>
+            {{ prog.ficha }} - {{ prog.nombre_programa }}
+          </option>
+        {% endfor %}
+      </select>
+    </form>
+
+    {% if programa %}
+      <h2 class="text-xl font-semibold mb-4">Aprendices de la ficha {{ programa.ficha }} - {{ programa.nombre_programa }}</h2>
+
+      <!-- FORM PARA ASIGNAR APRENDICES -->
+      <form method="POST" action="{{ url_for('coordinador_bp.asignar_aprendiz', ficha=programa.ficha) }}">
+        
+        <!-- JORNADAS -->
+        {% for jornada in ["Mañana", "Tarde", "Noche"] %}
+          <h3 class="text-lg font-medium mt-6 mb-2">{{ jornada }}</h3>
+          <table class="min-w-full border border-gray-300 mb-4">
+            <thead>
+              <tr class="bg-gray-200">
+                <th class="border px-3 py-2">Nombre</th>
+                <th class="border px-3 py-2">Apellido</th>
+                <th class="border px-3 py-2 text-center">Jornada</th>
+                <th class="border px-3 py-2 text-center">Seleccionar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% set aprendices_jornada = [] %}
+              {% for ap in aprendices %}
+                {% if ap.programa.jornada == jornada %}
+                  {% set _ = aprendices_jornada.append(ap) %}
+                  <tr>
+                    <td class="border px-3 py-2">{{ ap.nombre}}</td>
+                    <td class="border px-3 py-2">{{ ap.apellido}}</td>
+                    <td class="border px-3 py-2 text-center">{{ ap.programa.jornada }}</td>
+                    <td class="border px-3 py-2 text-center">
+                      <input type="checkbox" name="aprendices" value="{{ ap.id_aprendiz }}">
+                    </td>
+                  </tr>
+                {% endif %}
+              {% endfor %}
+              {% if aprendices_jornada|length == 0 %}
+                <tr class="bg-gray-50">
+                  <td colspan="4" class="border px-3 py-2 text-center text-gray-500">No hay aprendices en esta jornada</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        {% endfor %}
+
+        <!-- LISTA DE INSTRUCTORES -->
+        <h2 class="text-xl font-semibold mt-8 mb-4">Asignar a un instructor</h2>
+        <div class="space-y-2">
+          {% for inst in instructores %}
+            <div class="flex justify-between items-center border rounded px-3 py-2 bg-gray-100">
+              <span>{{ inst.nombre_instructor }} {{ inst.apellido_instructor }}</span>
+              <button type="submit" name="instructor_id" value="{{ inst.id_instructor }}"
+                      class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">
+                Asignar aprendices
+              </button>
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="mt-6">
+          <a href="{{ url_for('coordinador_bp.dashboard') }}" 
+             class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
+            Volver al Dashboard
+          </a>
+        </div>
+      </form>
+    {% endif %}
+
+  </div>
+</body>
+</html>

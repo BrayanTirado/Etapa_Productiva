@@ -1,16 +1,18 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
-from app.models.users import Aprendiz, Evidencia, Programa, Instructor
+from app.models.users import Aprendiz, Evidencia, Programa, Instructor, Coordinador, Administrador, Notificacion, Contrato
 from app import db
 from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import IntegrityError
-from datetime import date
+from datetime import datetime, date
 
 # Blueprint para todas las rutas relacionadas con Aprendiz
 bp = Blueprint('aprendiz_bp', __name__, url_prefix='/aprendiz')
 
 
-# ---- CREAR NUEVO APRENDIZ ----
+# -------------------------------
+# CREAR NUEVO APRENDIZ
+# -------------------------------
 @bp.route('/nuevo', methods=['GET', 'POST'])
 @login_required
 def nuevo_aprendiz():
@@ -23,9 +25,25 @@ def nuevo_aprendiz():
         celular = request.form.get('celular')
         password_aprendiz = request.form.get('password_aprendiz')
 
-        if not all([nombre, apellido, tipo_documento, documento, email, celular, password_aprendiz]):
+        ficha_input = request.form.get('ficha')
+        nombre_programa_input = request.form.get('nombre_programa')
+        jornada_input = request.form.get('jornada')
+
+        if not all([nombre, apellido, tipo_documento, documento, email, celular, password_aprendiz,
+                    ficha_input, nombre_programa_input, jornada_input]):
             flash('Todos los campos son obligatorios.', 'warning')
             return redirect(url_for('aprendiz_bp.nuevo_aprendiz'))
+
+        programa = Programa.query.filter_by(
+            ficha=ficha_input,
+            nombre_programa=nombre_programa_input,
+            jornada=jornada_input
+        ).first()
+
+        if not programa:
+            programa = Programa(ficha=ficha_input, nombre_programa=nombre_programa_input, jornada=jornada_input)
+            db.session.add(programa)
+            db.session.commit()
 
         hashed_password = generate_password_hash(password_aprendiz)
         nuevo = Aprendiz(
@@ -35,8 +53,10 @@ def nuevo_aprendiz():
             documento=documento,
             email=email,
             celular=celular,
-            password_aprendiz=hashed_password
+            password_aprendiz=hashed_password,
+            programa_id=programa.id_programa
         )
+
         try:
             db.session.add(nuevo)
             db.session.commit()
@@ -54,7 +74,9 @@ def nuevo_aprendiz():
     return render_template('aprendiz/nuevo.html')
 
 
-# ---- EDITAR APRENDIZ ----
+# -------------------------------
+# EDITAR APRENDIZ
+# -------------------------------
 @bp.route('/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_aprendiz(id):
@@ -121,200 +143,141 @@ def editar_aprendiz(id):
     )
 
 
-# ---- ELIMINAR APRENDIZ ----
-@bp.route('/eliminar/<int:id>')
+@bp.route('/dasboardh/<int:aprendiz_id>')
 @login_required
-def eliminar_aprendiz(id):
-    aprendiz = Aprendiz.query.get_or_404(id)
+def dasboardh_aprendiz(aprendiz_id):
+    aprendiz = Aprendiz.query.get_or_404(aprendiz_id)
+    contrato = aprendiz.contrato
 
-    if not hasattr(current_user, 'id_instructor'):
-        flash('No tienes permiso para eliminar aprendices.', 'danger')
-        return redirect(url_for('auth.dashboard'))
-
-    try:
-        db.session.delete(aprendiz)
-        db.session.commit()
-        flash('Aprendiz eliminado correctamente.', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error: {str(e)}', 'danger')
-
-    return redirect(url_for('aprendiz_bp.listar_aprendices'))
-
-
-# ---- PERFIL DEL PROPIO APRENDIZ O VISTO POR INSTRUCTOR ----
-@bp.route('/perfil', defaults={'id': None}, endpoint='perfil')
-@bp.route('/perfil/<int:id>', endpoint='perfil')
-@login_required
-def perfil_aprendiz(id):
-    aprendiz = None
-    aprendiz_id = None
-    es_aprendiz = False
-    es_instructor = hasattr(current_user, 'id_instructor')
-
-    progreso = None
-    progreso_tiempo = None
-    contrato = None
-    mostrar_progreso = False
-    mostrar_contrato = False
-
-    # Caso: el aprendiz entra a su propio perfil
-    if isinstance(current_user, Aprendiz) and id is None:
-        aprendiz = current_user
-        aprendiz_id = current_user.id_aprendiz
-        es_aprendiz = True
-
-    # Caso: instructor ve el perfil de un aprendiz
-    elif isinstance(current_user, Instructor):
-        aprendiz_id = id or request.args.get('aprendiz_id', type=int)
-        if aprendiz_id:
-            aprendiz = Aprendiz.query.get_or_404(aprendiz_id)
-        else:
-            flash('Selecciona un aprendiz para ver su perfil.', 'warning')
-            return redirect(url_for('aprendiz_bp.listar_aprendices'))
-    else:
-        flash('No tienes permiso para acceder a esta página.', 'danger')
-        return redirect(url_for('auth.dashboard'))
-
-    if aprendiz:
-        # --- Calcular progreso evidencias ---
-        total_requerido = 17
-        evidencias_subidas = len(aprendiz.evidencias)
-        progreso = int((evidencias_subidas / total_requerido) * 100) if total_requerido > 0 else 0
-
-        # --- Calcular progreso tiempo contrato ---
-        contrato_obj = aprendiz.contrato
-        if contrato_obj and contrato_obj.fecha_inicio and contrato_obj.fecha_fin:
-            fecha_inicio = contrato_obj.fecha_inicio.date() if hasattr(contrato_obj.fecha_inicio, "date") else contrato_obj.fecha_inicio
-            fecha_fin = contrato_obj.fecha_fin.date() if hasattr(contrato_obj.fecha_fin, "date") else contrato_obj.fecha_fin
-
-            total_dias = (fecha_fin - fecha_inicio).days
-            dias_transcurridos = (date.today() - fecha_inicio).days
-            if total_dias > 0:
-                progreso_tiempo = round((dias_transcurridos / total_dias) * 100, 2)
-                progreso_tiempo = min(max(progreso_tiempo, 0), 100)
-
-            contrato = {
-                'fecha_inicio': fecha_inicio,
-                'fecha_fin': fecha_fin
-            }
-
-        mostrar_progreso = True
-        mostrar_contrato = bool(contrato)
-
-    return render_template(
-        'perfil_aprendiz.html',
-        aprendiz=aprendiz,
-        es_aprendiz=es_aprendiz,
-        es_instructor=es_instructor,
-        mode='view',
-        aprendiz_id=aprendiz_id,
-        progreso=progreso,
-        progreso_tiempo=progreso_tiempo,
-        contrato=contrato,
-        mostrar_progreso=mostrar_progreso,
-        mostrar_contrato=mostrar_contrato
-    )
-
-
-# ---- VER PROCESO DE UN APRENDIZ (SOLO INSTRUCTOR) ----
-@bp.route('/ver/<int:id>', methods=['GET'])
-@login_required
-def ver_aprendiz(id):
-    if not hasattr(current_user, 'id_instructor'):
-        flash('No tienes permiso para acceder a esta página.', 'danger')
-        return redirect(url_for('auth.dashboard'))
-
-    aprendiz = Aprendiz.query.get_or_404(id)
-    total_requerido = 17
+    # --- Progreso de evidencias ---
+    total_requerido = 17  # ⚠️ ajusta según tus reglas
     evidencias_subidas = len(aprendiz.evidencias)
     progreso = int((evidencias_subidas / total_requerido) * 100) if total_requerido > 0 else 0
 
-    contrato_obj = aprendiz.contrato
+    # --- Progreso en tiempo ---
     progreso_tiempo = 0
-    contrato = None
-    if contrato_obj and contrato_obj.fecha_inicio and contrato_obj.fecha_fin:
-        fecha_inicio = contrato_obj.fecha_inicio.date() if hasattr(contrato_obj.fecha_inicio, "date") else contrato_obj.fecha_inicio
-        fecha_fin = contrato_obj.fecha_fin.date() if hasattr(contrato_obj.fecha_fin, "date") else contrato_obj.fecha_fin
-
+    if contrato and contrato.fecha_inicio and contrato.fecha_fin:
+        fecha_inicio = contrato.fecha_inicio.date() if hasattr(contrato.fecha_inicio, "date") else contrato.fecha_inicio
+        fecha_fin = contrato.fecha_fin.date() if hasattr(contrato.fecha_fin, "date") else contrato.fecha_fin
         total_dias = (fecha_fin - fecha_inicio).days
         dias_transcurridos = (date.today() - fecha_inicio).days
         if total_dias > 0:
             progreso_tiempo = round((dias_transcurridos / total_dias) * 100, 2)
-            if progreso_tiempo < 0:
-                progreso_tiempo = 0
-            elif progreso_tiempo > 100:
-                progreso_tiempo = 100
-
-        contrato = {
-            'fecha_inicio': fecha_inicio,
-            'fecha_fin': fecha_fin
-        }
-
-    return render_template(
-        'perfil_aprendiz.html',
-        aprendiz=aprendiz,
-        progreso=progreso,
-        progreso_tiempo=progreso_tiempo,
-        contrato=contrato,
-        es_aprendiz=False,
-        es_instructor=True,
-        mode='view',
-        mostrar_progreso=True,
-        mostrar_contrato=bool(contrato),
-        aprendiz_id=id
-    )
-
-
-# ---- LISTAR APRENDICES ----
-@bp.route('/listar', methods=['GET'])
-@login_required
-def listar_aprendices():
-    if not hasattr(current_user, 'id_instructor'):
-        flash('No tienes permiso para acceder a esta página.', 'danger')
-        return redirect(url_for('auth.dashboard'))
-
-    ficha_busqueda = request.args.get('ficha', type=int)
-    if ficha_busqueda:
-        aprendices = Aprendiz.query.filter(Aprendiz.programa.has(ficha=ficha_busqueda)).all()
-        if aprendices:
-            flash(f'Mostrando aprendices con ficha {ficha_busqueda}.', 'info')
-        else:
-            flash(f'No se encontraron aprendices para la ficha {ficha_busqueda}.', 'warning')
-    else:
-        aprendices = Aprendiz.query.all()
-
-    return render_template('listar.html', aprendices=aprendices, ficha_seleccionada=ficha_busqueda)
-
-
-# ---- DASHBOARD DE UN APRENDIZ (SOLO INSTRUCTOR) ----
-@bp.route('/dashboard/<int:id>', methods=['GET'])
-@login_required
-def ver_dashboard_aprendiz(id):
-    if not hasattr(current_user, 'id_instructor'):
-        flash('No tienes permiso para ver el proceso de un aprendiz.', 'danger')
-        return redirect(url_for('auth.dashboard'))
-
-    aprendiz = Aprendiz.query.get_or_404(id)
-    total_requerido = 17
-    evidencias_subidas = len(aprendiz.evidencias)
-    progreso = int((evidencias_subidas / total_requerido) * 100) if total_requerido > 0 else 0
-    contrato = aprendiz.contrato
-
-    progreso_tiempo = 0
-    if contrato and contrato.fecha_inicio and contrato.fecha_fin:
-        total_dias = (contrato.fecha_fin - contrato.fecha_inicio).days
-        dias_transcurridos = (date.today() - contrato.fecha_inicio).days
-        if total_dias > 0:
-            progreso_tiempo = round((dias_transcurridos / total_dias) * 100, 2)
             progreso_tiempo = min(max(progreso_tiempo, 0), 100)
+                # --- Contar notificaciones no leídas ---
+    notificaciones_no_leidas = Notificacion.query.filter_by(
+        destinatario_id=aprendiz.id_aprendiz,
+        visto=False
+    ).count()
 
     return render_template(
-        'dasboardh_aprendiz.html',
+        "dasboardh_aprendiz.html",
         aprendiz=aprendiz,
+        contrato=contrato,
         progreso=progreso,
         progreso_tiempo=progreso_tiempo,
-        contrato=contrato,
-        ocultar_notificaciones=True  # <-- nueva variable
+        ocultar_notificaciones=False,
+        notificaciones_no_leidas=notificaciones_no_leidas
+
     )
 
+# -------------------------------
+# Función para enviar notificación
+# -------------------------------
+def enviar_notificacion(mensaje, destinatario_id=None, rol_destinatario=None):
+    noti = Notificacion(
+        mensaje=mensaje,
+        remitente_id=current_user.id_aprendiz,
+        rol_remitente="Aprendiz",
+        destinatario_id=destinatario_id,
+        rol_destinatario=rol_destinatario,
+        visto=False
+    )
+    db.session.add(noti)
+    db.session.commit()
+
+
+# -------------------------------
+# Enviar mensaje desde el dashboard
+# -------------------------------
+@bp.route('/enviar_mensaje', methods=['POST'])
+@login_required
+def enviar_mensaje():
+    if not hasattr(current_user, 'id_aprendiz'):
+        flash("No tienes permisos para enviar mensajes.", "danger")
+        return redirect(url_for("auth.dashboard"))
+
+    roles_disponibles = ["Administrador", "Coordinador", "Instructor"]
+
+    # Leer valores del formulario
+    rol_destinatario = request.form.get("rol_destinatario")
+    motivo = request.form.get("motivo")
+    mensaje = request.form.get("mensaje")
+
+    # Validaciones
+    if not rol_destinatario or rol_destinatario not in roles_disponibles:
+        flash("Debes seleccionar un rol válido.", "warning")
+    elif not mensaje or not mensaje.strip():
+        flash("El mensaje no puede estar vacío.", "warning")
+    else:
+        noti = Notificacion(
+            mensaje=f"[{motivo}] {mensaje}",
+            remitente_id=current_user.id_aprendiz,
+            rol_remitente="Aprendiz",
+            rol_destinatario=rol_destinatario,
+            visto=False
+        )
+        db.session.add(noti)
+        db.session.commit()
+        flash(f"✅ Mensaje enviado al rol {rol_destinatario}", "success")
+
+    # Redirigir al dashboard del aprendiz para limpiar el formulario
+    return redirect(url_for('aprendiz_bp.dasboardh_aprendiz', aprendiz_id=current_user.id_aprendiz))
+
+# -------------------------------
+# Listar notificaciones
+# -------------------------------
+@bp.route('/notificaciones')
+@login_required
+def notificaciones():
+    if not hasattr(current_user, 'id_aprendiz'):
+        flash("No tienes permisos para esta sección.", "danger")
+        return redirect(url_for("auth.dashboard"))
+
+    lista_notis = Notificacion.query.filter(
+        Notificacion.rol_destinatario == "Aprendiz",
+        (Notificacion.destinatario_id == current_user.id_aprendiz) | (Notificacion.destinatario_id == None)
+    ).order_by(Notificacion.fecha_creacion.desc()).all()
+
+    return render_template('notificacion/listar.html', notificaciones=lista_notis)
+
+
+# -------------------------------
+# Marcar notificación como vista
+# -------------------------------
+@bp.route('/notificacion/ver/<int:noti_id>')
+@login_required
+def ver_notificacion(noti_id):
+    noti = Notificacion.query.get_or_404(noti_id)
+
+    # Validar que el aprendiz sea remitente o destinatario
+    if not (
+        hasattr(current_user, 'id_aprendiz') and
+        (noti.remitente_id == current_user.id_aprendiz or noti.destinatario_id == current_user.id_aprendiz)
+    ):
+        flash("No tienes permiso para ver esta notificación.", "danger")
+        return redirect(url_for("aprendiz_bp.notificaciones"))
+
+    noti.visto = True
+    db.session.commit()
+
+    return render_template('notificacion/ver_notificacion.html', notificacion=noti)
+
+# -------------------------------
+# PERFIL APRENDIZ
+# -------------------------------
+@bp.route('/perfil/<int:id>', methods=['GET'])
+@login_required
+def perfil(id):
+    aprendiz = Aprendiz.query.get_or_404(id)
+    return render_template('perfil_aprendiz.html', aprendiz=aprendiz)

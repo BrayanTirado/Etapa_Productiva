@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Crear Sede</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-200 to-purple-300 flex items-center justify-center min-h-screen">
+
+<div class="bg-white shadow-2xl rounded-3xl p-10 w-full max-w-lg">
+    <h2 class="text-4xl font-extrabold text-center text-gray-800 mb-8">Crear Nueva Sede</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="mb-6 space-y-3">
+        {% for category, message in messages %}
+          <div class="px-5 py-3 rounded-lg text-center font-medium text-lg
+                      {% if category=='error' %}bg-red-500 text-white
+                      {% elif category=='success' %}bg-green-500 text-white
+                      {% elif category=='warning' %}bg-yellow-400 text-gray-900
+                      {% else %}bg-blue-500 text-white{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('crear_sede_bp.crear_sede') }}" class="space-y-6">
+        <!-- Token obligatorio -->
+        <div>
+            <label class="block text-gray-700 font-semibold text-lg mb-2">Token de administrador:</label>
+            <input type="text" name="token" required
+                   placeholder="Ingresa el token suministrado por el administrador"
+                   class="w-full px-5 py-3 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-blue-500 shadow-sm">
+        </div>
+
+        <!-- Nombre de la sede -->
+        <div>
+            <label class="block text-gray-700 font-semibold text-lg mb-2">Nombre de la sede:</label>
+            <input type="text" name="nombre" required
+                   class="w-full px-5 py-3 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-blue-500 shadow-sm">
+        </div>
+
+        <!-- Ciudad / Dirección -->
+        <div>
+            <label class="block text-gray-700 font-semibold text-lg mb-2">Ciudad / Dirección:</label>
+            <input type="text" name="direccion" required
+                   class="w-full px-5 py-3 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-blue-500 shadow-sm">
+        </div>
+
+        <button type="submit"
+                class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors shadow-lg">
+            Crear Sede
+        </button>
+    </form>
+</div>
+
+</body>
+</html>

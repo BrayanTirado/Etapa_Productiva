@@ -30,6 +30,16 @@
         {% endwith %}
 
         <form method="POST" action="{{ url_for('auth.instructor') if mode != 'edit' else url_for('instructor_bp.editar_instructor', id=instructor.id_instructor) }}" class="space-y-5">
+
+            {% if mode != 'edit' %}
+            <!-- Campo para token SOLO en creación -->
+            <div class="flex items-center gap-4">
+                <label for="token" class="w-40 font-semibold text-gray-700">TOKEN</label>
+                <input type="text" name="token" id="token" required placeholder="Ingresa el token de registro"
+                       class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400">
+            </div>
+            {% endif %}
+
             <div class="flex items-center gap-4">
                 <label for="nombre_instructor" class="w-40 font-semibold text-gray-700">NOMBRES</label>
                 <input type="text" name="nombre_instructor" id="nombre_instructor" required class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400" value="{{ instructor.nombre_instructor if mode=='edit' else '' }}">
@@ -60,10 +70,12 @@
                 <label for="celular_instructor" class="w-40 font-semibold text-gray-700">CELULAR</label>
                 <input type="tel" name="celular_instructor" id="celular_instructor" required pattern="[0-9]{10}" class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400" value="{{ instructor.celular_instructor if mode=='edit' else '' }}">
             </div>
+            <!-- Contraseña corregida -->
             <div class="flex items-center gap-4">
-                <label for="passwordInstructor" class="w-40 font-semibold text-gray-700">CONTRASEÑA</label>
-                <input type="password" name="passwordInstructor" id="passwordInstructor" class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400" {% if mode != 'edit' %}required{% endif %}>
+                <label for="password" class="w-40 font-semibold text-gray-700">CONTRASEÑA</label>
+                <input type="password" name="password" id="password" class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400" {% if mode != 'edit' %}required{% endif %}>
             </div>
+
             <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition">
                 {% if mode == 'edit' %}Actualizar{% else %}Registrar{% endif %}
             </button>

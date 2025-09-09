@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Notificaciones</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+<div class="container mx-auto bg-white shadow-xl rounded-xl p-6">
+    <h2 class="text-2xl font-bold mb-4">Notificaciones</h2>
+
+    {% if notificaciones %}
+        <ul class="space-y-2">
+        {% for noti in notificaciones %}
+            <li class="p-4 rounded-lg border {% if not noti.visto %}bg-blue-100{% else %}bg-gray-100{% endif %}">
+                <p>{{ noti.mensaje[:50] }}{% if noti.mensaje|length > 50 %}...{% endif %}</p>
+                <small class="text-gray-500">
+                    De: {{ noti.remitente.nombre if noti.remitente else 'Sistema' }} | 
+                    {{ noti.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}
+                </small>
+                <div class="mt-2">
+                    <a href="
+                        {% if current_user.__class__.__name__ == 'Administrador' %}
+                            {{ url_for('adm_bp.ver_notificacion', noti_id=noti.id) }}
+                        {% elif current_user.__class__.__name__ == 'Coordinador' %}
+                            {{ url_for('coordinador_bp.ver_notificacion', noti_id=noti.id) }}
+                        {% elif current_user.__class__.__name__ == 'Instructor' %}
+                            {{ url_for('instructor_bp.ver_notificacion', noti_id=noti.id) }}
+                        {% elif current_user.__class__.__name__ == 'Aprendiz' %}
+                            {{ url_for('aprendiz_bp.ver_notificacion', noti_id=noti.id) }}
+                        {% endif %}
+                        " class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600">
+                        Ver
+                    </a>
+                </div>
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-gray-500">No tienes notificaciones.</p>
+    {% endif %}
+
+    <div class="mt-4">
+        <a href="
+            {% if current_user.__class__.__name__ == 'Administrador' %}
+                {{ url_for('adm_bp.dashboard') }}
+            {% elif current_user.__class__.__name__ == 'Coordinador' %}
+                {{ url_for('coordinador_bp.dashboard') }}
+            {% elif current_user.__class__.__name__ == 'Instructor' %}
+                {{ url_for('instructor_bp.dashboard_instructor', instructor_id=current_user.id_instructor) }}
+            {% elif current_user.__class__.__name__ == 'Aprendiz' %}
+                {{ url_for('aprendiz_bp.dasboardh_aprendiz', aprendiz_id=current_user.id_aprendiz) }}
+            {% endif %}
+        " class="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600">
+            Volver
+        </a>
+    </div>
+</div>
+</body>
+</html>
