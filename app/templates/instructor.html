@@ -29,60 +29,71 @@
             {% endif %}
         {% endwith %}
 
-        <form method="POST" action="{{ url_for('auth.instructor') if mode != 'edit' else url_for('instructor_bp.editar_instructor', id=instructor.id_instructor) }}" class="space-y-5">
+        {% if mode == 'edit' %}
+        <form method="post" action="{{ url_for('instructor_bp.editar_instructor', id=instructor.id_instructor) }}" class="form-sena space-y-5">
+        {% else %}
+        <form method="post" action="{{ url_for('auth.instructor') }}" class="form-sena space-y-5">
+        {% endif %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% if mode != 'edit' %}
+                <!-- Campo para token SOLO en creación -->
+                <div class="md:col-span-2">
+                    <label for="token" class="font-semibold text-gray-700">TOKEN</label>
+                    <input type="text" name="token" id="token" required placeholder="Ingresa el token de registro"
+                           class="w-full rounded-lg border p-2">
+                </div>
+                {% endif %}
+                
+                <div>
+                    <label for="nombre_instructor" class="font-semibold text-gray-700">NOMBRES</label>
+                    <input type="text" name="nombre_instructor" id="nombre_instructor" value="{{ instructor.nombre_instructor if mode == 'edit' else '' }}" required class="w-full rounded-lg border p-2">
+                </div>
 
-            {% if mode != 'edit' %}
-            <!-- Campo para token SOLO en creación -->
-            <div class="flex items-center gap-4">
-                <label for="token" class="w-40 font-semibold text-gray-700">TOKEN</label>
-                <input type="text" name="token" id="token" required placeholder="Ingresa el token de registro"
-                       class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400">
-            </div>
-            {% endif %}
+                <div>
+                    <label for="apellido_instructor" class="font-semibold text-gray-700">APELLIDOS</label>
+                    <input type="text" name="apellido_instructor" id="apellido_instructor" value="{{ instructor.apellido_instructor if mode == 'edit' else '' }}" required class="w-full rounded-lg border p-2">
+                </div>
+            
+                <div>
+                    <label for="tipo_documento" class="font-semibold text-gray-700">TIPO DE DOCUMENTO</label>
+                    <select name="tipo_documento" id="tipo_documento" required class="w-full rounded-lg border p-2">
+                        <option value="" disabled {% if mode != 'edit' %}selected{% endif %}>Elige una opción</option>
+                        <option value="Cedula de Ciudadania" {% if mode == 'edit' and instructor.tipo_documento == 'Cedula de Ciudadania' %}selected{% endif %}>Cédula de Ciudadanía</option>
+                        <option value="Cedula Extrangeria" {% if mode == 'edit' and instructor.tipo_documento == 'Cedula Extrangeria' %}selected{% endif %}>Cédula de Extranjería</option>
+                    </select>
+                </div>
 
-            <div class="flex items-center gap-4">
-                <label for="nombre_instructor" class="w-40 font-semibold text-gray-700">NOMBRES</label>
-                <input type="text" name="nombre_instructor" id="nombre_instructor" required class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400" value="{{ instructor.nombre_instructor if mode=='edit' else '' }}">
-            </div>
-            <div class="flex items-center gap-4">
-                <label for="apellido_instructor" class="w-40 font-semibold text-gray-700">APELLIDOS</label>
-                <input type="text" name="apellido_instructor" id="apellido_instructor" required class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400" value="{{ instructor.apellido_instructor if mode=='edit' else '' }}">
-            </div>
-            <div class="flex items-center gap-4">
-                <label for="tipo_documento" class="w-40 font-semibold text-gray-700">TIPO DE DOCUMENTO</label>
-                <select name="tipo_documento" id="tipo_documento" required class="w-50 rounded-lg border p-2 bg-white focus:ring-2 focus:ring-indigo-400">
-                    <option value="" disabled {% if mode != 'edit' %}selected{% endif %}>Elige una opción</option>
-                    <option value="Cedula de Ciudadania" {% if mode == 'edit' and instructor.tipo_documento == 'Cedula de Ciudadania' %}selected{% endif %}>Cédula de Ciudadanía</option>
-                    <option value="Tarjeta de Identidad" {% if mode == 'edit' and instructor.tipo_documento == 'Tarjeta de Identidad' %}selected{% endif %}>Tarjeta de Identidad</option>
-                    <option value="Cedula Extrangeria" {% if mode == 'edit' and instructor.tipo_documento == 'Cedula Extrangeria' %}selected{% endif %}>Cédula de Extranjería</option>
-                    <option value="Registro Civil" {% if mode == 'edit' and instructor.tipo_documento == 'Registro Civil' %}selected{% endif %}>Registro Civil</option>
-                </select>
-            </div>
-            <div class="flex items-center gap-4">
-                <label for="documento" class="w-40 font-semibold text-gray-700">DOCUMENTO</label>
-                <input type="text" name="documento" id="documento" required pattern="[0-9]+" class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400" value="{{ instructor.documento if mode=='edit' else '' }}">
-            </div>
-            <div class="flex items-center gap-4">
-                <label for="correo_instructor" class="w-40 font-semibold text-gray-700">EMAIL</label>
-                <input type="email" name="correo_instructor" id="correo_instructor" required class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400" value="{{ instructor.correo_instructor if mode=='edit' else '' }}">
-            </div>
-            <div class="flex items-center gap-4">
-                <label for="celular_instructor" class="w-40 font-semibold text-gray-700">CELULAR</label>
-                <input type="tel" name="celular_instructor" id="celular_instructor" required pattern="[0-9]{10}" class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400" value="{{ instructor.celular_instructor if mode=='edit' else '' }}">
-            </div>
-            <!-- Contraseña corregida -->
-            <div class="flex items-center gap-4">
-                <label for="password" class="w-40 font-semibold text-gray-700">CONTRASEÑA</label>
-                <input type="password" name="password" id="password" class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400" {% if mode != 'edit' %}required{% endif %}>
+                <div>
+                    <label for="documento" class="font-semibold text-gray-700">DOCUMENTO</label>
+                    <input type="text" name="documento" id="documento" value="{{ instructor.documento if mode == 'edit' else '' }}" required pattern="[0-9]+" title="Solo números" class="w-full rounded-lg border p-2">
+                </div>
+
+                <div>
+                    <label for="correo_instructor" class="font-semibold text-gray-700">EMAIL</label>
+                    <input type="email" name="correo_instructor" id="correo_instructor" value="{{ instructor.correo_instructor if mode == 'edit' else '' }}" required class="w-full rounded-lg border p-2">
+                </div>
+
+                <div>
+                    <label for="celular_instructor" class="font-semibold text-gray-700">CELULAR</label>
+                    <input type="tel" name="celular_instructor" id="celular_instructor" value="{{ instructor.celular_instructor if mode == 'edit' else '' }}" required pattern="[0-9]{10}" title="Debe contener 10 dígitos" class="w-full rounded-lg border p-2">
+                </div>
             </div>
 
-            <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition">
-                {% if mode == 'edit' %}Actualizar{% else %}Registrar{% endif %}
-            </button>
-            <a href="{{ url_for('instructor_bp.perfil_instructor') }}" 
-                class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">
-                Volver
-            </a>
+            <div class="mt-4">
+                <label for="password" class="font-semibold text-gray-700">CONTRASEÑA</label>
+                <input type="password" name="password" id="password" class="w-full rounded-lg border p-2" {% if mode != 'edit' %}required{% endif %}>
+                <p class="text-xs text-gray-500 mt-1">{% if mode != 'edit' %}La contraseña debe tener al menos 8 caracteres{% endif %}</p>
+            </div>
+
+            <div class="flex gap-4 mt-6">
+                <button type="submit" class="flex-1 btn-sena-primary py-3">
+                    {% if mode == 'edit' %}Actualizar{% else %}Registrar{% endif %}
+                </button>
+                <a href="{{ url_for('instructor_bp.perfil_instructor') }}" 
+                    class="btn-sena-secondary px-6 py-3 text-center">
+                    Volver
+                </a>
+            </div>
         </form>
     </div>
 </body>

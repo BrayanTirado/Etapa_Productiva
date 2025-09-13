@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app.models.users import Programa, Aprendiz, Instructor
 from app import db
+from datetime import datetime
 
 bp = Blueprint('programa_bp', __name__, url_prefix='/programa')
 
@@ -39,7 +40,8 @@ def listar_programas():
 
     return render_template('programa/listar_programa.html',
                            programas=programas,
-                           aprendiz_id=aprendiz_id)
+                           aprendiz_id=aprendiz_id,
+                           now=datetime.now())
 
 # --- CREAR PROGRAMA ---
 @bp.route('/nuevo', methods=['GET', 'POST'])
@@ -57,12 +59,12 @@ def nuevo_programa():
         if not nombre:
             flash("El nombre del programa es obligatorio.", "warning")
             return render_template('programa/nuevo_programa.html',
-                                   titulo=titulo_ops, jornada=jornada_ops, ficha=ficha)
+                                   titulo=titulo_ops, jornada=jornada_ops, ficha=ficha, now=datetime.now())
 
         if titulo not in titulo_ops or jornada not in jornada_ops:
             flash("Selecciona valores válidos para Título, Jornada y Centro de formación.", "danger")
             return render_template('programa/nuevo_programa.html',
-                                   titulo=titulo_ops, jornada=jornada_ops, ficha=ficha)
+                                   titulo=titulo_ops, jornada=jornada_ops, ficha=ficha, now=datetime.now())
 
         try:
             programa = Programa.query.filter_by(
@@ -94,7 +96,7 @@ def nuevo_programa():
             flash(f"Error al registrar programa: {e}", "danger")
 
     return render_template('programa/nuevo_programa.html',
-                           titulo=titulo_ops, jornada=jornada_ops, ficha=None)
+                           titulo=titulo_ops, jornada=jornada_ops, ficha=None, now=datetime.now())
 
 # --- EDITAR PROGRAMA ---
 @bp.route('/editar/<int:id>', methods=['GET', 'POST'])
@@ -118,12 +120,12 @@ def editar_programa(id):
         if not nombre:
             flash("El nombre del programa es obligatorio.", "warning")
             return render_template('programa/editar_programa.html',
-                                   programa=programa, titulo=titulo_ops, jornada=jornada_ops, ficha=ficha)
+                                   programa=programa, titulo=titulo_ops, jornada=jornada_ops, ficha=ficha, now=datetime.now())
 
         if titulo not in titulo_ops or jornada not in jornada_ops or not ficha:
             flash("Selecciona valores válidos para Título, Jornada y Centro de formación.", "danger")
             return render_template('programa/editar_programa.html',
-                                   programa=programa, titulo=titulo_ops, jornada=jornada_ops, ficha=ficha)
+                                   programa=programa, titulo=titulo_ops, jornada=jornada_ops, ficha=ficha, now=datetime.now())
 
         try:
             programa.nombre_programa = nombre
@@ -139,7 +141,7 @@ def editar_programa(id):
             flash(f"Error al actualizar programa: {e}", "danger")
 
     return render_template('programa/editar_programa.html',
-                           programa=programa, titulo=titulo_ops, jornada=jornada_ops, ficha=programa.ficha)
+                           programa=programa, titulo=titulo_ops, jornada=jornada_ops, ficha=programa.ficha, now=datetime.now())
 
 # --- ELIMINAR PROGRAMA ---
 @bp.route('/eliminar/<int:id>')

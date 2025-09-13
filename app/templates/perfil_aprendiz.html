@@ -52,10 +52,18 @@
 
             <div class="mt-4 flex justify-between">
                 <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">Guardar Cambios</button>
-                <a href="{{ url_for('aprendiz_bp.perfil') }}" 
-                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
-                    Cancelar
-                </a>
+
+                <!-- Botón Cancelar según rol -->
+                {% if rol_actual == 'Aprendiz' %}
+                    <a href="{{ url_for('aprendiz_bp.dashboard_aprendiz', aprendiz_id=current_user.id_aprendiz) }}" 
+                       class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">Cancelar</a>
+                {% elif rol_actual == 'Instructor' %}
+                    <a href="{{ url_for('aprendiz_bp.dashboard_aprendiz', aprendiz_id=aprendiz.id_aprendiz) }}" 
+                       class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">Cancelar</a>
+                {% else %}
+                    <a href="{{ url_for('auth.dashboard') }}" 
+                       class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">Cancelar</a>
+                {% endif %}
             </div>
         </form>
 
@@ -71,19 +79,58 @@
         </div>
 
         <div class="mt-8 flex justify-between">
+            <!-- Botón Editar Perfil -->
             <a href="{{ url_for('aprendiz_bp.editar_aprendiz', id=aprendiz.id_aprendiz) }}"
                class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">
                Editar Perfil
             </a>
 
-            <a href="{{ url_for('auth.dashboard') }}" 
-               class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
-                Volver
-            </a>
+            <!-- Botón Volver según rol -->
+            {% if rol_actual == 'Aprendiz' %}
+                <a href="{{ url_for('aprendiz_bp.dashboard_aprendiz', aprendiz_id=current_user.id_aprendiz) }}"
+                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">Volver</a>
+            {% elif rol_actual == 'Instructor' %}
+                <a href="{{ url_for('aprendiz_bp.dashboard_aprendiz', aprendiz_id=aprendiz.id_aprendiz) }}"
+                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">Volver</a>
+            {% else %}
+                <a href="{{ url_for('auth.dashboard') }}"
+                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">Volver</a>
+            {% endif %}
         </div>
         {% endif %}
 
     </div>
 
+    <!-- Modal de éxito -->
+    <div id="successModal" class="fixed inset-0 hidden bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-lg p-6 w-96 text-center">
+        <h2 class="text-xl font-bold text-green-600 mb-4">✅ Éxito</h2>
+        <p id="successMessage" class="text-gray-700 mb-6"></p>
+        <button onclick="closeModal()" 
+                class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">OK</button>
+      </div>
+    </div>
+
+    <script>
+        function showModal(message) {
+            document.getElementById('successMessage').innerText = message;
+            document.getElementById('successModal').classList.remove('hidden');
+        }
+        function closeModal() {
+            document.getElementById('successModal').classList.add('hidden');
+        }
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            window.onload = function() {
+                {% for category, message in messages %}
+                  {% if category == 'success' %}
+                    showModal("{{ message }}");
+                  {% endif %}
+                {% endfor %}
+            }
+          {% endif %}
+        {% endwith %}
+    </script>
 </body>
 </html>

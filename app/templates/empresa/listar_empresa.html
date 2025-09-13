@@ -9,23 +9,8 @@
     <div class="max-w-7xl mx-auto bg-white shadow-lg rounded-lg p-6">
         <h1 class="text-2xl font-bold mb-6 text-gray-800">📋 Empresas Registradas</h1>
 
-        <!-- Mensajes flash -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="mb-4 p-4 rounded 
-                        {% if category == 'success' %}bg-green-100 text-green-800
-                        {% elif category == 'danger' %}bg-red-100 text-red-800
-                        {% elif category == 'warning' %}bg-yellow-100 text-yellow-800
-                        {% else %}bg-blue-100 text-blue-800{% endif %}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        <!-- Botón Nuevo Empresa -->
-        {% if not empresas and es_aprendiz %}
+        <!-- Botón Nuevo Empresa (solo si es aprendiz y no hay empresas) -->
+        {% if not empresas and rol_actual == 'Aprendiz' %}
         <div class="mb-4">
             <a href="{{ url_for('empresa_bp.nueva_empresa') }}" 
                class="bg-green-500 text-white px-4 py-2 rounded shadow hover:bg-green-600 transition">
@@ -35,98 +20,120 @@
         {% endif %}
 
         {% if empresas %}
-            <div class="overflow-x-auto">
-                <table class="w-full border border-gray-200 rounded-lg overflow-hidden text-sm">
-                    <thead class="bg-gray-200 text-gray-700">
-                        <tr>
-                            <th class="border p-3 text-left w-16">ID</th>
-                            <th class="border p-3 text-left w-48">Nombre Empresa</th>
-                            <th class="border p-3 text-left w-32">NIT</th>
-                            <th class="border p-3 text-left w-32">Dirección</th>
-                            <th class="border p-3 text-left w-32">Teléfono</th>
-                            <th class="border p-3 text-left w-32">Correo</th>
-                            <th class="border p-3 text-left w-48">Fecha Inicio Contrato</th>
-                            <th class="border p-3 text-left w-48">Fecha Fin Contrato</th>
-                            <th class="border p-3 text-left w-48">Nombre Jefe</th>
-                            <th class="border p-3 text-left w-48">Correo Jefe</th>
-                            <th class="border p-3 text-left w-32">Teléfono Jefe</th>
-                            <th class="border p-3 text-center w-48">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for empresa in empresas %}
-                        <tr class="hover:bg-gray-50 even:bg-gray-100">
-                            <td class="border p-3 text-center">{{ empresa.id_empresa }}</td>
-                            <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">{{ empresa.nombre_empresa }}</td>
-                            <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">{{ empresa.nit }}</td>
-                            <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">{{ empresa.direccion }}</td>
-                            <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">{{ empresa.telefono }}</td>
-                            <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">{{ empresa.correo_empresa }}</td>
-                            <td class="border p-3 text-center">
-                                {% if empresa.contratos and empresa.contratos[0].fecha_inicio %}
-                                    {{ empresa.contratos[0].fecha_inicio.strftime('%Y-%m-%d') }}
+        <div class="overflow-x-auto">
+            <table class="w-full border border-gray-200 rounded-lg overflow-hidden text-sm">
+                <thead class="bg-gray-200 text-gray-700">
+                    <tr>
+                        <th class="border p-3 text-left w-16">ID</th>
+                        <th class="border p-3 text-left w-48">Nombre Empresa</th>
+                        <th class="border p-3 text-left w-32">NIT</th>
+                        <th class="border p-3 text-left w-32">Dirección</th>
+                        <th class="border p-3 text-left w-32">Teléfono</th>
+                        <th class="border p-3 text-left w-32">Correo</th>
+                        <th class="border p-3 text-left w-48">Fecha Inicio Contrato</th>
+                        <th class="border p-3 text-left w-48">Fecha Fin Contrato</th>
+                        <th class="border p-3 text-left w-48">Nombre Jefe</th>
+                        <th class="border p-3 text-left w-48">Correo Jefe</th>
+                        <th class="border p-3 text-left w-32">Teléfono Jefe</th>
+                        <th class="border p-3 text-center w-48">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for empresa in empresas %}
+                    <tr class="hover:bg-gray-50 even:bg-gray-100">
+                        <td class="border p-3 text-center">{{ empresa.id_empresa }}</td>
+                        <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">{{ empresa.nombre_empresa }}</td>
+                        <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">{{ empresa.nit }}</td>
+                        <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">{{ empresa.direccion }}</td>
+                        <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">{{ empresa.telefono }}</td>
+                        <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">{{ empresa.correo_empresa }}</td>
+                        <td class="border p-3 text-center">
+                            {% if empresa.contratos and empresa.contratos[0].fecha_inicio %}
+                                {{ empresa.contratos[0].fecha_inicio.strftime('%Y-%m-%d') }}
+                            {% else %}-{% endif %}
+                        </td>
+                        <td class="border p-3 text-center">
+                            {% if empresa.contratos and empresa.contratos[0].fecha_fin %}
+                                {{ empresa.contratos[0].fecha_fin.strftime('%Y-%m-%d') }}
+                            {% else %}-{% endif %}
+                        </td>
+                        <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">{{ empresa.nombre_jefe or '-' }}</td>
+                        <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">{{ empresa.correo_jefe or '-' }}</td>
+                        <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">{{ empresa.telefono_jefe or '-' }}</td>
+                        <td class="border p-3 text-center">
+                            <div class="flex justify-center space-x-2">
+                                {% if rol_actual == 'Aprendiz' and current_user.id_aprendiz == empresa.aprendiz_id_aprendiz %}
+                                    <a href="{{ url_for('empresa_bp.editar_empresa', id=empresa.id_empresa) }}" 
+                                       class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition">Editar</a>
+                                    <form action="{{ url_for('empresa_bp.eliminar_empresa', id=empresa.id_empresa) }}" method="POST" class="inline">
+                                        <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
+                                                onclick="return confirm('¿Seguro de eliminar esta empresa?')">
+                                            Eliminar
+                                        </button>
+                                    </form>
                                 {% else %}
-                                    -
+                                    <span class="text-gray-400 italic">No disponible</span>
                                 {% endif %}
-                            </td>
-                            <td class="border p-3 text-center">
-                                {% if empresa.contratos and empresa.contratos[0].fecha_fin %}
-                                    {{ empresa.contratos[0].fecha_fin.strftime('%Y-%m-%d') }}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">
-                                {{ empresa.nombre_jefe if empresa.nombre_jefe else '-' }}
-                            </td>
-                            <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">
-                                {{ empresa.correo_jefe if empresa.correo_jefe else '-' }}
-                            </td>
-                            <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">
-                                {{ empresa.telefono_jefe if empresa.telefono_jefe else '-' }}
-                            </td>
-                            <td class="border p-3 text-center">
-                                <div class="flex justify-center space-x-2">
-                                    {% if es_aprendiz and current_user.id_aprendiz == empresa.aprendiz_id_aprendiz %}
-                                        <a href="{{ url_for('empresa_bp.editar_empresa', id=empresa.id_empresa) }}" 
-                                           class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition">
-                                           Editar
-                                        </a>
-                                        <form action="{{ url_for('empresa_bp.eliminar_empresa', id=empresa.id_empresa) }}" method="POST" class="inline">
-                                            <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
-                                                    onclick="return confirm('¿Seguro de eliminar esta empresa?')">
-                                                Eliminar
-                                            </button>
-                                        </form>
-                                    {% else %}
-                                        <span class="text-gray-400 italic">No disponible</span>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% else %}
             <p class="mt-6 text-gray-600 text-center">⚠️ No hay empresas registradas aún.</p>
         {% endif %}
 
-        <!-- Botón Volver con lógica dinámica según rol -->
+        <!-- Botón Volver -->
         <div class="mt-6 text-center">
             {% if aprendiz_id %}
-                <a href="{{ url_for('aprendiz_bp.dasboardh_aprendiz', aprendiz_id=current_user.id_aprendiz) }}" 
-                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">
-                   Volver
-                </a>
+                <a href="{{ url_for('aprendiz_bp.dashboard_aprendiz', aprendiz_id=aprendiz_id) }}" 
+                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">Volver</a>
+            {% elif rol_actual == 'Instructor' %}
+                <a href="{{ url_for('instructor_bp.dashboard_instructor', instructor_id=current_user.id_instructor) }}" 
+                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">Volver</a>
+            {% elif rol_actual == 'Coordinador' %}
+                <a href="{{ url_for('coordinador_bp.dashboard', coordinador_id=current_user.id_coordinador) }}" 
+                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">Volver</a>
             {% else %}
-                <a href="{{ url_for('auth.dashboard') }}" 
-                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">
-                   Volver
-                </a>
+                <a href="{{ url_for('auth.login') }}" 
+                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">Volver</a>
             {% endif %}
         </div>
 
     </div>
+
+    <!-- Modal de éxito -->
+    <div id="successModal" class="fixed inset-0 hidden bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-lg p-6 w-96 text-center">
+        <h2 class="text-xl font-bold text-green-600 mb-4">✅ Éxito</h2>
+        <p id="successMessage" class="text-gray-700 mb-6"></p>
+        <button onclick="closeModal()" 
+                class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">OK</button>
+      </div>
+    </div>
+
+    <script>
+        function showModal(message) {
+            document.getElementById('successMessage').innerText = message;
+            document.getElementById('successModal').classList.remove('hidden');
+        }
+        function closeModal() {
+            document.getElementById('successModal').classList.add('hidden');
+        }
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            window.onload = function() {
+                {% for category, message in messages %}
+                  {% if category == 'success' %}
+                    showModal("{{ message }}");
+                  {% endif %}
+                {% endfor %}
+            }
+          {% endif %}
+        {% endwith %}
+    </script>
 </body>
 </html>

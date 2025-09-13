@@ -1,87 +1,70 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrar Aprendiz</title>
-    <!-- TailwindCSS para estilos -->
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
+{% extends "base.html" %}
 
-<body class="bg-gradient-to-br from-indigo-900 via-purple-900 to-gray-900 min-h-screen flex items-center justify-center p-4">
+{% block title %}SENA - Registrar Aprendiz{% endblock %}
 
-    <div class="bg-white shadow-2xl rounded-xl p-8 w-full max-w-2xl transform transition-all hover:scale-[1.01] duration-300">
-        <h2 class="text-3xl font-extrabold text-center text-indigo-700 mb-8">Crear cuenta de Aprendiz</h2>
+{% block content %}
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="mb-4">
-                    {% for category, message in messages %}
-                        <div class="p-4 rounded-lg text-white 
-                            {% if category == 'success' %}bg-green-500
-                            {% elif category == 'danger' %}bg-red-500
-                            {% elif category == 'warning' %}bg-yellow-500
-                            {% else %}bg-blue-500{% endif %}">
-                            {{ message }}
-                        </div>
-                    {% endfor %}
+    <div class="card-sena w-full max-w-2xl mx-auto p-8">
+        <h2 class="text-3xl font-extrabold text-center text-sena-primary mb-8">Crear cuenta de Aprendiz</h2>
+        
+        <div class="flex justify-center mb-6">
+            <img src="{{ url_for('static', filename='img/logo-sena.png') }}" alt="SENA" class="h-20">
+        </div>
+
+        <form method="post" action="{{ url_for('auth.registro_aprendiz') }}" class="form-sena space-y-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="nombre" class="font-semibold text-gray-700">NOMBRES</label>
+                    <input type="text" name="nombre" id="nombre" required class="w-full rounded-lg border p-2">
                 </div>
-            {% endif %}
-        {% endwith %}
 
-        <form method="post" action="{{ url_for('auth.registro_aprendiz') }}" class="space-y-5">
+                <div>
+                    <label for="apellido" class="font-semibold text-gray-700">APELLIDOS</label>
+                    <input type="text" name="apellido" id="apellido" required class="w-full rounded-lg border p-2">
+                </div>
             
-            <div class="flex items-center gap-4">
-                <label for="nombre" class="w-40 font-semibold text-gray-700">NOMBRES</label>
-                <input type="text" name="nombre" id="nombre" required class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400">
+                <div>
+    <label for="tipo_documento" class="font-semibold text-gray-700">TIPO DOCUMENTO</label>
+    <select name="tipo_documento" id="tipo_documento" required class="w-full rounded-lg border p-2">
+        <option value="Cedula de Ciudadania">Cédula de Ciudadanía</option>
+        <option value="Tarjeta de Identidad">Tarjeta de Identidad</option>
+        <option value="Cedula Extrangeria">Cédula de Extranjería</option>
+        <option value="Registro Civil">Registro Civil</option>
+    </select>
+</div>
+
+
+                <div>
+                    <label for="documento" class="font-semibold text-gray-700">DOCUMENTO</label>
+                    <input type="text" name="documento" id="documento" required pattern="[0-9]+" title="Solo números" class="w-full rounded-lg border p-2">
+                </div>
+
+                <div>
+                    <label for="email" class="font-semibold text-gray-700">EMAIL</label>
+                    <input type="email" name="email" id="email" required class="w-full rounded-lg border p-2">
+                </div>
+
+                <div>
+                    <label for="celular" class="font-semibold text-gray-700">CELULAR</label>
+                    <input type="tel" name="celular" id="celular" required pattern="[0-9]{10}" title="Debe contener 10 dígitos" class="w-full rounded-lg border p-2">
+                </div>
             </div>
 
-            <div class="flex items-center gap-4">
-                <label for="apellido" class="w-40 font-semibold text-gray-700">APELLIDOS</label>
-                <input type="text" name="apellido" id="apellido" required class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400">
+            <!-- Contraseña -->
+            <div class="mt-4">
+                <label for="password" class="font-semibold text-gray-700">CONTRASEÑA</label>
+                <input type="password" name="password" id="password" required minlength="8" title="Mínimo 8 caracteres" class="w-full rounded-lg border p-2">
+                <p class="text-xs text-gray-500 mt-1">La contraseña debe tener al menos 8 caracteres</p>
             </div>
 
-            <div class="flex items-center gap-4">
-                <label for="tipo_documento" class="w-40 font-semibold text-gray-700">TIPO DE DOCUMENTO</label>
-                <select name="tipo_documento" id="tipo_documento" required class="w-50 rounded-lg border p-2 bg-white focus:ring-2 focus:ring-indigo-400">
-                    <option value="Cedula de Ciudadania">Cedula de Ciudadania</option>
-                    <option value="Tarjeta de Identidad">Tarjeta de Identidad</option>
-                    <option value="Cedula Extranjera">Cedula Extranjera</option>
-                    <option value="Registro Civil">Registro Civil</option>
-                </select>
-            </div>
-
-            <div class="flex items-center gap-4">
-                <label for="documento" class="w-40 font-semibold text-gray-700">DOCUMENTO</label>
-                <input type="text" name="documento" id="documento" required pattern="[0-9]+" title="Solo números" class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400">
-            </div>
-
-            <div class="flex items-center gap-4">
-                <label for="email" class="w-40 font-semibold text-gray-700">EMAIL</label>
-                <input type="email" name="email" id="email" required class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400">
-            </div>
-
-            <div class="flex items-center gap-4">
-                <label for="celular" class="w-40 font-semibold text-gray-700">CELULAR</label>
-                <input type="tel" name="celular" id="celular" required pattern="[0-9]{10}" title="Debe contener 10 dígitos" class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400">
-            </div>
-
-            <!-- Contraseña corregida -->
-            <div class="flex items-center gap-4">
-                <label for="password" class="w-40 font-semibold text-gray-700">CONTRASEÑA</label>
-                <input type="password" name="password" id="password" required minlength="8" title="Mínimo 8 caracteres" class="flex-1 rounded-lg border p-2 focus:ring-2 focus:ring-indigo-400">
-            </div>
-
-            <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition">
+            <button type="submit" class="w-full btn-sena-primary py-3 mt-6">
                 Registrar
             </button>
         </form>
 
         <p class="mt-6 text-sm text-center text-gray-600">
             ¿Ya tienes una cuenta? 
-            <a href="{{ url_for('auth.login') }}" class="text-indigo-600 font-semibold hover:underline">Inicia sesión aquí</a>
+            <a href="{{ url_for('auth.login') }}" class="text-sena-primary font-semibold hover:text-sena-dark">Inicia sesión aquí</a>
         </p>
     </div>
-
-</body>
-</html>
+{% endblock %}

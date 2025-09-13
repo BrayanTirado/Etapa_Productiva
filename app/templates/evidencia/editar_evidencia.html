@@ -18,7 +18,7 @@
                     <a href="{{ url_for('evidencia_bp.serve_file', id=evidencia.id_evidencia) }}" 
                        target="_blank" 
                        class="text-blue-600 underline hover:text-blue-800">
-📄 {{ evidencia.nombre_archivo.split('_', 1)[-1] }}
+                        📄 {{ evidencia.nombre_archivo }}
                     </a>
                 {% else %}
                     <p class="text-gray-500">No hay archivo asociado</p>

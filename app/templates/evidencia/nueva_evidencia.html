@@ -9,17 +9,19 @@
     <div class="max-w-2xl mx-auto bg-white shadow rounded-lg p-6">
         <h1 class="text-2xl font-bold mb-4">Subir Evidencia de {{ tipo|capitalize }}</h1>
 
-        <!-- Mensajes flash -->
+        <!-- Mensajes flash comunes (error, warning, etc.) -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="mb-4 p-3 rounded 
-                        {% if category == 'success' %}bg-green-100 text-green-800
-                        {% elif category == 'danger' %}bg-red-100 text-red-800
-                        {% elif category == 'warning' %}bg-yellow-100 text-yellow-800
-                        {% else %}bg-blue-100 text-blue-800{% endif %}">
-                        {{ message }}
-                    </div>
+                    {% if category != 'modal' %}
+                        <div class="mb-4 p-3 rounded 
+                            {% if category == 'success' %}bg-green-100 text-green-800
+                            {% elif category == 'danger' %}bg-red-100 text-red-800
+                            {% elif category == 'warning' %}bg-yellow-100 text-yellow-800
+                            {% else %}bg-blue-100 text-blue-800{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endif %}
                 {% endfor %}
             {% endif %}
         {% endwith %}
@@ -56,5 +58,42 @@
             </div>
         </form>
     </div>
+
+    <!-- Modal -->
+    <div id="successModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+        <div class="bg-white rounded-lg shadow-lg p-6 max-w-sm text-center">
+            <h2 class="text-xl font-semibold mb-4">Acción exitosa</h2>
+            <p id="modalMessage" class="mb-4 text-gray-700"></p>
+            <button onclick="closeModal()" 
+                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                OK
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function showModal(message) {
+            document.getElementById("modalMessage").innerText = message;
+            document.getElementById("successModal").classList.remove("hidden");
+        }
+        function closeModal() {
+            document.getElementById("successModal").classList.add("hidden");
+        }
+    </script>
+
+    <!-- Script para mostrar modal con flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <script>
+          {% for category, message in messages %}
+            {% if category == 'modal' %}
+              document.addEventListener("DOMContentLoaded", function() {
+                showModal({{ message|tojson }});
+              });
+            {% endif %}
+          {% endfor %}
+        </script>
+      {% endif %}
+    {% endwith %}
 </body>
 </html>

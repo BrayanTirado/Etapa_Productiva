@@ -38,6 +38,7 @@ def create_app():
     from app.routes.crear_sede import bp as crear_sede_bp
     from app.routes.crear_adm import bp as crear_adm_bp
     from app.routes.adm_route import adm_bp
+    from app.routes.notificacion_route import notificacion_bp
 
     # --- Registra Blueprints ---
     app.register_blueprint(index_bp)
@@ -54,6 +55,7 @@ def create_app():
     app.register_blueprint(crear_sede_bp)
     app.register_blueprint(crear_adm_bp)  # Aquí registramos el Blueprint corregido
     app.register_blueprint(adm_bp)
+    app.register_blueprint(notificacion_bp)
 
     # --- Crea tablas en la base de datos ---
     with app.app_context():

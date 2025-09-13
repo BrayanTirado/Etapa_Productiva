@@ -25,13 +25,13 @@
                 <input type="text" name="apellido_instructor" value="{{ instructor.apellido_instructor }}" class="w-full border rounded px-2 py-1">
             </div>
             <div>
-                <label class="font-semibold">Tipo de documento:</label>
-                <select name="tipo_documento" class="w-full border rounded px-2 py-1">
-                    <option value="CC" {% if instructor.tipo_documento == 'CC' %}selected{% endif %}>Cédula de Ciudadanía (CC)</option>
-                    <option value="TI" {% if instructor.tipo_documento == 'TI' %}selected{% endif %}>Tarjeta de Identidad (TI)</option>
-                    <option value="TE" {% if instructor.tipo_documento == 'TE' %}selected{% endif %}>Cédula de Extranjería (TE)</option>
-                </select>
-            </div>
+    <label class="font-semibold">Tipo de documento:</label>
+    <select name="tipo_documento" class="w-full border rounded px-2 py-1">
+        <option value="Cedula de Ciudadania" {% if instructor.tipo_documento == 'Cedula de Ciudadania' %}selected{% endif %}>Cédula de Ciudadanía (CC)</option>
+        <option value="Cedula Extrangeria" {% if instructor.tipo_documento == 'Cedula Extrangeria' %}selected{% endif %}>Cédula de Extranjería (CE)</option>
+    </select>
+</div>
+
             <div>
                 <label class="font-semibold">Documento:</label>
                 <input type="text" name="documento" value="{{ instructor.documento }}" class="w-full border rounded px-2 py-1">

@@ -1,15 +1,27 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
-from app.models.users import Instructor, Aprendiz, TokenInstructor, Notificacion
+from app.models.users import Instructor, Aprendiz, TokenInstructor, Notificacion, Coordinador, Administrador
 from app import db
 from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
-from datetime import datetime
+from datetime import datetime, date 
 
 bp = Blueprint('instructor_bp', __name__, url_prefix='/instructor')
 
+bp.route('/aprendiz/<int:aprendiz_id>/progreso')
+@login_required
+def ver_progreso_aprendiz(aprendiz_id):
+    # Buscar el aprendiz
+    aprendiz = Aprendiz.query.get_or_404(aprendiz_id)
 
+    # Verificar que el usuario sea instructor y tenga asignado a este aprendiz
+    if not hasattr(current_user, "id_instructor") or aprendiz.instructor_id != current_user.id:
+        flash("No tienes permiso para ver este aprendiz.", "error")
+        return redirect(url_for('instructor_bp.dashboard_instructor'))
+
+    # Renderizar la plantilla con los datos del aprendiz
+    return render_template('ver_progreso_aprendiz.html', aprendiz=aprendiz)
 # -------------------------------
 # Función para enviar notificación
 # -------------------------------
@@ -36,29 +48,38 @@ def dashboard_instructor():
         flash("Acceso denegado", "error")
         return redirect(url_for('auth.dashboard'))
 
+    # Filtrar aprendices asignados
     documento = request.args.get('documento')
     query = Aprendiz.query.filter_by(instructor_id=current_user.id_instructor)
     if documento:
         query = query.filter(Aprendiz.documento.like(f"%{documento}%"))
     aprendices_asignados = query.all()
 
+    # Cargar coordinadores y administradores
+    coordinadores = Coordinador.query.all()
+    administradores = Administrador.query.all()
+
+    # Notificaciones no leídas
     notificaciones_no_leidas = Notificacion.query.filter(
         Notificacion.rol_destinatario=="Instructor",
         Notificacion.visto==False,
         or_(Notificacion.destinatario_id==current_user.id_instructor, Notificacion.destinatario_id==None)
     ).count()
 
-    eventos = []  # Puedes agregar eventos si los tienes
+    eventos = []  # Eventos si los tienes
 
+    from datetime import datetime
     return render_template(
-        'dasboardh_instructor.html',  # <-- corregido el nombre
+        'dasboardh_instructor.html',
         instructor=current_user,
         aprendices=aprendices_asignados,
+        coordinadores=coordinadores,
+        administradores=administradores,
         documento=documento,
         notificaciones_no_leidas=notificaciones_no_leidas,
-        eventos=eventos
+        eventos=eventos,
+        now=datetime.now()
     )
-
 
 # -------------------------------
 # Crear nuevo instructor usando token
@@ -112,7 +133,7 @@ def nuevo_instructor():
         try:
             db.session.add(nuevo)
             db.session.commit()
-            flash('Instructor creado exitosamente. Ahora puedes iniciar sesión.', 'success')
+            flash('Instructor creado exitosamente. Ahora puedes iniciar sesión.', 'modal')
             return redirect(url_for('auth.login'))
         except Exception as e:
             db.session.rollback()
@@ -152,7 +173,7 @@ def editar_instructor(id):
 
         try:
             db.session.commit()
-            flash('Instructor actualizado correctamente.', 'success')
+            flash('Instructor actualizado correctamente.', 'modal')
             return redirect(url_for('instructor_bp.dashboard_instructor'))
         except IntegrityError:
             db.session.rollback()
@@ -161,7 +182,7 @@ def editar_instructor(id):
             db.session.rollback()
             flash(f'Error: {str(e)}', 'danger')
 
-    return render_template('instructor.html', instructor=instructor, mode='edit')
+    return render_template('instructor.html', instructor=instructor, mode='edit', now=datetime.now())
 
 
 # -------------------------------
@@ -174,7 +195,7 @@ def eliminar_instructor(id):
     try:
         db.session.delete(instructor)
         db.session.commit()
-        flash('Instructor eliminado exitosamente.', 'success')
+        flash('Instructor eliminado exitosamente.', 'modal')
     except Exception as e:
         db.session.rollback()
         flash(f'Error al eliminar instructor: {str(e)}', 'danger')
@@ -191,7 +212,7 @@ def perfil_instructor():
         flash("No tienes permiso para acceder a este perfil.", "danger")
         return redirect(url_for("auth.login"))
 
-    return render_template("perfil_instructor.html", instructor=current_user)
+    return render_template("perfil_instructor.html", instructor=current_user, now=datetime.now())
 
 
 # -------------------------------
@@ -214,7 +235,7 @@ def enviar_mensaje():
         rol_destinatario=rol_destinatario
     )
 
-    flash(f"Mensaje enviado a {rol_destinatario}", "success")
+    flash(f"Mensaje enviado a {rol_destinatario}", "modal")
     return redirect(url_for('instructor_bp.dashboard_instructor'))
 
 
@@ -224,20 +245,116 @@ def enviar_mensaje():
 @bp.route('/notificaciones')
 @login_required
 def notificaciones():
-    lista_notis = Notificacion.query.filter(
-        Notificacion.rol_destinatario=="Instructor",
-        or_(Notificacion.destinatario_id==current_user.id_instructor, Notificacion.destinatario_id==None)
-    ).order_by(Notificacion.fecha_creacion.desc()).all()
+    # Página actual desde la query string
+    pagina = request.args.get('pagina', 1, type=int)
+    per_page = 10  # Notificaciones por página
 
-    return render_template('notificacion/listar.html', notificaciones=lista_notis)
+    # Query filtrando por instructor
+    pagination = Notificacion.query.filter(
+        Notificacion.rol_destinatario == "Instructor",
+        or_(Notificacion.destinatario_id == current_user.id_instructor, Notificacion.destinatario_id == None)
+    ).order_by(Notificacion.fecha_creacion.desc()).paginate(page=pagina, per_page=per_page, error_out=False)
+
+    notificaciones = pagination.items
+    total_paginas = pagination.pages
+
+    return render_template(
+        'notificacion/listar.html',
+        notificaciones=notificaciones,
+        pagina_actual=pagina,
+        total_paginas=total_paginas,
+        now=datetime.now()
+    )
+from datetime import timedelta
 
 @bp.route('/notificacion/<int:noti_id>')
 @login_required
 def ver_notificacion(noti_id):
     noti = Notificacion.query.get_or_404(noti_id)
+    
     # Marcar como visto
     if noti.rol_destinatario == "Instructor" and not noti.visto:
         noti.visto = True
         db.session.commit()
-    return render_template('notificacion/ver_notificacion.html', notificacion=noti)
+
+    # Obtener nombre del remitente (puedes usar tu función obtener_remitente si la tienes)
+    remitente_nombre = f"{noti.remitente_id}"  # ajusta según tu función
+    
+    # Calcular fecha_local (hora local)
+    fecha_local = noti.fecha_creacion - timedelta(hours=5)  # ajustar según tu zona horaria
+
+    return render_template(
+        'notificacion/ver_notificacion.html',
+        notificacion=noti,
+        remitente_nombre=remitente_nombre,
+        now=datetime.now(),
+        fecha_local=fecha_local
+    )
+
+
+# Responder notificación (Instructor)
+@bp.route('/notificacion/<int:noti_id>/responder', methods=['GET', 'POST'])
+@login_required
+def responder_notificacion(noti_id):
+    noti = Notificacion.query.get_or_404(noti_id)
+
+    if request.method == 'POST':
+        respuesta = request.form.get('respuesta')
+
+        # Detectar ID del usuario según su rol
+        if current_user.__class__.__name__ == "Administrador":
+            remitente_id = current_user.id_adm
+        elif current_user.__class__.__name__ == "Coordinador":
+            remitente_id = current_user.id_coordinador
+        elif current_user.__class__.__name__ == "Instructor":
+            remitente_id = current_user.id_instructor
+        elif current_user.__class__.__name__ == "Aprendiz":
+            remitente_id = current_user.id_aprendiz
+        else:
+            remitente_id = None  # fallback
+
+        if respuesta and remitente_id:
+            nueva = Notificacion(
+                mensaje=f"[Respuesta a '{noti.mensaje.split(']')[0].replace('[','')}'] {respuesta}",
+                remitente_id=remitente_id,
+                rol_remitente=current_user.__class__.__name__,
+                destinatario_id=noti.remitente_id,
+                rol_destinatario=noti.rol_remitente
+            )
+            db.session.add(nueva)
+            db.session.commit()
+            flash('Respuesta enviada con éxito.', 'modal')
+        else:
+            flash('No se pudo enviar la respuesta. Asegúrate de escribir un mensaje.', 'danger')
+
+    # Redirigir según el rol
+    if current_user.__class__.__name__ == "Administrador":
+        return redirect(url_for('adm_bp.notificaciones'))
+    elif current_user.__class__.__name__ == "Coordinador":
+        return redirect(url_for('coordinador_bp.notificaciones'))
+    elif current_user.__class__.__name__ == "Instructor":
+        return redirect(url_for('instructor_bp.notificaciones'))
+    elif current_user.__class__.__name__ == "Aprendiz":
+        return redirect(url_for('aprendiz_bp.notificaciones'))
+
+    return redirect(url_for('index'))
+
+@bp.route('/notificaciones/marcar_todas', methods=['POST'])
+@login_required
+def marcar_todas_notificaciones():
+    if current_user.__class__.__name__ != "Instructor":
+        return "", 400
+
+    user_id = current_user.id_instructor
+    rol = "Instructor"
+
+    # Marcar todas las notificaciones como vistas
+    Notificacion.query.filter(
+        Notificacion.destinatario_id == user_id,
+        Notificacion.rol_destinatario == rol,
+        Notificacion.visto == False
+    ).update({ "visto": True }, synchronize_session=False)
+
+    db.session.commit()
+    return "", 200
 

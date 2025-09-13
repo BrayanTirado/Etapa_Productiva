@@ -1,0 +1,246 @@
+/* Estilos personalizados para la plataforma SENA */
+
+:root {
+  /* Colores principales del SENA */
+  --sena-green-primary: #39A900; /* Verde SENA principal */
+  --sena-green-secondary: #4CBB17; /* Verde SENA secundario */
+  --sena-green-light: #8BC34A; /* Verde claro */
+  --sena-green-dark: #2E7D32; /* Verde oscuro */
+  
+  /* Colores complementarios */
+  --sena-gray: #F5F5F5; /* Gris claro para fondos */
+  --sena-dark-gray: #333333; /* Gris oscuro para textos */
+  --sena-white: #FFFFFF; /* Blanco */
+  --sena-black: #000000; /* Negro */
+  
+  /* Colores de acento */
+  --sena-orange: #FF6D00; /* Naranja para alertas o destacados */
+  --sena-blue: #0277BD; /* Azul para enlaces o botones secundarios */
+  --sena-red: #D32F2F; /* Rojo para errores */
+  
+  /* Sombras */
+  --sena-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --sena-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Clases de utilidad para colores de fondo */
+.bg-sena-primary {
+  background-color: var(--sena-green-primary);
+}
+
+.bg-sena-secondary {
+  background-color: var(--sena-green-secondary);
+}
+
+.bg-sena-light {
+  background-color: var(--sena-green-light);
+}
+
+.bg-sena-dark {
+  background-color: var(--sena-green-dark);
+}
+
+.bg-sena-gradient {
+  background: linear-gradient(135deg, var(--sena-green-primary), var(--sena-green-secondary));
+}
+
+/* Clases de utilidad para colores de texto */
+.text-sena-primary {
+  color: var(--sena-green-primary);
+}
+
+.text-sena-secondary {
+  color: var(--sena-green-secondary);
+}
+
+.text-sena-dark {
+  color: var(--sena-green-dark);
+}
+
+/* Botones estilo SENA */
+.btn-sena-primary {
+  background-color: var(--sena-green-primary);
+  color: var(--sena-white);
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+}
+
+.btn-sena-primary:hover {
+  background-color: var(--sena-green-dark);
+  box-shadow: var(--sena-shadow);
+  color: var(--sena-white);
+  text-decoration: none;
+}
+
+.btn-sena-secondary {
+  background-color: var(--sena-white);
+  color: var(--sena-green-primary);
+  border: 2px solid var(--sena-green-primary);
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+}
+
+.btn-sena-secondary:hover {
+  background-color: var(--sena-green-primary);
+  color: var(--sena-white);
+  text-decoration: none;
+}
+
+.btn-sena-danger {
+  background-color: var(--sena-red);
+  color: var(--sena-white);
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+}
+
+.btn-sena-danger:hover {
+  background-color: #b71c1c;
+  box-shadow: var(--sena-shadow);
+  color: var(--sena-white);
+  text-decoration: none;
+}
+
+/* Tarjetas estilo SENA */
+.card-sena {
+  background-color: var(--sena-white);
+  border-radius: 0.5rem;
+  box-shadow: var(--sena-shadow);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-sena:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--sena-shadow-lg);
+}
+
+/* Encabezados estilo SENA */
+.header-sena {
+  background-color: var(--sena-green-primary);
+  color: var(--sena-white);
+  padding: 1rem;
+  box-shadow: var(--sena-shadow);
+}
+
+/* Pie de página estilo SENA */
+.footer-sena {
+  background-color: var(--sena-green-dark);
+  color: var(--sena-white);
+  padding: 1.5rem;
+}
+
+/* Estilos para formularios */
+.form-sena input,
+.form-sena select,
+.form-sena textarea {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  width: 100%;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-sena input:focus,
+.form-sena select:focus,
+.form-sena textarea:focus {
+  outline: none;
+  border-color: var(--sena-green-primary);
+  box-shadow: 0 0 0 3px rgba(57, 169, 0, 0.2);
+}
+
+.form-sena label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--sena-dark-gray);
+}
+
+/* Clases específicas para elementos de formulario */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--sena-dark-gray);
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  width: 100%;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--sena-green-primary);
+  box-shadow: 0 0 0 3px rgba(57, 169, 0, 0.2);
+}
+
+.form-input.error,
+.form-select.error,
+.form-textarea.error {
+  border-color: var(--sena-red);
+}
+
+.form-help {
+  font-size: 0.875rem;
+  color: var(--sena-dark-gray);
+  margin-top: 0.25rem;
+}
+
+.form-error {
+  font-size: 0.875rem;
+  color: var(--sena-red);
+  margin-top: 0.25rem;
+}
+
+/* Estilos para tablas */
+.table-sena {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table-sena th {
+  background-color: var(--sena-green-primary);
+  color: var(--sena-white);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.75rem 1rem;
+}
+
+.table-sena td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.table-sena tr:nth-child(even) {
+  background-color: rgba(57, 169, 0, 0.05);
+}
+
+.table-sena tr:hover {
+  background-color: rgba(57, 169, 0, 0.1);
+}

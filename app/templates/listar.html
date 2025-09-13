@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lista de Estudiantes</title>
+    <title>Lista de Estudiantes y Notificaciones</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-br from-blue-100 to-purple-200 min-h-screen p-6">
@@ -28,7 +28,7 @@
         <!-- Buscador por documento -->
         <form method="GET" class="mb-6 flex gap-3">
             <input type="text" name="documento" placeholder="Buscar por documento"
-                   value="{{ documento_seleccionado }}"
+                   value="{{ documento_seleccionado | default('') }}"
                    class="flex-grow border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-400">
             <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
                 Buscar
@@ -39,16 +39,8 @@
             </a>
         </form>
 
-        <!-- Botón Volver -->
-        <div class="mb-6 text-right">
-            <a href="{{ url_for('auth.dashboard') }}"
-               class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
-                ⬅️ Volver
-            </a>
-        </div>
-
         <!-- Tabla de estudiantes -->
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto mb-12">
             <table class="min-w-full border border-gray-300 shadow-sm rounded-lg overflow-hidden">
                 <thead class="bg-indigo-600 text-white text-left">
                     <tr>
@@ -71,7 +63,7 @@
                         <td class="p-3">{{ estudiante.email }}</td>
                         <td class="p-3">{{ estudiante.celular }}</td>
                         <td class="p-3 text-center">
-                            <a href="{{ url_for('aprendiz_bp.dasboardh_aprendiz', aprendiz_id=estudiante.id_aprendiz) }}"
+                            <a href="{{ url_for('aprendiz_bp.dashboard_aprendiz', aprendiz_id=estudiante.id_aprendiz) }}"
                                target="_blank"
                                class="bg-blue-500 text-white px-4 py-1 rounded-lg hover:bg-blue-600 transition duration-200 font-medium">
                                 Ver
@@ -88,6 +80,13 @@
                     {% endif %}
                 </tbody>
             </table>
+        </div>
+
+        <!-- Botón Volver general -->
+        <div class="mt-6 text-right">
+            <a href="{{ url_for('instructor_bp.dashboard_instructor') }}" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
+                ⬅️ Volver al Dashboard
+            </a>
         </div>
     </div>
 </body>

@@ -1,84 +1,124 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registrar Administrador</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gradient-to-br from-blue-100 to-purple-200 min-h-screen flex items-center justify-center">
-  <div class="bg-white shadow-lg rounded-xl w-full max-w-md p-8 space-y-6">
-    <h2 class="text-2xl font-bold text-center text-gray-800">Registrar Administrador</h2>
+{% extends "base.html" %}
+
+{% block title %}Registrar Administrador{% endblock %}
+
+{% block content %}
+<!-- Contenedor que ocupa toda la pantalla restante y centra el contenido -->
+<div class="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] bg-gray-100 py-8">
+  <!-- Ajusta 64px según la altura de tu header -->
+
+  <!-- Tarjeta del formulario -->
+  <div class="bg-white shadow-lg rounded-xl w-full max-w-3xl p-8 space-y-6">
+    
+    <h2 class="text-2xl font-bold text-center text-green-700">Registrar Administrador</h2>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div class="mb-4">
                 {% for category, message in messages %}
+                    {% if category != 'success' %}
                     <div class="p-4 rounded-lg text-white 
-                        {% if category == 'success' %}bg-green-500
-                        {% elif category == 'danger' %}bg-red-500
+                        {% if category == 'danger' %}bg-red-500
                         {% elif category == 'warning' %}bg-yellow-500
                         {% else %}bg-blue-500{% endif %}">
                         {{ message }}
                     </div>
+                    {% endif %}
                 {% endfor %}
             </div>
         {% endif %}
     {% endwith %}
 
-    <form method="POST" action="{{ url_for('crear_adm.crear_admin') }}" class="space-y-4">
-      <!-- Nombre -->
-      <div>
-        <label for="nombre" class="block text-sm font-medium text-gray-700">Nombre</label>
-        <input type="text" name="nombre" id="nombre" required
-               class="mt-1 block w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-      </div>
+    <form method="POST" action="{{ url_for('crear_adm.crear_admin') }}" class="form-sena space-y-5">
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Nombre -->
+        <div>
+          <label for="nombre" class="font-semibold text-gray-700">Nombre</label>
+          <input type="text" name="nombre" id="nombre" required class="w-full rounded-lg border p-2">
+        </div>
 
-      <!-- Apellido -->
-      <div>
-        <label for="apellido" class="block text-sm font-medium text-gray-700">Apellido</label>
-        <input type="text" name="apellido" id="apellido" required
-               class="mt-1 block w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-      </div>
+        <!-- Apellido -->
+        <div>
+          <label for="apellido" class="font-semibold text-gray-700">Apellido</label>
+          <input type="text" name="apellido" id="apellido" required class="w-full rounded-lg border p-2">
+        </div>
 
-      <!-- Documento -->
-      <div>
-        <label for="documento" class="block text-sm font-medium text-gray-700">Número de Documento</label>
-        <input type="text" name="documento" id="documento" required pattern="[0-9]+"
-               title="Solo números"
-               class="mt-1 block w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-      </div>
+        <!-- Tipo de documento -->
+        <div>
+          <label for="tipo_documento" class="font-semibold text-gray-700">Tipo de documento</label>
+          <select name="tipo_documento" id="tipo_documento" required class="w-full rounded-lg border p-2">
+            <option value="" disabled selected>Seleccione una opción</option>
+            <option value="Cedula de Ciudadania">Cédula de Ciudadanía</option>
+            <option value="Tarjeta de Identidad">Tarjeta de Identidad</option>
+            <option value="Cedula Extrangeria">Cédula de Extranjería</option>
+            <option value="Registro Civil">Registro Civil</option>
+          </select>
+        </div>
 
-      <!-- Correo -->
-      <div>
-        <label for="correo" class="block text-sm font-medium text-gray-700">Correo Electrónico</label>
-        <input type="email" name="correo" id="correo" required
-               class="mt-1 block w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-      </div>
+        <!-- Documento -->
+        <div>
+          <label for="documento" class="font-semibold text-gray-700">Documento</label>
+          <input type="text" name="documento" id="documento" required pattern="[0-9]+" class="w-full rounded-lg border p-2">
+        </div>
 
-      <!-- Celular -->
-      <div>
-        <label for="celular" class="block text-sm font-medium text-gray-700">Celular</label>
-        <input type="text" name="celular" id="celular" required pattern="[0-9]+"
-               title="Solo números"
-               class="mt-1 block w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+        <!-- Correo -->
+        <div>
+          <label for="correo" class="font-semibold text-gray-700">Correo Electrónico</label>
+          <input type="email" name="correo" id="correo" required class="w-full rounded-lg border p-2">
+        </div>
+
+        <!-- Celular -->
+        <div>
+          <label for="celular" class="font-semibold text-gray-700">Celular</label>
+          <input type="text" name="celular" id="celular" required pattern="[0-9]+" class="w-full rounded-lg border p-2">
+        </div>
       </div>
 
       <!-- Contraseña -->
-      <div>
-        <label for="password" class="block text-sm font-medium text-gray-700">Contraseña</label>
-        <input type="password" name="password" id="password" required minlength="8"
-               title="Mínimo 8 caracteres"
-               class="mt-1 block w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+      <div class="mt-4">
+        <label for="password" class="font-semibold text-gray-700">Contraseña</label>
+        <input type="password" name="password" id="password" required minlength="8" title="Mínimo 8 caracteres" class="w-full rounded-lg border p-2">
+        <p class="text-xs text-gray-500 mt-1">La contraseña debe tener al menos 8 caracteres</p>
       </div>
 
-      <div class="flex justify-center">
-        <button type="submit"
-                class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition">
+      <!-- Botón -->
+      <div class="flex justify-center mt-6">
+        <button type="submit" class="btn-sena-primary py-2 px-6 rounded">
           Registrar Administrador
         </button>
       </div>
     </form>
   </div>
-</body>
-</html>
+</div>
+
+<!-- Modal de éxito -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    {% if category == 'success' %}
+    <div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm text-center space-y-4">
+        <h3 class="text-lg font-bold text-green-700">¡Éxito!</h3>
+        <p>{{ message }}</p>
+        <button id="closeModal" class="mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">OK</button>
+      </div>
+    </div>
+
+    <script>
+      const closeBtn = document.getElementById('closeModal');
+      closeBtn.addEventListener('click', () => {
+        document.getElementById('successModal').style.display = 'none';
+        window.location.href = "{{ redirect_url }}";
+      });
+
+      // Redirección automática después de 3 segundos
+      setTimeout(() => {
+        const modal = document.getElementById('successModal');
+        if(modal) window.location.href = "{{ redirect_url }}";
+      }, 3000);
+    </script>
+    {% endif %}
+  {% endfor %}
+{% endwith %}
+
+{% endblock %}

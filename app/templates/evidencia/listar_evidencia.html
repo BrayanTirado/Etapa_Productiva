@@ -9,13 +9,15 @@
     <div class="max-w-7xl mx-auto bg-white shadow-lg rounded-lg p-6">
         <h1 class="text-3xl font-bold mb-6 text-gray-800">📑 Lista de Evidencias</h1>
 
-        <!-- Botón nueva evidencia -->
+        <!-- Botón nueva evidencia (solo Aprendiz) -->
+        {% if current_user.__class__.__name__ == 'Aprendiz' %}
         <div class="mb-6">
             <a href="{{ url_for('evidencia_bp.choose_type') }}" 
                class="bg-green-600 text-white px-5 py-2 rounded-lg shadow-md hover:bg-green-700 transition">
                 + Nueva Evidencia
             </a>
         </div>
+        {% endif %}
 
         <!-- Archivos Word -->
         <h2 class="text-xl font-semibold text-gray-700 mb-2">📄 Archivos Word</h2>
@@ -36,7 +38,7 @@
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-2 border text-center">{{ evidencia.id_evidencia }}</td>
                         <td class="px-4 py-2 border font-medium text-gray-800 truncate whitespace-nowrap">
-                            {{ evidencia.nombre_archivo.split('_', 1)[-1].rsplit('.', 1)[0] }}
+                            📄 {{ evidencia.nombre_archivo.rsplit('.', 1)[0] }}
                         </td>
                         <td class="px-4 py-2 border text-center truncate whitespace-nowrap">{{ evidencia.fecha_subida }}</td>
                         <td class="px-4 py-2 border truncate whitespace-nowrap">{{ evidencia.nota or '---' }}</td>
@@ -51,11 +53,13 @@
                                    class="bg-green-500 text-white px-3 py-1 rounded-md shadow hover:bg-green-600 transition">
                                    Descargar
                                 </a>
+                                {% if current_user.__class__.__name__ == 'Aprendiz' %}
                                 <a href="{{ url_for('evidencia_bp.editar_evidencia', id=evidencia.id_evidencia) }}" 
                                    class="bg-blue-500 text-white px-3 py-1 rounded-md shadow hover:bg-blue-600 transition">Editar</a>
                                 <a href="{{ url_for('evidencia_bp.eliminar_evidencia', id=evidencia.id_evidencia) }}" 
                                    class="bg-red-500 text-white px-3 py-1 rounded-md shadow hover:bg-red-600 transition"
                                    onclick="return confirm('¿Seguro que deseas eliminar esta evidencia?');">Eliminar</a>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
@@ -87,7 +91,7 @@
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-2 border text-center">{{ evidencia.id_evidencia }}</td>
                         <td class="px-4 py-2 border font-medium text-gray-800 truncate whitespace-nowrap">
-                            {{ evidencia.nombre_archivo.split('_', 1)[-1].rsplit('.', 1)[0] }}
+                            📄 {{ evidencia.nombre_archivo.rsplit('.', 1)[0] }}
                         </td>
                         <td class="px-4 py-2 border text-center truncate whitespace-nowrap">{{ evidencia.fecha_subida }}</td>
                         <td class="px-4 py-2 border truncate whitespace-nowrap">{{ evidencia.nota or '---' }}</td>
@@ -102,11 +106,13 @@
                                    class="bg-green-500 text-white px-3 py-1 rounded-md shadow hover:bg-green-600 transition">
                                    Descargar
                                 </a>
+                                {% if current_user.__class__.__name__ == 'Aprendiz' %}
                                 <a href="{{ url_for('evidencia_bp.editar_evidencia', id=evidencia.id_evidencia) }}" 
                                    class="bg-blue-500 text-white px-3 py-1 rounded-md shadow hover:bg-blue-600 transition">Editar</a>
                                 <a href="{{ url_for('evidencia_bp.eliminar_evidencia', id=evidencia.id_evidencia) }}" 
                                    class="bg-red-500 text-white px-3 py-1 rounded-md shadow hover:bg-red-600 transition"
                                    onclick="return confirm('¿Seguro que deseas eliminar esta evidencia?');">Eliminar</a>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
@@ -138,7 +144,7 @@
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-2 border text-center">{{ evidencia.id_evidencia }}</td>
                         <td class="px-4 py-2 border font-medium text-gray-800 truncate whitespace-nowrap">
-                            {{ evidencia.nombre_archivo.split('_', 1)[-1].rsplit('.', 1)[0] }}
+                            📄 {{ evidencia.nombre_archivo.rsplit('.', 1)[0] }}
                         </td>
                         <td class="px-4 py-2 border text-center truncate whitespace-nowrap">{{ evidencia.fecha_subida }}</td>
                         <td class="px-4 py-2 border truncate whitespace-nowrap">{{ evidencia.nota or '---' }}</td>
@@ -150,20 +156,21 @@
                         <td class="px-4 py-2 border text-center">
                             <div class="flex justify-center gap-2 flex-nowrap">
                                 <a href="{{ url_for('evidencia_bp.view_file', id=evidencia.id_evidencia) }}" 
-   class="bg-blue-500 text-white px-3 py-1 rounded-md shadow hover:bg-blue-600 transition"
-   target="_blank">
-   Ver
-</a>
-
+                                   class="bg-blue-500 text-white px-3 py-1 rounded-md shadow hover:bg-blue-600 transition"
+                                   target="_blank">
+                                   Ver
+                                </a>
                                 <a href="{{ url_for('evidencia_bp.serve_file', id=evidencia.id_evidencia) }}" 
                                    class="bg-green-500 text-white px-3 py-1 rounded-md shadow hover:bg-green-600 transition">
                                    Descargar
                                 </a>
+                                {% if current_user.__class__.__name__ == 'Aprendiz' %}
                                 <a href="{{ url_for('evidencia_bp.editar_evidencia', id=evidencia.id_evidencia) }}" 
                                    class="bg-yellow-500 text-white px-3 py-1 rounded-md shadow hover:bg-yellow-600 transition">Editar</a>
                                 <a href="{{ url_for('evidencia_bp.eliminar_evidencia', id=evidencia.id_evidencia) }}" 
                                    class="bg-red-500 text-white px-3 py-1 rounded-md shadow hover:bg-red-600 transition"
                                    onclick="return confirm('¿Seguro que deseas eliminar esta evidencia?');">Eliminar</a>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
@@ -178,18 +185,18 @@
 
         <!-- Botón volver -->
         <div class="mt-6 text-center">
-    {% if aprendiz %}
-        <a href="{{ url_for('aprendiz_bp.dasboardh_aprendiz', aprendiz_id=current_user.id_aprendiz) }}"
-           class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
-           ⬅️ Volver
-        </a>
-    {% else %}
-        <a href="{{ url_for('auth.dashboard') }}" 
-           class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
-           ⬅️ Volver
-        </a>
-    {% endif %}
-</div>
+            {% if aprendiz %}
+                <a href="{{ url_for('aprendiz_bp.dashboard_aprendiz', aprendiz_id=aprendiz.id_aprendiz) }}"
+                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
+                   ⬅️ Volver
+                </a>
+            {% else %}
+                <a href="{{ url_for('auth.dashboard') }}" 
+                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
+                   ⬅️ Volver
+                </a>
+            {% endif %}
+        </div>
 
     </div>
 </body>

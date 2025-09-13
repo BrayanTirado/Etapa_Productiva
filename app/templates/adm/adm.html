@@ -1,32 +1,29 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Login Administrador</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
-    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h2 class="text-2xl font-bold mb-6 text-center">Login Administrador</h2>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="mb-4 p-3 rounded text-white 
-                        {% if category == 'success' %}bg-green-500
-                        {% elif category == 'danger' %}bg-red-500
-                        {% elif category == 'warning' %}bg-yellow-500{% endif %}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        <form method="POST">
-            <label class="block mb-2">Documento</label>
-            <input type="text" name="documento" class="w-full p-2 border rounded mb-4" required>
-            <label class="block mb-2">Contraseña</label>
-            <input type="password" name="password" class="w-full p-2 border rounded mb-4" required>
-            <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700">Ingresar</button>
+{% extends "base.html" %}
+
+{% block title %}SENA - Login Administrador{% endblock %}
+
+{% block content %}
+  <div class="min-h-screen flex items-center justify-center bg-gray-100">
+    <div class="card-sena w-full max-w-md p-8 bg-white shadow-lg rounded-xl">
+        <h2 class="text-2xl font-bold mb-6 text-center text-sena-primary">Login Administrador</h2>
+        
+        <div class="flex justify-center mb-6">
+            <img src="{{ url_for('static', filename='img/logo-sena.png') }}" alt="SENA" class="h-20">
+        </div>
+
+        <form method="POST" class="form-sena space-y-4">
+            <div>
+                <label for="documento" class="font-semibold text-gray-700">Documento</label>
+                <input type="text" name="documento" id="documento" class="w-full p-2 border rounded" required>
+            </div>
+            
+            <div>
+                <label for="password" class="font-semibold text-gray-700">Contraseña</label>
+                <input type="password" name="password" id="password" class="w-full p-2 border rounded" required>
+            </div>
+            
+            <button type="submit" class="w-full btn-sena-primary py-2 mt-4">Ingresar</button>
         </form>
     </div>
-</body>
-</html>
+  </div>
+{% endblock %}

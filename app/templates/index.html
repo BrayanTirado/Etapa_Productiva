@@ -1,41 +1,52 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Página principal</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body>
+{% extends "base.html" %}
 
-  <!-- Barra superior con el botón -->
-  <header class="bg-white shadow-md py-4 px-8 flex justify-between items-center">
-    <h1 class="text-2xl font-bold text-gray-800">Mi Plataforma</h1>
+{% block title %}SENA - Bienvenido{% endblock %}
 
-    <!-- Botón Iniciar Sesión -->
-    <a href="{{ url_for('auth.login') }}"
-       class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition">
-      Iniciar Sesión
-    </a>
-  </header>
+{% block header_buttons %}
+  <!-- Botón Iniciar Sesión -->
+  <a href="{{ url_for('auth.login') }}"
+     class="btn-sena-secondary hover:bg-sena-primary hover:text-white">
+    Iniciar Sesión
+  </a>
+{% endblock %}
 
-  <!-- Mensajes Flash -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="max-w-xl mx-auto mt-6">
-        {% for category, message in messages %}
-          <div class="bg-{{ 'green' if category == 'success' else 'red' }}-100 border border-{{ 'green' if category == 'success' else 'red' }}-400 text-{{ 'green' if category == 'success' else 'red' }}-700 px-4 py-3 rounded relative mb-4">
-            <strong class="font-bold">{{ message }}</strong>
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-  {% endwith %}
+  <!-- Los mensajes flash ya están en la plantilla base -->
 
+{% block content %}
   <!-- Contenido principal -->
-  <main class="text-center mt-20">
-    <h2 class="text-3xl font-bold text-gray-800">Bienvenido</h2>
-    <p class="mt-4 text-gray-600">Esta es la página de inicio de tu plataforma de etapa productiva.</p>
-  </main>
-
-</body>
-</html>
+  <div class="text-center py-16">
+    <div class="card-sena max-w-4xl mx-auto p-8">
+      <h2 class="text-4xl font-bold text-sena-primary mb-6">Bienvenido a la Plataforma de Etapa Productiva</h2>
+      
+      <div class="flex justify-center mb-8">
+        <img src="{{ url_for('static', filename='img/logo-sena.png') }}" alt="SENA" class="h-32">
+      </div>
+      
+      <p class="text-xl text-gray-700 mb-8">Esta plataforma te permite gestionar todo lo relacionado con tu etapa productiva en el SENA.</p>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+        <div class="card-sena p-6 text-center">
+          <div class="text-4xl text-sena-primary mb-4">👨‍🎓</div>
+          <h3 class="text-xl font-semibold mb-2">Aprendices</h3>
+          <p class="text-gray-600">Gestiona tu proceso de etapa productiva de manera eficiente</p>
+        </div>
+        
+        <div class="card-sena p-6 text-center">
+          <div class="text-4xl text-sena-primary mb-4">👨‍🏫</div>
+          <h3 class="text-xl font-semibold mb-2">Instructores</h3>
+          <p class="text-gray-600">Supervisa y evalúa el progreso de tus aprendices</p>
+        </div>
+        
+        <div class="card-sena p-6 text-center">
+          <div class="text-4xl text-sena-primary mb-4">🏢</div>
+          <h3 class="text-xl font-semibold mb-2">Empresas</h3>
+          <p class="text-gray-600">Colabora con el SENA en la formación de nuevos profesionales</p>
+        </div>
+      </div>
+      
+      <div class="mt-10">
+        <a href="{{ url_for('auth.login') }}" class="btn-sena-primary text-lg px-8 py-3">Comenzar ahora</a>
+      </div>
+    </div>
+  </div>
+{% endblock %}

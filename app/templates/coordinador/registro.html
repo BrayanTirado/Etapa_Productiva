@@ -1,81 +1,113 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registro Coordinador</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gradient-to-br from-green-100 to-blue-200 min-h-screen flex items-center justify-center">
-  <div class="bg-white shadow-lg rounded-xl w-full max-w-md p-8 space-y-6">
-    <h2 class="text-2xl font-bold text-center text-gray-800">Registro Coordinador</h2>
+{% extends "base.html" %}
 
+{% block title %}Registro Coordinador{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center min-h-[calc(100vh-200px)]">
+
+  <div class="bg-white shadow-lg rounded-xl w-full max-w-3xl p-8 space-y-6">
+
+    <!-- Título -->
+    <h2 class="text-2xl font-bold text-center text-green-700">Registro Coordinador</h2>
+
+    <!-- Mensajes flash normales (errores o advertencias) -->
     {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="mb-4 space-y-2">
-                {% for category, message in messages %}
-                    <div class="p-4 rounded-lg text-white 
-                        {% if category == 'success' %}bg-green-500
-                        {% elif category == 'error' %}bg-red-500
-                        {% elif category == 'warning' %}bg-yellow-500
-                        {% else %}bg-blue-500{% endif %}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
+      {% if messages %}
+        <div class="mb-4 space-y-2">
+          {% for category, message in messages %}
+            {% if category != 'success' %}
+            <div class="p-4 rounded-lg text-white 
+              {% if category == 'error' %}bg-red-500
+              {% elif category == 'warning' %}bg-yellow-500
+              {% else %}bg-blue-500{% endif %}">
+              {{ message }}
             </div>
-        {% endif %}
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
     {% endwith %}
 
-    <form method="POST" action="{{ url_for('coordinador_bp.registro') }}" class="space-y-4">
-      
+    <!-- Formulario -->
+    <form method="POST" action="{{ url_for('coordinador_bp.registro') }}" class="space-y-5">
       <div>
         <label for="token" class="block font-medium text-gray-700">Token del administrador</label>
-        <input type="text" name="token" id="token" required class="mt-1 w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-400">
+        <input type="text" name="token" id="token" required class="mt-1 w-full border rounded px-3 py-2 focus:ring-2 focus:ring-green-500">
       </div>
 
-      <div>
-        <label for="nombre" class="block font-medium text-gray-700">Nombre</label>
-        <input type="text" name="nombre" id="nombre" required class="mt-1 w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-400">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label for="nombre" class="block font-medium text-gray-700">Nombre</label>
+          <input type="text" name="nombre" id="nombre" required class="w-full rounded-lg border p-2 focus:ring-2 focus:ring-green-500">
+        </div>
+        <div>
+          <label for="apellido" class="block font-medium text-gray-700">Apellido</label>
+          <input type="text" name="apellido" id="apellido" required class="w-full rounded-lg border p-2 focus:ring-2 focus:ring-green-500">
+        </div>
       </div>
 
-      <div>
-        <label for="apellido" class="block font-medium text-gray-700">Apellido</label>
-        <input type="text" name="apellido" id="apellido" required class="mt-1 w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-400">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label for="tipo_documento" class="block font-medium text-gray-700">Tipo de documento</label>
+          <select name="tipo_documento" id="tipo_documento" required class="w-full rounded-lg border p-2 focus:ring-2 focus:ring-green-500">
+            <option value="">Seleccione</option>
+            <option value="Cedula de Ciudadania">Cédula de Ciudadanía</option>
+            <option value="Tarjeta de Identidad">Tarjeta de Identidad</option>
+            <option value="Cedula Extrangeria">Cédula de Extranjería</option>
+            <option value="Registro Civil">Registro Civil</option>
+          </select>
+        </div>
+        <div>
+          <label for="documento" class="block font-medium text-gray-700">Documento</label>
+          <input type="text" name="documento" id="documento" required class="w-full rounded-lg border p-2 focus:ring-2 focus:ring-green-500">
+        </div>
       </div>
 
-      <div>
-        <label for="tipo_documento" class="block font-medium text-gray-700">Tipo de documento</label>
-        <select name="tipo_documento" id="tipo_documento" required class="mt-1 w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-400">
-          <option value="">Seleccione</option>
-          <option value="Cedula de Ciudadania">Cédula de Ciudadanía</option>
-          <option value="Tarjeta de Identidad">Tarjeta de Identidad</option>
-          <option value="Cedula Extrangeria">Cédula Extranjera</option>
-          <option value="Registro Civil">Registro Civil</option>
-        </select>
-      </div>
-
-      <div>
-        <label for="documento" class="block font-medium text-gray-700">Documento</label>
-        <input type="text" name="documento" id="documento" required class="mt-1 w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-400">
-      </div>
-
-      <div>
-        <label for="correo" class="block font-medium text-gray-700">Correo electrónico</label>
-        <input type="email" name="correo" id="correo" required class="mt-1 w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-400">
-      </div>
-
-      <div>
-        <label for="celular" class="block font-medium text-gray-700">Celular</label>
-        <input type="text" name="celular" id="celular" required class="mt-1 w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-400">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label for="correo" class="block font-medium text-gray-700">Correo electrónico</label>
+          <input type="email" name="correo" id="correo" required class="w-full rounded-lg border p-2 focus:ring-2 focus:ring-green-500">
+        </div>
+        <div>
+          <label for="celular" class="block font-medium text-gray-700">Celular</label>
+          <input type="text" name="celular" id="celular" required class="w-full rounded-lg border p-2 focus:ring-2 focus:ring-green-500">
+        </div>
       </div>
 
       <div>
         <label for="password" class="block font-medium text-gray-700">Contraseña</label>
-        <input type="password" name="password" id="password" required minlength="8" class="mt-1 w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-400">
+        <input type="password" name="password" id="password" required minlength="8" class="mt-1 w-full border rounded px-3 py-2 focus:ring-2 focus:ring-green-500">
       </div>
 
-      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">Registrarse</button>
+      <div class="flex justify-center mt-6">
+        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300">
+          Registrarse
+        </button>
+      </div>
     </form>
   </div>
-</body>
-</html>
+</div>
+
+<!-- Modal de éxito -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    {% if category == 'success' %}
+    <div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm text-center space-y-4">
+        <h3 class="text-lg font-bold text-green-700">¡Éxito!</h3>
+        <p>{{ message }}</p>
+        <button id="closeModal" class="mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">OK</button>
+      </div>
+    </div>
+
+    <script>
+      document.getElementById('closeModal').addEventListener('click', function() {
+        document.getElementById('successModal').style.display = 'none';
+        window.location.href = "{{ url_for('coordinador_bp.login') }}"; // Redirige al login
+      });
+    </script>
+    {% endif %}
+  {% endfor %}
+{% endwith %}
+
+{% endblock %}

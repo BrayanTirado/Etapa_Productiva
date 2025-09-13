@@ -19,10 +19,10 @@ def acceso_formulario():
         clave = request.form.get('clave')
         if clave != CLAVE_SECRETA:
             flash("Clave incorrecta", "error")
-            return render_template('clave_secreta.html')
+            return render_template('clave_secreta.html', now=datetime.now())
         session['autorizado'] = True
         return redirect(url_for('crear_sede_bp.formulario_sede'))
-    return render_template('clave_secreta.html')
+    return render_template('clave_secreta.html', now=datetime.now())
 
 
 # -----------------------------
@@ -34,7 +34,7 @@ def formulario_sede():
     if not session.get('autorizado'):
         flash("Acceso no autorizado", "error")
         return redirect(url_for('crear_sede_bp.acceso_formulario'))
-    return render_template('crear_sede.html')
+    return render_template('crear_sede.html', now=datetime.now())
 
 
 # -----------------------------

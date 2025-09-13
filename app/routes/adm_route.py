@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
-from werkzeug.security import check_password_hash, generate_password_hash
-from app.models.users import Administrador, TokenCoordinador, Notificacion
+from werkzeug.security import check_password_hash
+from app.models.users import Administrador, TokenCoordinador, Notificacion, Aprendiz, Coordinador, Instructor
 from app import db
 import secrets
 from datetime import datetime, timedelta
@@ -56,7 +56,7 @@ def login():
         admin = Administrador.query.filter_by(documento=documento).first()
         if not admin or not check_password_hash(admin.password, password):
             flash("Documento o contraseña incorrectos", "error")
-            return render_template('adm/login.html')
+            return render_template('login.html')
         login_user(admin)
         flash("Inicio de sesión exitoso", "success")
         return redirect(url_for('adm_bp.dashboard'))
@@ -75,10 +75,20 @@ def dashboard():
         rol_destinatario="Administrador",
         visto=False
     ).count()
+
+    aprendices = Aprendiz.query.all()
+    coordinadores = Coordinador.query.all()
+    instructores = Instructor.query.all()
+
     return render_template(
         'adm/dashboard_adm.html',
         tokens=tokens,
-        notificaciones_no_leidas=notificaciones_no_leidas
+        notificaciones_no_leidas=notificaciones_no_leidas,
+        now=datetime.now(),
+        aprendices=aprendices,
+        coordinadores=coordinadores,
+        instructores=instructores,
+        admin_nombre=f"{current_user.nombre} {current_user.apellido}",  # 👈 agregado para saludo
     )
 
 # -------------------------------
@@ -110,6 +120,25 @@ def generar_token():
     return redirect(url_for('adm_bp.dashboard'))
 
 # -------------------------------
+# Eliminar token
+# -------------------------------
+@adm_bp.route('/eliminar_token/<int:token_id>', methods=['POST'])
+@login_required
+@admin_required
+def eliminar_token(token_id):
+    token = TokenCoordinador.query.get_or_404(token_id)
+    try:
+        db.session.delete(token)
+        db.session.commit()
+        flash("Token eliminado correctamente", "success")
+    except Exception:
+        db.session.rollback()
+        from flask import current_app
+        current_app.logger.exception("Error eliminando token")
+        flash("Error eliminando token", "error")
+    return redirect(url_for('adm_bp.dashboard'))
+
+# -------------------------------
 # Enviar mensaje a un rol
 # -------------------------------
 @adm_bp.route('/enviar_mensaje', methods=['GET', 'POST'])
@@ -118,32 +147,78 @@ def generar_token():
 def enviar_mensaje():
     roles_disponibles = ["Coordinador", "Instructor", "Aprendiz"]
 
+    coordinadores = Coordinador.query.all()
+    instructores = Instructor.query.all()
+    aprendices = Aprendiz.query.all()
+
+    notificaciones_no_leidas = Notificacion.query.filter_by(
+        rol_destinatario="Administrador",
+        visto=False
+    ).count()
+
     if request.method == 'POST':
         rol_destinatario = request.form.get('rol_destinatario')
+        destinatario_id = request.form.get('destinatario_id')  # puede venir vacío
         motivo = request.form.get('motivo')
         mensaje = request.form.get('mensaje')
 
-        if not rol_destinatario or rol_destinatario not in roles_disponibles:
-            flash("Debes seleccionar un rol válido", "error")
-            return render_template('adm/enviar_mensaje.html', roles=roles_disponibles)
+        if not rol_destinatario:
+            flash("Debes seleccionar un rol para enviar el mensaje.", "danger")
+            return redirect(url_for('adm_bp.dashboard'))
 
-        if not mensaje or mensaje.strip() == "":
-            flash("El mensaje no puede estar vacío", "error")
-            return render_template('adm/enviar_mensaje.html', roles=roles_disponibles)
+        # ✅ Caso 1: mensaje a un usuario específico
+        if destinatario_id:
+            destinatario_id = int(destinatario_id)
 
-        noti = Notificacion(
-            mensaje=f"[{motivo}] {mensaje}",
-            remitente_id=current_user.id_admin,
-            rol_remitente="Administrador",
-            rol_destinatario=rol_destinatario,
-            visto=False
-        )
-        db.session.add(noti)
-        db.session.commit()
-        flash(f"Mensaje enviado al rol {rol_destinatario}", "success")
+            user = None
+            if rol_destinatario == "Coordinador":
+                user = Coordinador.query.get(destinatario_id)
+            elif rol_destinatario == "Instructor":
+                user = Instructor.query.get(destinatario_id)
+            elif rol_destinatario == "Aprendiz":
+                user = Aprendiz.query.get(destinatario_id)
+
+            if user:
+                # Determinar nombre completo según rol
+                if rol_destinatario == "Instructor":
+                    nombre_completo = f"{user.nombre_instructor} {user.apellido_instructor}"
+                else:
+                    nombre_completo = f"{user.nombre} {user.apellido}"
+
+                enviar_notificacion(
+                    mensaje=f"[{motivo}] {mensaje}",
+                    destinatario_id=destinatario_id,
+                    rol_destinatario=rol_destinatario
+                )
+                # ✅ Mensaje más descriptivo con nombre y rol
+                flash(
+                    f"Notificación enviada con éxito a {nombre_completo} ({rol_destinatario}).",
+                    "success"
+                )
+            else:
+                flash("El destinatario no existe o no pertenece a ese rol.", "danger")
+
+        # ✅ Caso 2: mensaje general al rol completo
+        else:
+            enviar_notificacion(
+                mensaje=f"[{motivo}] {mensaje}",
+                destinatario_id=None,  # 👈 general
+                rol_destinatario=rol_destinatario
+            )
+            flash(f"Notificación general enviada a todos los {rol_destinatario.lower()}s.", "success")
+
         return redirect(url_for('adm_bp.dashboard'))
 
-    return render_template('adm/enviar_mensaje.html', roles=roles_disponibles)
+    return render_template(
+        'adm/dashboard_adm.html',
+        roles=roles_disponibles,
+        coordinadores=coordinadores,
+        instructores=instructores,
+        aprendices=aprendices,
+        notificaciones_no_leidas=notificaciones_no_leidas,
+        now=datetime.now(),
+        admin_nombre=f"{current_user.nombre} {current_user.apellido}"
+    )
 
 # -------------------------------
 # Listar notificaciones
@@ -152,10 +227,25 @@ def enviar_mensaje():
 @login_required
 @admin_required
 def notificaciones():
-    lista_notis = Notificacion.query.filter_by(
+    # Obtener la página desde la query string, por defecto 1
+    pagina = request.args.get('pagina', 1, type=int)
+    per_page = 10  # Notificaciones por página
+
+    # Query con paginación
+    pagination = Notificacion.query.filter_by(
         rol_destinatario="Administrador"
-    ).order_by(Notificacion.fecha_creacion.desc()).all()
-    return render_template('notificacion/listar.html', notificaciones=lista_notis)
+    ).order_by(Notificacion.fecha_creacion.desc()).paginate(page=pagina, per_page=per_page, error_out=False)
+
+    notificaciones = pagination.items
+    total_paginas = pagination.pages
+
+    return render_template(
+        'notificacion/listar.html',
+        notificaciones=notificaciones,
+        pagina_actual=pagina,
+        total_paginas=total_paginas,
+        now=datetime.now()
+    )
 
 # -------------------------------
 # Marcar notificación como vista
@@ -167,7 +257,82 @@ def ver_notificacion(noti_id):
     noti = Notificacion.query.get_or_404(noti_id)
     noti.visto = True
     db.session.commit()
-    return render_template('notificacion/ver_notificacion.html', notificacion=noti)
+    fecha_local = noti.fecha_creacion - timedelta(hours=5)  # Ajuste a GMT-5 (Colombia)
+
+    return render_template('notificacion/ver_notificacion.html', notificacion=noti, now=datetime.now(), fecha_local=fecha_local)
+
+
+
+# Responder notificación (Administrador)
+@adm_bp.route('/notificacion/<int:noti_id>/responder', methods=['GET', 'POST'])
+@login_required
+def responder_notificacion(noti_id):
+    noti = Notificacion.query.get_or_404(noti_id)
+
+    if request.method == 'POST':
+        respuesta = request.form.get('respuesta')
+
+        # Detectar ID del usuario según su rol
+        if current_user.__class__.__name__ == "Administrador":
+            remitente_id = current_user.id_admin
+        elif current_user.__class__.__name__ == "Coordinador":
+            remitente_id = current_user.id_coordinador
+        elif current_user.__class__.__name__ == "Instructor":
+            remitente_id = current_user.id_instructor
+        elif current_user.__class__.__name__ == "Aprendiz":
+            remitente_id = current_user.id_aprendiz
+        else:
+            remitente_id = None  # fallback
+
+        if respuesta and remitente_id:
+            nueva = Notificacion(
+                mensaje=f"[Respuesta a '{noti.mensaje.split(']')[0].replace('[','')}'] {respuesta}",
+                remitente_id=remitente_id,
+                rol_remitente=current_user.__class__.__name__,
+                destinatario_id=noti.remitente_id,
+                rol_destinatario=noti.rol_remitente
+            )
+            db.session.add(nueva)
+            db.session.commit()
+        else:
+            flash('No se pudo enviar la respuesta. Asegúrate de escribir un mensaje.', 'danger')
+
+    # Redirigir según el rol
+    if current_user.__class__.__name__ == "Administrador":
+        return redirect(url_for('adm_bp.notificaciones'))
+    elif current_user.__class__.__name__ == "Coordinador":
+        return redirect(url_for('coordinador_bp.notificaciones'))
+    elif current_user.__class__.__name__ == "Instructor":
+        return redirect(url_for('instructor_bp.notificaciones'))
+    elif current_user.__class__.__name__ == "Aprendiz":
+        return redirect(url_for('aprendiz_bp.notificaciones'))
+
+    return redirect(url_for('adm_bp.notificaciones'))  # fallback
+
+@adm_bp.route('/notificaciones/marcar_todas', methods=['POST'])
+@login_required
+def marcar_todas_notificaciones():
+
+    # Detecta el id del usuario según rol
+    if current_user.__class__.__name__ == "Administrador":
+        user_id = current_user.id_admin
+        rol = "Administrador"
+    elif current_user.__class__.__name__ == "Coordinador":
+        user_id = current_user.id_coordinador
+        rol = "Coordinador"
+    elif current_user.__class__.__name__ == "Instructor":
+        user_id = current_user.id_instructor
+        rol = "Instructor"
+    elif current_user.__class__.__name__ == "Aprendiz":
+        user_id = current_user.id_aprendiz
+        rol = "Aprendiz"
+    else:
+        return "", 400
+
+    # Marcar todas como vistas
+    Notificacion.query.filter_by(destinatario_id=user_id, rol_destinatario=rol, visto=False).update({"visto": True})
+    db.session.commit()
+    return "", 200
 
 
 

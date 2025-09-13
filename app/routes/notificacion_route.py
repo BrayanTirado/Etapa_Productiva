@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import db
-from app.models.users import Notificacion, User
+from app.models.users import Notificacion
+from datetime import datetime
 
 notificacion_bp = Blueprint('notificacion_bp', __name__, url_prefix='/notificacion')
 
@@ -37,7 +38,7 @@ def listar_notificaciones():
         (Notificacion.destinatario_id == current_user.id) |
         (Notificacion.rol_destinatario == current_user.__class__.__name__)
     ).order_by(Notificacion.fecha_creacion.desc()).all()
-    return render_template('notificacion/listar.html', notificaciones=notificaciones)
+    return render_template('notificacion/listar.html', notificaciones=notificaciones, now=datetime.now())
 
 # Marcar notificación como vista
 @notificacion_bp.route('/marcar/<int:id>')

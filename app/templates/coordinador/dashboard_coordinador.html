@@ -1,140 +1,151 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Coordinador</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 min-h-screen">
+{% extends "base.html" %}
+
+{% block title %}SENA - Dashboard Coordinador{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
 
   <!-- Header -->
-  <header class="bg-white shadow p-4 flex justify-between items-center">
-    <h1 class="text-2xl font-bold text-gray-800">Dashboard Coordinador</h1>
+  <header class="mb-8 relative flex justify-center items-center">
+    <h1 class="text-3xl font-bold text-sena-primary text-center">
+      Bienvenido Coordinador {{ current_user.nombre }} {{ current_user.apellido }}
+    </h1>
 
-    <div class="flex items-center gap-4">
-      <!-- Campana de notificaciones -->
-      <a href="{{ url_for('coordinador_bp.notificaciones') }}" class="relative">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-700 hover:text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14V11a6 6 0 00-5-5.917V4a1 1 0 10-2 0v1.083A6 6 0 006 11v3c0 .386-.146.735-.405 1.005L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+    <div class="absolute right-0 flex items-center gap-4">
+      <a href="{{ url_for('coordinador_bp.notificaciones') }}" class="relative text-2xl">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-sena-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14V11a6 6 0 00-5-5.917V4a1 1 0 10-2 0v1.083A6 6 0 006 11v3c0 .386-.146.735-.405 1.005L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
         </svg>
         {% if notificaciones_no_leidas > 0 %}
-          <span class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full px-2 text-xs font-bold">
+          <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full px-2">
             {{ notificaciones_no_leidas }}
           </span>
         {% endif %}
       </a>
 
-      <!-- Logout -->
-      <a href="{{ url_for('coordinador_bp.logout') }}" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+      <a href="{{ url_for('coordinador_bp.logout') }}" class="btn-sena-danger">
         Cerrar sesión
       </a>
     </div>
   </header>
 
-  <!-- Main -->
-  <main class="p-6 space-y-6">
+  <main class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div class="bg-white rounded-lg shadow-lg p-6 w-96 text-center">
+              <p class="text-lg font-semibold text-gray-800 mb-4">{{ message }}</p>
+              <form method="get" action="">
+                <button type="submit" class="px-4 py-2 bg-sena-primary text-white rounded-lg hover:bg-sena-dark transition">
+                  Aceptar
+                </button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
 
-    <!-- Sección: Instructores -->
-    <section class="bg-white p-6 rounded-lg shadow">
-      <h2 class="text-xl font-semibold mb-4">Instructores</h2>
+    <!-- Instructores -->
+    <section class="card-sena p-6">
+      <h2 class="text-xl font-semibold mb-4 text-sena-dark">Instructores</h2>
       {% if instructores %}
-        <ul class="list-disc list-inside space-y-1">
+        <ul class="divide-y divide-gray-200">
           {% for instructor in instructores %}
-            <li>{{ instructor.nombre_instructor }} {{ instructor.apellido_instructor }}</li>
+            <li class="py-2 flex items-center">{{ instructor.nombre_instructor }} {{ instructor.apellido_instructor }}</li>
           {% endfor %}
         </ul>
       {% else %}
-        <p>No hay instructores registrados.</p>
       {% endif %}
-      <a href="{{ url_for('coordinador_bp.generar_token') }}"
-         class="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+      <a href="{{ url_for('coordinador_bp.generar_token') }}" class="btn-sena-primary mt-4 inline-block">
         Generar token para instructores
       </a>
+      <a href="{{ url_for('coordinador_bp.listar_instructores') }}"
+   class="bg-gradient-to-r from-blue-200 to-green-200 px-4 py-2 rounded-md text-black font-semibold hover:from-blue-300 hover:to-green-300 transition">
+   Ver Instructores
+</a>
+
     </section>
 
-    <!-- Sección: Aprendices -->
-    <section class="bg-white p-6 rounded-lg shadow">
-      <h2 class="text-xl font-semibold mb-4">Aprendices</h2>
+    <!-- Aprendices -->
+    <section class="card-sena p-6">
+      <h2 class="text-xl font-semibold mb-4 text-sena-dark">Aprendices</h2>
       {% if aprendices %}
-        <ul class="list-disc list-inside space-y-1">
+        <ul class="divide-y divide-gray-200">
           {% for aprendiz in aprendices %}
-            <li>{{ aprendiz.nombre }} {{ aprendiz.apellido }}</li>
+            <li class="py-2 flex items-center">{{ aprendiz.nombre }} {{ aprendiz.apellido }}</li>
           {% endfor %}
         </ul>
       {% else %}
-        <p>No hay aprendices asignados.</p>
       {% endif %}
-      <a href="{{ url_for('coordinador_bp.asignar_aprendiz') }}"
-         class="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
-        Asignar aprendices a instructores
+      <a href="{{ url_for('coordinador_bp.asignar_aprendiz') }}" class="btn-sena-secondary mt-4 inline-block">
+        Asignar aprendices
       </a>
     </section>
 
-    <!-- Sección: Enviar Mensaje / Nota -->
-    <section class="bg-white p-6 rounded-lg shadow">
-      <h2 class="text-xl font-semibold mb-4">Enviar Mensaje / Nota</h2>
+    <!-- Botón Crear Sede -->
+    <section class="md:col-span-2 flex flex-col md:flex-row justify-between items-center mb-4 space-y-3 md:space-y-0">
+      <a href="{{ url_for('coordinador_bp.crear_sede') }}" class="btn-sena-primary">Crear Sede</a>
+      {% if sede_creada %}
+        <div class="ml-0 md:ml-4 p-3 bg-blue-100 rounded-xl shadow-md w-full md:w-auto text-center">
+          <p class="font-semibold text-blue-800">✅ Sede registrada: {{ sede_creada.nombre }} ({{ sede_creada.ciudad }})</p>
+        </div>
+      {% else %}
+        <div class="ml-0 md:ml-4 p-3 bg-yellow-100 rounded-xl shadow-md w-full md:w-auto text-center">
+          <p class="font-semibold text-yellow-800">⚠️ No has registrado ninguna sede</p>
+        </div>
+      {% endif %}
+    </section>
 
-      <form method="POST" action="{{ url_for('coordinador_bp.enviar_mensaje') }}" class="space-y-4">
-        <!-- Seleccionar rol destinatario -->
-        <div>
-          <label for="rol_destinatario" class="block text-gray-700 font-medium">Seleccionar rol destinatario:</label>
-          <select name="rol_destinatario" id="rol_destinatario" required
-                  class="mt-1 block w-full border-gray-300 rounded px-3 py-2">
+    <!-- Enviar mensaje -->
+    <section class="card-sena p-6 md:col-span-2">
+      <h2 class="text-xl font-semibold text-sena-dark mb-4">Enviar Mensaje</h2>
+      <form method="POST" action="{{ url_for('coordinador_bp.enviar_mensaje') }}">
+        <div class="form-group mb-2">
+          <label>Rol destinatario:</label>
+          <select name="rol_destinatario" id="rol_destinatario" class="form-select" onchange="filtrarDestinatarios()">
             <option value="">-- Selecciona un rol --</option>
-            <option value="Administrador">Administrador</option>
-            <option value="Instructor">Instructor</option>
-            <option value="Aprendiz">Aprendiz</option>
+            {% for rol in roles %}<option value="{{ rol }}">{{ rol }}</option>{% endfor %}
           </select>
         </div>
 
-        <!-- Motivo -->
-        <div>
-          <label for="motivo" class="block text-gray-700 font-medium">Motivo:</label>
-          <input type="text" name="motivo" id="motivo" placeholder="Motivo del mensaje" required
-                 class="mt-1 block w-full border-gray-300 rounded px-3 py-2">
+        <div class="form-group mb-2">
+          <label>Destinatario (opcional):</label>
+          <select name="destinatario_id" id="destinatario_id" class="form-select">
+            <option value="">-- Todos --</option>
+          </select>
         </div>
 
-        <!-- Mensaje -->
-        <div>
-          <label for="mensaje" class="block text-gray-700 font-medium">Mensaje:</label>
-          <textarea name="mensaje" id="mensaje" rows="4" placeholder="Escribe tu mensaje..." required
-                    class="mt-1 block w-full border-gray-300 rounded px-3 py-2"></textarea>
+        <div class="form-group mb-2">
+          <label>Motivo:</label>
+          <input type="text" name="motivo" class="form-input" required>
         </div>
 
-        <button type="submit"
-                class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded">
-          Enviar Mensaje
-        </button>
+        <div class="form-group mb-2">
+          <label>Mensaje:</label>
+          <textarea name="mensaje" rows="4" class="form-textarea"></textarea>
+        </div>
+
+        <button type="submit" class="btn-sena-primary mt-2">Enviar Mensaje</button>
       </form>
-
     </section>
-
-    <!-- Sección: Notificaciones -->
-    <section class="bg-white p-6 rounded-lg shadow">
-      <h2 class="text-xl font-semibold mb-4">Notificaciones</h2>
-
-      {% if notificaciones %}
-        <ul class="space-y-2">
-          {% for noti in notificaciones %}
-            <li class="p-4 rounded-lg border {% if not noti.visto %}bg-blue-100{% else %}bg-gray-100{% endif %} flex justify-between items-center">
-              <span>{{ noti.mensaje[:50] ~ ('...' if noti.mensaje|length > 50 else '') }}</span>
-              <a href="{{ url_for('coordinador_bp.ver_notificacion', noti_id=noti.id) }}">Ver</a>
-      
-
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="text-gray-600">No hay notificaciones.</p>
-      {% endif %}
-    </section>
-
-    <a href="{{ url_for('coordinador_bp.crear_sede') }}"
-   class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
-   Registrar Sede
-</a>
 
   </main>
-</body>
-</html>
+
+  <!-- Footer SENA -->
+  <footer class="mt-auto bg-sena-dark py-6">
+      <div class="container mx-auto px-4">
+          <div class="flex flex-col justify-between items-center">
+              <div class="text-white text-center md:text-right">
+                  <p class="text-center">© {{ now.year|default(2023) }} SENA - Servicio Nacional de Aprendizaje</p>
+                  <p class="mt-1 text-center">Sistema de Seguimiento de Etapa Productiva</p>
+              </div>
+          </div>
+      </div>
+  </footer>
+
+</div> <!-- Cierra container principal -->
+{% endblock %}

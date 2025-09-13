@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Instructores</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+
+<!-- listar_instructores.html -->
+<h2 class="text-2xl font-bold mb-4 text-center">Lista de Instructores</h2>
+<table class="w-full bg-white rounded-lg shadow-md">
+    <thead class="bg-green-500 text-white">
+        <tr>
+            <th class="p-3 text-left">ID</th>
+            <th class="p-3 text-left">Nombre</th>
+            <th class="p-3 text-left">Apellido</th>
+            <th class="p-3 text-left">Correo</th>
+            <th class="p-3 text-left">Celular</th>
+            <th class="p-3 text-left">Tipo Documento</th>
+            <th class="p-3 text-left">Documento</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for instructor in instructores %}
+        <tr class="border-b hover:bg-gray-100">
+            <td class="p-3">{{ instructor.id_instructor }}</td>
+            <td class="p-3">{{ instructor.nombre_instructor }}</td>
+            <td class="p-3">{{ instructor.apellido_instructor }}</td>
+            <td class="p-3">{{ instructor.correo_instructor }}</td>
+            <td class="p-3">{{ instructor.celular_instructor }}</td>
+            <td class="p-3">{{ instructor.tipo_documento }}</td>
+            <td class="p-3">{{ instructor.documento }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+
+    <a href="{{ url_for('coordinador_bp.dashboard') }}" 
+       class="mt-6 inline-block px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+       Volver al Dashboard
+    </a>
+
+</body>
+</html>

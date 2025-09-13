@@ -1,100 +1,59 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Aprendiz</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-white min-h-screen flex flex-col">
+{% extends "base.html" %}
 
-    <!-- Header -->
-    <header class="bg-green-500 flex items-center px-6 py-3">
-        <div class="flex items-center space-x-4">
-            <img src="{{ url_for('static', filename='logo-sena.png') }}" alt="SENA" class="h-12 w-auto">
+{% block title %}SENA - Dashboard Aprendiz{% endblock %}
 
-            <!-- Menú escritorio -->
-            <div class="hidden md:flex space-x-3">
+{% block content %}
+
+<!-- Menú de navegación -->
+<div class="bg-white shadow-md mb-6">
+    <div class="container mx-auto px-4">
+        <div class="flex flex-wrap items-center justify-between py-2">
+            <div class="w-full md:w-auto flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4 mt-4 md:mt-0
+                        {% if rol_actual == 'Instructor' and aprendiz %} justify-center {% endif %}">
                 <a href="{{ url_for('programa_bp.listar_programas', aprendiz_id=aprendiz.id_aprendiz) }}" 
-                   class="bg-gradient-to-r from-blue-200 to-green-200 px-4 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
-                   PROGRAMA
-                </a>
+                   class="btn-sena-secondary px-4 py-2 rounded-md text-center">PROGRAMA</a>
                 <a href="{{ url_for('evidencia_bp.listar_evidencias', aprendiz_id=aprendiz.id_aprendiz) }}"
-                   class="bg-gradient-to-r from-blue-200 to-green-200 px-4 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
-                   EVIDENCIA
-                </a>
+                   class="btn-sena-secondary px-4 py-2 rounded-md text-center">EVIDENCIA</a>
                 <a href="{{ url_for('empresa_bp.listar_empresas', aprendiz_id=aprendiz.id_aprendiz) }}" 
-                   class="bg-gradient-to-r from-blue-200 to-green-200 px-4 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
-                   EMPRESA
-                </a>
-                <a href="{{ url_for('aprendiz_bp.perfil', id=aprendiz.id_aprendiz) }}"  
-                   class="bg-gradient-to-r from-blue-200 to-green-200 px-4 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
-                   PERFIL
-                </a>
+                   class="btn-sena-secondary px-4 py-2 rounded-md text-center">EMPRESA</a>
+                <a href="{{ url_for('aprendiz_bp.perfil_aprendiz', aprendiz_id=aprendiz.id_aprendiz) }}"  
+                   class="btn-sena-secondary px-4 py-2 rounded-md text-center">PERFIL</a>
             </div>
+
+            {% if es_aprendiz %}
+            <div class="flex items-center space-x-4 mt-4 md:mt-0">
+                <a href="{{ url_for('aprendiz_bp.notificaciones') }}" class="relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-sena-primary hover:text-sena-dark" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                    {% if notificaciones_no_leidas|default(0) > 0 %}
+                        <span class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                            {{ notificaciones_no_leidas|default(0) }}
+                        </span>
+                    {% endif %}
+                </a>
+
+                <a href="{{ url_for('auth.logout') }}" 
+                   class="btn-sena-danger px-4 py-2 rounded-md text-center">Cerrar Sesión</a>
+            </div>
+            {% endif %}
         </div>
-
-        {% if not ocultar_notificaciones %}
-        <div class="flex items-center ml-auto space-x-6 relative">
-            <!-- Campana con contador -->
-            <a href="{{ url_for('aprendiz_bp.notificaciones') }}" class="relative">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-black hover:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                </svg>
-                {% if notificaciones_no_leidas|default(0) > 0 %}
-                <span class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
-                    {{ notificaciones_no_leidas|default(0) }}
-                </span>
-                {% endif %}
-            </a>
-
-            <!-- Botón de Cerrar Sesión -->
-            <a href="{{ url_for('auth.logout') }}" 
-               class="bg-gradient-to-r from-blue-200 to-green-200 px-4 py-2 rounded-md text-black font-semibold hover:from-blue-300 hover:to-green-300 transition">
-                Cerrar Sesión
-            </a>
-        </div>
-        {% endif %}
-
-        <!-- Menú móvil -->
-        <button id="menuBtn" class="ml-auto w-12 h-12 bg-black text-white flex items-center justify-center rounded-md md:hidden">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-            </svg>
-        </button>
-    </header>
-
-    <!-- Menú desplegable móvil -->
-    <div id="menuOptions" class="hidden bg-white shadow-md flex flex-col md:hidden px-4 py-2 space-y-2">
-        <a href="{{ url_for('programa_bp.listar_programas', aprendiz_id=aprendiz.id_aprendiz) }}" 
-           class="bg-gradient-to-r from-blue-200 to-green-200 px-4 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
-           PROGRAMA
-        </a>
-        <a href="{{ url_for('evidencia_bp.listar_evidencias', aprendiz_id=aprendiz.id_aprendiz) }}"
-           class="bg-gradient-to-r from-blue-200 to-green-200 px-4 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
-           EVIDENCIA
-        </a>
-        <a href="{{ url_for('empresa_bp.listar_empresas', aprendiz_id=aprendiz.id_aprendiz) }}" 
-           class="bg-gradient-to-r from-blue-200 to-green-200 px-4 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
-           EMPRESA
-        </a>
-        <a href="{{ url_for('aprendiz_bp.perfil', id=aprendiz.id_aprendiz) }}"  
-           class="bg-gradient-to-r from-blue-200 to-green-200 px-4 py-2 rounded-md shadow text-black font-medium hover:from-blue-300 hover:to-green-300">
-           PERFIL
-        </a>
     </div>
+</div>
 
-    <!-- Contenido central -->
-    <main class="flex-1 flex flex-col items-center justify-center px-6 mt-4">
-        <h2 class="text-4xl font-extrabold text-center bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text text-transparent drop-shadow-lg mb-8">
-            ✨ BIENVENIDO, {{ aprendiz.nombre }} {{ aprendiz.apellido }} ✨
-        </h2>
+<!-- Contenido principal -->
+<main class="container mx-auto px-4 py-6">
+    <div class="card-sena p-6 mb-8">
+        <div class="text-center mb-6">
+            <h2 class="text-3xl font-bold text-sena-primary mb-2">
+                Bienvenido {{ aprendiz.nombre }} {{ aprendiz.apellido }}
+            </h2>
+        </div>
 
-        <!-- Progreso de evidencias -->
-        <div class="w-full max-w-2xl mb-8">
-            <h2 class="text-xl font-bold mb-4 text-center">Progreso de Evidencias</h2>
+        <div class="mb-8">
+            <h3 class="text-xl font-bold mb-4 text-sena-dark">Progreso de Evidencias</h3>
             <div class="w-full bg-gray-200 rounded-full h-6 shadow-md">
-                <div class="bg-green-500 h-6 rounded-full text-center text-white text-sm font-bold transition-all duration-700 ease-in-out"
+                <div class="bg-sena-primary h-6 rounded-full text-center text-white text-sm font-bold transition-all duration-700 ease-in-out"
                      style="width: {{ progreso }}%">
                      {{ progreso }}%
                 </div>
@@ -102,84 +61,125 @@
         </div>
 
         {% if contrato and contrato.fecha_inicio and contrato.fecha_fin %}
-        <div class="w-full max-w-2xl mb-8">
-            <h2 class="text-xl font-bold mb-4 text-center">Progreso en Tiempo</h2>
+        <div class="mb-8">
+            <h3 class="text-xl font-bold mb-4 text-sena-dark">Progreso en Tiempo</h3>
             <div class="w-full bg-gray-200 rounded-full h-6 shadow-md">
-                <div 
-                    class="bg-green-500 h-6 rounded-full text-center text-white text-sm font-bold transition-all duration-700 ease-in-out"
-                    style="width: {{ progreso_tiempo }}%">
-                    {{ progreso_tiempo }}%
+                <div class="bg-sena-secondary h-6 rounded-full text-center text-white text-sm font-bold transition-all duration-700 ease-in-out"
+                     style="width: {{ progreso_tiempo }}%">
+                     {{ progreso_tiempo }}%
+                </div>
+            </div>
+
+            <div class="mt-4 p-6 bg-white rounded-lg shadow-md flex justify-between items-center">
+                <div class="text-lg font-semibold text-gray-800">
+                    <span class="block text-gray-500 text-sm">Fecha de Inicio</span>
+                    <span>{{ contrato.fecha_inicio.strftime('%d/%m/%Y') }}</span>
+                </div>
+                <div class="text-lg font-semibold text-gray-800">
+                    <span class="block text-gray-500 text-sm">Fecha de Fin</span>
+                    <span>{{ contrato.fecha_fin.strftime('%d/%m/%Y') }}</span>
                 </div>
             </div>
         </div>
         {% endif %}
+    </div>
 
-        <!-- Fechas del contrato -->
-        {% if contrato %}
-            <div class="mt-6 w-full max-w-2xl mx-auto p-4 bg-gradient-to-r from-green-100 to-blue-100 rounded-xl shadow-lg flex flex-col md:flex-row justify-between items-center">
-                <div class="text-center md:text-left mb-2 md:mb-0">
-                    <span class="text-gray-500 uppercase font-semibold text-sm">Fecha de inicio</span>
-                    <p class="text-green-600 font-bold text-lg md:text-xl">
-                        {% if contrato.fecha_inicio %}{{ contrato.fecha_inicio.strftime('%d/%m/%Y') }}{% else %}No registrada{% endif %}
-                    </p>
-                </div>
-                <div class="text-center md:text-left">
-                    <span class="text-gray-500 uppercase font-semibold text-sm">Fecha de fin</span>
-                    <p class="text-red-600 font-bold text-lg md:text-xl">
-                        {% if contrato.fecha_fin %}{{ contrato.fecha_fin.strftime('%d/%m/%Y') }}{% else %}No registrada{% endif %}
-                    </p>
-                </div>
+    {% if es_aprendiz %}
+    <div class="card-sena p-6 mb-8 bg-white rounded-lg shadow-md">
+        <h3 class="text-xl font-bold mb-4 text-sena-dark text-center">Enviar Nota o Mensaje</h3>
+        <form id="mensajeForm" method="POST" action="{{ url_for('aprendiz_bp.enviar_mensaje') }}" class="form-sena flex flex-col gap-4">
+            <div class="form-group">
+                <label for="rol_destinatario" class="block font-semibold mb-2 text-gray-700">Enviar a:</label>
+                <select name="rol_destinatario" id="rol_destinatario" required class="w-full border-gray-300 rounded-md shadow-sm focus:ring focus:ring-sena-primary focus:border-sena-primary">
+                    <option value="">Seleccione rol</option>
+                    <option value="Instructor">Instructor</option>
+                    <option value="Coordinador">Coordinador</option>
+                    <option value="Administrador">Administrador</option>
+                </select>
             </div>
-        {% else %}
-            <p class="mt-2 text-center text-gray-500 font-medium">No hay contrato registrado.</p>
-        {% endif %}
 
-        <!-- 📩 Sección para enviar mensaje/nota -->
-        <div class="w-full max-w-2xl mt-10 mb-8 p-6 bg-gradient-to-r from-blue-50 to-green-50 rounded-xl shadow-lg">
-            <h2 class="text-xl font-bold mb-4 text-center">Enviar Nota o Mensaje</h2>
-            
-            <form method="POST" action="{{ url_for('aprendiz_bp.enviar_mensaje') }}" class="space-y-4">
-                <!-- Selección del destinatario -->
-                <div>
-                    <label for="destinatario" class="block text-sm font-semibold text-gray-700">Enviar a:</label>
-                    <select id="destinatario" name="rol_destinatario" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500">
-                        <option value="Instructor">Instructor Asignado</option>
-                        <option value="Coordinador">Coordinador</option>
-                        <option value="Administrador">Administrador</option>
-                    </select>
-                </div>
+            <div class="form-group">
+                <label for="destinatario_id" class="block font-semibold mb-2 text-gray-700">Usuario:</label>
+                <select name="destinatario_id" id="destinatario_id" required class="w-full border-gray-300 rounded-md shadow-sm focus:ring focus:ring-sena-primary focus:border-sena-primary">
+                    <option value="">Seleccione usuario</option>
+                    {% for user in usuarios['Instructor'] %}
+                        <option value="{{ user.id_instructor }}" data-rol="Instructor">
+                            {{ user.nombre_instructor }} {{ user.apellido_instructor }}
+                        </option>
+                    {% endfor %}
+                    {% for user in usuarios['Coordinador'] %}
+                        <option value="{{ user.id_coordinador }}" data-rol="Coordinador">
+                            {{ user.nombre }} {{ user.apellido }}
+                        </option>
+                    {% endfor %}
+                    {% for user in usuarios['Administrador'] %}
+                        <option value="{{ user.id_admin }}" data-rol="Administrador">
+                            {{ user.nombre }} {{ user.apellido }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-                <!-- Campo para escribir el mensaje -->
-                <div>
-                    <label for="mensaje" class="block text-sm font-semibold text-gray-700">Mensaje / Nota:</label>
-                    <textarea id="mensaje" name="mensaje" rows="4" required
-                              class="w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"></textarea>
-                </div>
+            <div class="form-group">
+                <label for="mensaje" class="block font-semibold mb-2 text-gray-700">Mensaje / Nota</label>
+                <textarea name="mensaje" id="mensaje" rows="4" required placeholder="Escribe tu mensaje aquí..." class="w-full border-gray-300 rounded-md shadow-sm focus:ring focus:ring-sena-primary focus:border-sena-primary"></textarea>
+            </div>
 
-                <!-- Botón enviar -->
-                <div class="text-center">
-                    <button type="submit" 
-                            class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg shadow-md transition">
-                        Enviar
-                    </button>
-                </div>
-            </form>
+            <div class="text-center">
+                <button type="submit" class="btn-sena-primary w-full md:w-auto px-6 py-2 bg-sena-primary text-white rounded-md hover:bg-sena-dark focus:outline-none focus:ring focus:ring-sena-primary">Enviar</button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+</main>
+
+<!-- Modal unificado de mensajes flash -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div id="flashModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-96 text-center">
+        {% for category, message in messages %}
+            <p class="text-lg font-semibold mb-2 
+                {% if category == 'success' %} text-green-600
+                {% elif category == 'error' %} text-red-600
+                {% elif category == 'info' %} text-blue-600
+                {% else %} text-gray-800 {% endif %}">
+                {{ message }}
+            </p>
+        {% endfor %}
+
+        <button onclick="document.getElementById('flashModal').remove()" 
+                class="mt-4 px-4 py-2 bg-sena-primary text-white rounded-lg hover:bg-sena-dark transition">
+            Aceptar
+        </button>
+    </div>
+</div>
+{% endif %}
+{% endwith %}
+
+<script>
+    const rolSelect = document.getElementById('rol_destinatario');
+    const usuarioSelect = document.getElementById('destinatario_id');
+
+    rolSelect.addEventListener('change', function() {
+        const selectedRol = this.value;
+        Array.from(usuarioSelect.options).forEach(option => {
+            if(option.value === "") return;
+            option.style.display = (option.dataset.rol === selectedRol) ? 'block' : 'none';
+        });
+        usuarioSelect.value = "";
+    });
+</script>
+
+<footer class="mt-auto bg-sena-dark py-6">
+    <div class="container mx-auto px-4">
+        <div class="flex flex-col justify-between items-center">
+            <div class="text-white text-center md:text-right">
+                <p class="text-center">© {{ now.year|default(2023) }} SENA - Servicio Nacional de Aprendizaje</p>
+                <p class="mt-1 text-center">Sistema de Seguimiento de Etapa Productiva</p>
+            </div>
         </div>
-    </main>
+    </div>
+</footer>
 
-    <footer class="mt-auto">
-        <img src="{{ url_for('static', filename='decoracion-footer.png') }}" alt="Decoración" class="w-full">
-    </footer>
-
-    <script>
-        const menuBtn = document.getElementById('menuBtn');
-        const menuOptions = document.getElementById('menuOptions');
-        if (menuBtn) {
-            menuBtn.addEventListener('click', () => {
-                menuOptions.classList.toggle('hidden');
-            });
-        }
-    </script>
-
-</body>
-</html>
+{% endblock %}

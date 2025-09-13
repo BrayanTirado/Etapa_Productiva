@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for
 from app.models.users import Contrato, Aprendiz
 from app import db
+from datetime import datetime
 
 bp = Blueprint('contrato_bp', __name__, url_prefix='/contrato')
 
@@ -9,7 +10,7 @@ bp = Blueprint('contrato_bp', __name__, url_prefix='/contrato')
 @bp.route('/')
 def listar_contratos():
     contratos = Contrato.query.all()
-    return render_template('contrato/listar.html', contratos=contratos)
+    return render_template('contrato/listar.html', contratos=contratos, now=datetime.now())
 
 
 # --- NUEVO ---

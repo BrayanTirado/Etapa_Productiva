@@ -10,9 +10,9 @@
   <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
     <h1 class="text-2xl font-bold mb-6">Asignar Aprendices a Instructores</h1>
 
-    <!-- FILTRO POR FICHA -->
+    <!-- FILTRO POR FICHA (ASIGNACIÓN NORMAL) -->
     <form method="GET" action="{{ url_for('coordinador_bp.asignar_aprendiz') }}" class="mb-6">
-      <label for="ficha" class="block text-gray-700 font-medium mb-2">Filtrar por ficha</label>
+      <label for="ficha" class="block text-gray-700 font-medium mb-2">Filtrar por ficha para asignar</label>
       <select id="ficha" name="ficha" onchange="this.form.submit()" class="w-full border rounded px-3 py-2">
         <option value="">-- Seleccione una ficha --</option>
         {% for prog in programas %}
@@ -89,6 +89,70 @@
       </form>
     {% endif %}
 
+    <!-- LISTA GLOBAL DE APRENDICES ASIGNADOS -->
+    <div class="mt-12">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-bold">Lista global de aprendices asignados</h2>
+        <button onclick="document.getElementById('tabla_asignados').classList.toggle('hidden')" 
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          Mostrar aprendices asignados
+        </button>
+      </div>
+
+      <div id="tabla_asignados" class="hidden">
+        <!-- Buscador -->
+        <input type="text" id="filtro" placeholder="Buscar por nombre, apellido, documento o ficha"
+               class="w-full p-2 border rounded mb-4">
+
+        <!-- Tabla -->
+        <div class="overflow-x-auto">
+          <table class="w-full border text-sm">
+            <thead class="bg-gray-200">
+              <tr>
+                <th class="p-2 border">Documento</th>
+                <th class="p-2 border">Nombre</th>
+                <th class="p-2 border">Apellido</th>
+                <th class="p-2 border">Ficha</th>
+                <th class="p-2 border">Instructor asignado</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-body">
+              {% if aprendices_asignados %}
+                {% for a in aprendices_asignados %}
+                <tr>
+                  <td class="p-2 border">{{ a.documento }}</td>
+                  <td class="p-2 border">{{ a.nombre }}</td>
+                  <td class="p-2 border">{{ a.apellido }}</td>
+                  <td class="p-2 border">{{ a.programa.ficha }}</td>
+                  <td class="p-2 border">
+                    {{ a.instructor.nombre_instructor }} {{ a.instructor.apellido_instructor }}
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="5" class="p-2 border text-center text-gray-500">No hay aprendices asignados</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </div>
+
+  <!-- Script de filtrado -->
+  <script>
+  document.getElementById("filtro")?.addEventListener("keyup", function() {
+      let filtro = this.value.toLowerCase();
+      let filas = document.querySelectorAll("#tabla-body tr");
+
+      filas.forEach(fila => {
+          let texto = fila.innerText.toLowerCase();
+          fila.style.display = texto.includes(filtro) ? "" : "none";
+      });
+  });
+  </script>
 </body>
 </html>

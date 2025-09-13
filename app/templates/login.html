@@ -1,64 +1,44 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Iniciar Sesión</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gradient-to-br from-blue-100 to-purple-200 min-h-screen flex items-center justify-center">
-  <div class="bg-white shadow-lg rounded-xl w-full max-w-md p-8 space-y-6">
-    <h2 class="text-2xl font-bold text-center text-gray-800">Iniciar Sesión</h2>
-    
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="mb-4">
-                {% for category, message in messages %}
-                    <div class="p-4 rounded-lg text-white 
-                        {% if category == 'success' %}bg-green-500
-                        {% elif category == 'danger' %}bg-red-500
-                        {% elif category == 'warning' %}bg-yellow-500
-                        {% else %}bg-blue-500{% endif %}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
+{% extends "base.html" %}
 
-    <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-4">
+{% block title %}SENA - Iniciar Sesión{% endblock %}
+
+{% block content %}
+<div class="card-sena w-full max-w-md mx-auto mt-40 mb-16 p-8 space-y-6">
+    <h2 class="text-2xl font-bold text-center text-sena-primary">Iniciar Sesión</h2>
+    
+    <form method="POST" action="{{ url_for('auth.login') }}" class="form-sena space-y-4">
       <!-- Documento -->
       <div>
         <label for="documento" class="block text-sm font-medium text-gray-700">Número de Documento</label>
         <input type="text" name="documento" id="documento" required pattern="[0-9]+" title="Solo números"
-               class="mt-1 block w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+               class="mt-1 block w-full px-4 py-2 border rounded-lg shadow-sm">
       </div>
 
       <!-- Contraseña -->
       <div>
         <label for="password" class="block text-sm font-medium text-gray-700">Contraseña</label>
         <input type="password" name="password" id="password" required minlength="8" title="Mínimo 8 caracteres"
-               class="mt-1 block w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+               class="mt-1 block w-full px-4 py-2 border rounded-lg shadow-sm">
       </div>
 
       <!-- Botón de envío -->
-      <div class="flex flex-col space-y-2">
-        <button type="submit"
-                class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition">
+      <div class="flex flex-col space-y-4 mt-6">
+        <button type="submit" class="btn-sena-primary py-3">
           Iniciar Sesión
         </button>
 
         <!-- Opciones de registro -->
-        <a href="{{ url_for('auth.registro_aprendiz') }}" 
-           class="text-sm text-indigo-600 hover:underline text-center">
-          ¿Eres aprendiz? Regístrate aquí
-        </a>
-        <a href="{{ url_for('auth.instructor') }}" 
-           class="text-sm text-purple-600 hover:underline text-center">
-          ¿Eres instructor? Regístrate aquí
-        </a>
+        <div class="border-t border-gray-200 pt-4 mt-2 space-y-2">
+          <a href="{{ url_for('auth.registro_aprendiz') }}" 
+             class="block text-center text-sena-primary hover:text-sena-dark font-medium">
+            ¿Eres aprendiz? Regístrate aquí
+          </a>
+          <a href="{{ url_for('auth.instructor') }}" 
+             class="block text-center text-sena-primary hover:text-sena-dark font-medium">
+            ¿Eres instructor? Regístrate aquí
+          </a>
+        </div>
       </div>
     </form>
   </div>
-</body>
-</html>
+{% endblock %}

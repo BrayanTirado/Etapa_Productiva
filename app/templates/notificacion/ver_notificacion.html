@@ -6,32 +6,135 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 p-6">
-<div class="container mx-auto bg-white shadow-xl rounded-xl p-6 max-w-xl">
-    <h2 class="text-2xl font-bold mb-4">Notificación</h2>
+<div class="container mx-auto bg-white shadow-xl rounded-xl p-6 max-w-2xl">
 
-    <div class="p-4 rounded-lg border bg-gray-100">
-        <p class="mb-4">{{ notificacion.mensaje }}</p>
-        <small class="text-gray-500">
-            De: {{ notificacion.remitente.nombre if notificacion.remitente else 'Sistema' }} | 
-            {{ notificacion.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}
-        </small>
+    <!-- Encabezado -->
+    <h2 class="text-2xl font-bold mb-6 text-green-700">
+        Enviado por {{ notificacion.rol_remitente }} {{ remitente_nombre }}
+    </h2>
+
+    <!-- Motivo -->
+    <div class="mb-4">
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Motivo del mensaje</label>
+        <div class="p-3 border rounded-md bg-gray-50 text-gray-800">
+            {{ notificacion.mensaje.split(']')[0].replace('[','') }}
+        </div>
     </div>
 
-    <div class="mt-6 flex space-x-4">
-        <a href="
+    <!-- Mensaje -->
+    <div class="mb-4">
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Mensaje</label>
+        <div class="p-3 border rounded-md bg-gray-50 text-gray-800">
+            {{ notificacion.mensaje.split(']')[1] if ']' in notificacion.mensaje else notificacion.mensaje }}
+        </div>
+    </div>
+
+    <!-- Fecha -->
+    <p class="text-sm text-gray-500 mb-6">
+        {{ fecha_local.strftime('%d/%m/%Y %H:%M') }}
+    </p>
+
+    <!-- Formulario para responder -->
+    <form id="respuestaForm" method="POST"
+      action="{% if current_user.__class__.__name__ == 'Administrador' %}
+                  {{ url_for('adm_bp.responder_notificacion', noti_id=notificacion.id) }}
+              {% elif current_user.__class__.__name__ == 'Coordinador' %}
+                  {{ url_for('coordinador_bp.responder_notificacion', noti_id=notificacion.id) }}
+              {% elif current_user.__class__.__name__ == 'Instructor' %}
+                  {{ url_for('instructor_bp.responder_notificacion', noti_id=notificacion.id) }}
+              {% elif current_user.__class__.__name__ == 'Aprendiz' %}
+                  {{ url_for('aprendiz_bp.responder_notificacion', noti_id=notificacion.id) }}
+              {% endif %}">
+
+        <div class="mb-4">
+            <label for="respuesta" class="block text-sm font-semibold text-gray-700 mb-1">Responder mensaje</label>
+            <textarea name="respuesta" id="respuesta" rows="3"
+                      class="mt-1 block w-full border rounded-md p-3 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500"></textarea>
+        </div>
+
+        <div class="flex justify-between">
+            <!-- Botón Volver -->
             {% if current_user.__class__.__name__ == 'Administrador' %}
-                {{ url_for('adm_bp.dashboard') }}
+                <a href="{{ url_for('adm_bp.notificaciones') }}"
+                   class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">
+                    Volver a notificaciones
+                </a>
             {% elif current_user.__class__.__name__ == 'Coordinador' %}
-                {{ url_for('coordinador_bp.dashboard') }}
+                <a href="{{ url_for('coordinador_bp.notificaciones') }}"
+                   class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">
+                    Volver a notificaciones
+                </a>
             {% elif current_user.__class__.__name__ == 'Instructor' %}
-                {{ url_for('instructor_bp.dashboard_instructor', instructor_id=current_user.id_instructor) }}
+                <a href="{{ url_for('instructor_bp.notificaciones') }}"
+                   class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">
+                    Volver a notificaciones
+                </a>
             {% elif current_user.__class__.__name__ == 'Aprendiz' %}
-                {{ url_for('aprendiz_bp.dasboardh_aprendiz', aprendiz_id=current_user.id_aprendiz) }}
+                <a href="{{ url_for('aprendiz_bp.notificaciones') }}"
+                   class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">
+                    Volver a notificaciones
+                </a>
             {% endif %}
-        " class="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600">
-           Volver
-        </a>
+
+            <button type="submit"
+                    class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                Enviar respuesta
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Modal de éxito -->
+<div id="modalSuccess" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-xl shadow-lg max-w-sm w-full text-center">
+        <h3 class="text-lg font-bold mb-4 text-green-600">¡Éxito!</h3>
+        <p class="mb-4">Respuesta enviada correctamente</p>
+        <button id="closeModal" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+            OK
+        </button>
     </div>
 </div>
+
+<!-- Script para mostrar modal y enviar respuesta -->
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('respuestaForm');
+    const modal = document.getElementById('modalSuccess');
+    const closeBtn = document.getElementById('closeModal');
+
+    // Definir URL de redirección según el rol
+    let redirectUrl = "";
+    {% if current_user.__class__.__name__ == 'Administrador' %}
+        redirectUrl = "{{ url_for('adm_bp.notificaciones') }}";
+    {% elif current_user.__class__.__name__ == 'Coordinador' %}
+        redirectUrl = "{{ url_for('coordinador_bp.notificaciones') }}";
+    {% elif current_user.__class__.__name__ == 'Instructor' %}
+        redirectUrl = "{{ url_for('instructor_bp.notificaciones') }}";
+    {% elif current_user.__class__.__name__ == 'Aprendiz' %}
+        redirectUrl = "{{ url_for('aprendiz_bp.notificaciones') }}";
+    {% endif %}
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // Mostrar modal
+        modal.classList.remove('hidden');
+
+        // Enviar el formulario al cerrar el modal
+        closeBtn.addEventListener('click', function() {
+            modal.classList.add('hidden');
+
+            fetch(form.action, {
+                method: "POST",
+                body: new FormData(form)
+            })
+            .then(() => {
+                window.location.href = redirectUrl;
+            })
+            .catch(err => console.error(err));
+        }, { once: true });
+    });
+});
+</script>
 </body>
 </html>

@@ -7,7 +7,24 @@
 </head>
 <body class="bg-gray-100 p-6">
 <div class="container mx-auto bg-white shadow-xl rounded-xl p-6">
-    <h2 class="text-2xl font-bold mb-4">Notificaciones</h2>
+
+    <!-- Mostrar mensaje de respuesta enviada correctamente -->
+    {% with messages = get_flashed_messages(category_filter=["respuesta"]) %}
+      {% if messages %}
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded mb-4">
+          {{ messages[0] }}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Título y botón en línea -->
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-bold">Notificaciones</h2>
+        <button id="marcarTodasBtn" 
+                class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+            Ver todas las notificaciones
+        </button>
+    </div>
 
     {% if notificaciones %}
         <ul class="space-y-2">
@@ -15,46 +32,128 @@
             <li class="p-4 rounded-lg border {% if not noti.visto %}bg-blue-100{% else %}bg-gray-100{% endif %}">
                 <p>{{ noti.mensaje[:50] }}{% if noti.mensaje|length > 50 %}...{% endif %}</p>
                 <small class="text-gray-500">
-                    De: {{ noti.remitente.nombre if noti.remitente else 'Sistema' }} | 
+                    De: {{ noti.remitente_nombre }} | 
                     {{ noti.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}
                 </small>
                 <div class="mt-2">
-                    <a href="
-                        {% if current_user.__class__.__name__ == 'Administrador' %}
-                            {{ url_for('adm_bp.ver_notificacion', noti_id=noti.id) }}
-                        {% elif current_user.__class__.__name__ == 'Coordinador' %}
-                            {{ url_for('coordinador_bp.ver_notificacion', noti_id=noti.id) }}
-                        {% elif current_user.__class__.__name__ == 'Instructor' %}
-                            {{ url_for('instructor_bp.ver_notificacion', noti_id=noti.id) }}
-                        {% elif current_user.__class__.__name__ == 'Aprendiz' %}
-                            {{ url_for('aprendiz_bp.ver_notificacion', noti_id=noti.id) }}
-                        {% endif %}
-                        " class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600">
-                        Ver
-                    </a>
+                    {% if current_user.__class__.__name__ == 'Administrador' %}
+                        <a href="{{ url_for('adm_bp.ver_notificacion', noti_id=noti.id) }}"
+                           class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600">
+                           Ver Notificación
+                        </a>
+                    {% elif current_user.__class__.__name__ == 'Coordinador' %}
+                        <a href="{{ url_for('coordinador_bp.ver_notificacion', noti_id=noti.id) }}"
+                           class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600">
+                           Ver Notificación
+                        </a>
+                    {% elif current_user.__class__.__name__ == 'Instructor' %}
+                        <a href="{{ url_for('instructor_bp.ver_notificacion', noti_id=noti.id) }}"
+                           class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600">
+                           Ver Notificación
+                        </a>
+                    {% elif current_user.__class__.__name__ == 'Aprendiz' %}
+                        <a href="{{ url_for('aprendiz_bp.ver_notificacion', noti_id=noti.id) }}"
+                           class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600">
+                           Ver Notificación
+                        </a>
+                    {% endif %}
                 </div>
             </li>
         {% endfor %}
         </ul>
+
+        <!-- Paginación -->
+        <div class="mt-4 flex justify-center space-x-2">
+            {% if pagina_actual > 1 %}
+                <a href="{{ url_for(request.endpoint, pagina=pagina_actual-1) }}"
+                   class="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">&lt; Anterior</a>
+            {% endif %}
+
+            <span class="px-3 py-1 bg-gray-200 rounded">
+                Página {{ pagina_actual }} de {{ total_paginas }}
+            </span>
+
+            {% if pagina_actual < total_paginas %}
+                <a href="{{ url_for(request.endpoint, pagina=pagina_actual+1) }}"
+                   class="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">Siguiente &gt;</a>
+            {% endif %}
+        </div>
+
     {% else %}
         <p class="text-gray-500">No tienes notificaciones.</p>
     {% endif %}
 
     <div class="mt-4">
-        <a href="
-            {% if current_user.__class__.__name__ == 'Administrador' %}
-                {{ url_for('adm_bp.dashboard') }}
-            {% elif current_user.__class__.__name__ == 'Coordinador' %}
-                {{ url_for('coordinador_bp.dashboard') }}
-            {% elif current_user.__class__.__name__ == 'Instructor' %}
-                {{ url_for('instructor_bp.dashboard_instructor', instructor_id=current_user.id_instructor) }}
-            {% elif current_user.__class__.__name__ == 'Aprendiz' %}
-                {{ url_for('aprendiz_bp.dasboardh_aprendiz', aprendiz_id=current_user.id_aprendiz) }}
-            {% endif %}
-        " class="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600">
-            Volver
-        </a>
+        {% if current_user.__class__.__name__ == 'Administrador' %}
+            <a href="{{ url_for('adm_bp.dashboard') }}"
+               class="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600">
+                Volver
+            </a>
+        {% elif current_user.__class__.__name__ == 'Coordinador' %}
+            <a href="{{ url_for('coordinador_bp.dashboard') }}"
+               class="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600">
+                Volver
+            </a>
+        {% elif current_user.__class__.__name__ == 'Instructor' %}
+            <a href="{{ url_for('instructor_bp.dashboard_instructor', instructor_id=current_user.id_instructor) }}"
+               class="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600">
+                Volver
+            </a>
+        {% elif current_user.__class__.__name__ == 'Aprendiz' %}
+            <a href="{{ url_for('aprendiz_bp.dashboard_aprendiz', aprendiz_id=current_user.id_aprendiz) }}"
+               class="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600">
+                Volver
+            </a>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Modal de éxito -->
+<div id="modalSuccess" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-xl shadow-lg max-w-sm w-full text-center">
+        <h3 class="text-lg font-bold mb-4 text-green-600">¡Éxito!</h3>
+        <p class="mb-4">Todas las notificaciones se han marcado como vistas.</p>
+        <button id="closeModal" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+            OK
+        </button>
     </div>
 </div>
+
+<script>
+document.getElementById("marcarTodasBtn").addEventListener("click", function() {
+    let url = "";
+    {% if current_user.__class__.__name__ == 'Administrador' %}
+        url = "{{ url_for('adm_bp.marcar_todas_notificaciones') }}";
+    {% elif current_user.__class__.__name__ == 'Coordinador' %}
+        url = "{{ url_for('coordinador_bp.marcar_todas_notificaciones') }}";
+    {% elif current_user.__class__.__name__ == 'Instructor' %}
+        url = "{{ url_for('instructor_bp.marcar_todas_notificaciones') }}";
+    {% elif current_user.__class__.__name__ == 'Aprendiz' %}
+        url = "{{ url_for('aprendiz_bp.marcar_todas_notificaciones') }}";
+    {% endif %}
+
+    fetch(url, { method: "POST" })
+    .then(response => {
+        if(response.ok) {
+            const modal = document.getElementById('modalSuccess');
+            modal.classList.remove('hidden');
+            document.querySelectorAll("li").forEach(li => {
+                li.classList.remove("bg-blue-100");
+                li.classList.add("bg-gray-100");
+            });
+            document.getElementById('closeModal').addEventListener('click', function() {
+                modal.classList.add('hidden');
+            });
+        } else {
+            alert("No se pudieron marcar todas como vistas.");
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Ocurrió un error.");
+    });
+});
+</script>
 </body>
 </html>

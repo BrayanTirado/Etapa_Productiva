@@ -17,32 +17,33 @@ def add_months(sourcedate: date, months: int) -> date:
     return date(year, month, day)
 
 # --- LISTAR EMPRESAS ---
-@bp.route('/')
+@bp.route('/listar_empresas')
 @login_required
 def listar_empresas():
+    # Obtener si se pasa un aprendiz_id (cuando el instructor ve a un aprendiz)
+    aprendiz_id = request.args.get('aprendiz_id', type=int)
+    
+    rol_actual = current_user.__class__.__name__
 
-    aprendiz_id = None
-    empresas = []
-
-    es_aprendiz = hasattr(current_user, 'id_aprendiz')  # Detecta si es aprendiz
-    es_instructor = isinstance(current_user, Instructor)
-
-    if es_aprendiz:
-        aprendiz_id = current_user.id_aprendiz
-        empresas = Empresa.query.filter_by(aprendiz_id_aprendiz=aprendiz_id).all()
-    elif es_instructor:
-        aprendiz_id_param = request.args.get('aprendiz_id', type=int)
-        if aprendiz_id_param:
-            aprendiz_id = aprendiz_id_param
+    if rol_actual == 'Aprendiz':
+        empresas = Empresa.query.filter_by(aprendiz_id_aprendiz=current_user.id_aprendiz).all()
+        aprendiz_id = current_user.id_aprendiz  # para el botón volver
+    elif rol_actual == 'Instructor':
+        if aprendiz_id:  # Si el instructor está viendo un aprendiz específico
             empresas = Empresa.query.filter_by(aprendiz_id_aprendiz=aprendiz_id).all()
+        else:  # Todas las empresas si no hay aprendiz seleccionado
+            empresas = Empresa.query.all()
+    elif rol_actual == 'Coordinador':
+        empresas = Empresa.query.all()
+    else:
+        empresas = []
 
     return render_template(
         'empresa/listar_empresa.html',
         empresas=empresas,
-        aprendiz_id=aprendiz_id,
-        es_aprendiz=es_aprendiz  # <-- esta variable se usa en el template
+        rol_actual=rol_actual,
+        aprendiz_id=aprendiz_id
     )
-
 
 # --- CREAR EMPRESA ---
 @bp.route('/nueva', methods=['GET', 'POST'])
@@ -114,7 +115,7 @@ def nueva_empresa():
             db.session.rollback()
             flash(f'Ocurrió un error al guardar la empresa o el contrato ❌ {e}', 'danger')
 
-    return render_template('empresa/nueva_empresa.html')
+    return render_template('empresa/nueva_empresa.html', now=datetime.now())
 
 
 # --- EDITAR EMPRESA ---
@@ -187,7 +188,7 @@ def editar_empresa(id):
             db.session.rollback()
             flash(f'Ocurrió un error al actualizar la empresa o contrato ❌ {e}', 'danger')
 
-    return render_template('empresa/editar_empresa.html', empresa=empresa, contrato=contrato)
+    return render_template('empresa/editar_empresa.html', empresa=empresa, contrato=contrato, now=datetime.now())
 
 
 # --- ELIMINAR EMPRESA ---
