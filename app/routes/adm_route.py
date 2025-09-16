@@ -31,16 +31,30 @@ def generate_random_token(length=8):
 # Función para enviar notificación
 # -------------------------------
 def enviar_notificacion(mensaje, destinatario_id=None, rol_destinatario=None):
+    # Determinar remitente dinámicamente según rol
+    if current_user.rol_user == "administrador":
+        remitente_id = current_user.id_admin
+    elif current_user.rol_user == "coordinador":
+        remitente_id = current_user.id_coordinador
+    elif current_user.rol_user == "instructor":
+        remitente_id = current_user.id_instructor
+    elif current_user.rol_user == "aprendiz":
+        remitente_id = current_user.id_aprendiz
+    else:
+        return False  # rol no válido
+
     noti = Notificacion(
         mensaje=mensaje,
-        remitente_id=current_user.id_admin,
-        rol_remitente="Administrador",
+        remitente_id=remitente_id,
+        rol_remitente=current_user.rol_user.capitalize(),
         destinatario_id=destinatario_id,
         rol_destinatario=rol_destinatario,
         visto=False
     )
     db.session.add(noti)
     db.session.commit()
+    return True
+
 
 # -------------------------------
 # Login administrador
@@ -335,6 +349,55 @@ def marcar_todas_notificaciones():
     return "", 200
 
 
+
+# -------------------------------
+# Editar perfil administrador
+# -------------------------------
+@adm_bp.route('/editar_perfil', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def editar_perfil():
+    if request.method == 'POST':
+        nombre = request.form.get('nombre').strip()
+        apellido = request.form.get('apellido').strip()
+        documento = request.form.get('documento').strip()
+        correo = request.form.get('correo').strip().lower()
+        celular = request.form.get('celular').strip()
+        password = request.form.get('password')
+
+        if not all([nombre, apellido, documento, correo, celular]):
+            flash('Faltan campos obligatorios.', 'warning')
+            return redirect(url_for('adm_bp.editar_perfil'))
+
+        # Verificar si documento o correo ya existen en otro admin
+        existing_admin = Administrador.query.filter(
+            (Administrador.documento == documento) | (Administrador.correo == correo)
+        ).filter(Administrador.id_admin != current_user.id_admin).first()
+
+        if existing_admin:
+            flash('Documento o correo ya están en uso por otro administrador.', 'danger')
+            return redirect(url_for('adm_bp.editar_perfil'))
+
+        # Actualizar datos
+        current_user.nombre = nombre
+        current_user.apellido = apellido
+        current_user.documento = documento
+        current_user.correo = correo
+        current_user.celular = celular
+
+        if password:
+            from werkzeug.security import generate_password_hash
+            current_user.password = generate_password_hash(password)
+
+        try:
+            db.session.commit()
+            flash('Perfil actualizado correctamente.', 'success')
+            return redirect(url_for('adm_bp.dashboard'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al actualizar perfil: {str(e)}', 'danger')
+
+    return render_template('adm/editar_perfil.html', admin=current_user, now=datetime.now())
 
 # -------------------------------
 # Logout administrador

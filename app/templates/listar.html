@@ -5,11 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lista de Estudiantes y Notificaciones</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Colores oficiales del SENA */
+      .sena-primary { background-color: #009639; border-color: #009639; }
+      .sena-dark { background-color: #007a2f; border-color: #007a2f; }
+      .sena-text { color: #009639; }
+    </style>
 </head>
-<body class="bg-gradient-to-br from-blue-100 to-purple-200 min-h-screen p-6">
+<body class="bg-green-50 min-h-screen p-6">
 
-    <div class="container mx-auto bg-white shadow-xl rounded-2xl p-8">
-        <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">Lista de Estudiantes</h2>
+    <div class="container mx-auto bg-white shadow-xl rounded-2xl p-8 border border-green-600">
+        <h2 class="text-3xl font-bold text-center text-green-900 mb-6">Lista de Estudiantes</h2>
 
         <!-- Mensajes flash -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -17,7 +23,7 @@
                 <div class="mb-6 space-y-2">
                     {% for category, message in messages %}
                         <div class="p-4 rounded-lg text-white font-medium
-                            {% if category == 'success' %}bg-green-500{% elif category == 'danger' %}bg-red-500{% elif category == 'warning' %}bg-yellow-500 text-gray-900{% else %}bg-blue-500{% endif %}">
+                            {% if category == 'success' %}bg-green-500{% elif category == 'danger' %}bg-red-500{% elif category == 'warning' %}bg-yellow-500 text-gray-900{% else %}bg-green-600{% endif %}">
                             {{ message }}
                         </div>
                     {% endfor %}
@@ -29,8 +35,8 @@
         <form method="GET" class="mb-6 flex gap-3">
             <input type="text" name="documento" placeholder="Buscar por documento"
                    value="{{ documento_seleccionado | default('') }}"
-                   class="flex-grow border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-400">
-            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                   class="flex-grow border border-green-600 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500">
+            <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">
                 Buscar
             </button>
             <a href="{{ url_for('estudiantes.listar_estudiantes') }}"
@@ -41,31 +47,31 @@
 
         <!-- Tabla de estudiantes -->
         <div class="overflow-x-auto mb-12">
-            <table class="min-w-full border border-gray-300 shadow-sm rounded-lg overflow-hidden">
-                <thead class="bg-indigo-600 text-white text-left">
+            <table class="min-w-full border border-green-600 shadow-sm rounded-lg overflow-hidden">
+                <thead class="bg-green-600 text-white text-left">
                     <tr>
-                        <th class="p-3">Nombre</th>
-                        <th class="p-3">Apellido</th>
-                        <th class="p-3">Tipo Documento</th>
-                        <th class="p-3">Documento</th>
-                        <th class="p-3">Email</th>
-                        <th class="p-3">Celular</th>
-                        <th class="p-3 text-center">Ver Proceso</th>
+                        <th class="p-3 border border-green-600">Nombre</th>
+                        <th class="p-3 border border-green-600">Apellido</th>
+                        <th class="p-3 border border-green-600">Tipo Documento</th>
+                        <th class="p-3 border border-green-600">Documento</th>
+                        <th class="p-3 border border-green-600">Email</th>
+                        <th class="p-3 border border-green-600">Celular</th>
+                        <th class="p-3 border border-green-600 text-center">Ver Proceso</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-white divide-y divide-green-200">
                     {% for estudiante in estudiantes %}
-                    <tr class="hover:bg-gray-100 transition">
-                        <td class="p-3">{{ estudiante.nombre }}</td>
-                        <td class="p-3">{{ estudiante.apellido }}</td>
-                        <td class="p-3">{{ estudiante.tipo_documento }}</td>
-                        <td class="p-3">{{ estudiante.documento }}</td>
-                        <td class="p-3">{{ estudiante.email }}</td>
-                        <td class="p-3">{{ estudiante.celular }}</td>
+                    <tr class="hover:bg-green-50 transition">
+                        <td class="p-3 border">{{ estudiante.nombre }}</td>
+                        <td class="p-3 border">{{ estudiante.apellido }}</td>
+                        <td class="p-3 border">{{ estudiante.tipo_documento }}</td>
+                        <td class="p-3 border">{{ estudiante.documento }}</td>
+                        <td class="p-3 border">{{ estudiante.email }}</td>
+                        <td class="p-3 border">{{ estudiante.celular }}</td>
                         <td class="p-3 text-center">
                             <a href="{{ url_for('aprendiz_bp.dashboard_aprendiz', aprendiz_id=estudiante.id_aprendiz) }}"
                                target="_blank"
-                               class="bg-blue-500 text-white px-4 py-1 rounded-lg hover:bg-blue-600 transition duration-200 font-medium">
+                               class="bg-green-500 text-white px-4 py-1 rounded-lg hover:bg-green-700 transition duration-200 font-medium">
                                 Ver
                             </a>
                         </td>
@@ -73,7 +79,7 @@
                     {% endfor %}
                     {% if estudiantes|length == 0 %}
                     <tr>
-                        <td colspan="7" class="text-center p-4 text-gray-500">
+                        <td colspan="7" class="text-center p-4 text-green-700">
                             No hay estudiantes asignados.
                         </td>
                     </tr>
@@ -84,7 +90,7 @@
 
         <!-- Botón Volver general -->
         <div class="mt-6 text-right">
-            <a href="{{ url_for('instructor_bp.dashboard_instructor') }}" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
+            <a href="{{ url_for('instructor_bp.dashboard_instructor') }}" class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">
                 ⬅️ Volver al Dashboard
             </a>
         </div>

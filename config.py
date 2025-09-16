@@ -2,5 +2,5 @@
 
 class Config:
     #SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root@localhost:3306/login'
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///flaskdb.sqlite'
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://brayan:brayac@localhost:3311/bd_brayan'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False  

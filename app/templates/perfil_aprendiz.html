@@ -1,136 +1,179 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perfil Aprendiz</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gradient-to-br from-indigo-900 via-purple-900 to-gray-900 min-h-screen flex items-center justify-center p-4">
+{% extends "base.html" %}
 
-    <div class="bg-white shadow-2xl rounded-xl p-8 w-full max-w-2xl">
-        <h2 class="text-3xl font-extrabold text-center text-indigo-700 mb-8">
-            Perfil del Aprendiz
+{% block title %}Editar Perfil Aprendiz{% endblock %}
+
+{% block content %}
+<div class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white shadow-lg rounded-xl w-full max-w-3xl p-8 space-y-6">
+
+        <h2 class="text-2xl font-bold text-center text-sena-primary">
+            {% if mode == 'edit' %}Editar Perfil de Aprendiz{% else %}Perfil del Aprendiz{% endif %}
         </h2>
+
+        <div class="flex justify-center mb-6">
+            <img src="{{ url_for('static', filename='img/logo-sena.png') }}" alt="SENA" class="h-20">
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-4">
+                    {% for category, message in messages %}
+                        <div class="p-4 rounded-lg text-white
+                            {% if category == 'success' %}bg-green-500
+                            {% elif category == 'danger' %}bg-red-500
+                            {% elif category == 'warning' %}bg-yellow-500
+                            {% else %}bg-blue-500{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
 
         {% if mode == 'edit' %}
         <!-- Formulario de edición -->
-        <form method="POST" action="{{ url_for('aprendiz_bp.editar_aprendiz', id=aprendiz.id_aprendiz) }}" class="space-y-4 text-gray-700">
-            <div>
-                <label class="font-semibold">Nombres:</label>
-                <input type="text" name="nombre" value="{{ aprendiz.nombre }}" class="w-full border rounded px-2 py-1">
-            </div>
-            <div>
-                <label class="font-semibold">Apellidos:</label>
-                <input type="text" name="apellido" value="{{ aprendiz.apellido }}" class="w-full border rounded px-2 py-1">
-            </div>
-            <div>
-                <label class="font-semibold">Tipo de documento:</label>
-                <select name="tipo_documento" class="w-full border rounded px-2 py-1">
-                    <option value="Cedula de Ciudadania" {% if aprendiz.tipo_documento == 'Cedula de Ciudadania' %}selected{% endif %}>Cédula de Ciudadanía</option>
-                    <option value="Tarjeta de Identidad" {% if aprendiz.tipo_documento == 'Tarjeta de Identidad' %}selected{% endif %}>Tarjeta de Identidad</option>
-                    <option value="Cedula Extrangeria" {% if aprendiz.tipo_documento == 'Cedula Extrangeria' %}selected{% endif %}>Cédula de Extranjería</option>
-                    <option value="Registro Civil" {% if aprendiz.tipo_documento == 'Registro Civil' %}selected{% endif %}>Registro Civil</option>
-                </select>
-            </div>
-            <div>
-                <label class="font-semibold">Documento:</label>
-                <input type="text" name="documento" value="{{ aprendiz.documento }}" class="w-full border rounded px-2 py-1">
-            </div>
-            <div>
-                <label class="font-semibold">Email:</label>
-                <input type="email" name="email" value="{{ aprendiz.email }}" class="w-full border rounded px-2 py-1">
-            </div>
-            <div>
-                <label class="font-semibold">Celular:</label>
-                <input type="text" name="celular" value="{{ aprendiz.celular }}" class="w-full border rounded px-2 py-1">
-            </div>
-            <div>
-                <label class="font-semibold">Contraseña (dejar vacío si no cambia):</label>
-                <input type="password" name="password_aprendiz" class="w-full border rounded px-2 py-1">
+        <form method="POST" action="{{ url_for('aprendiz_bp.editar_aprendiz', id=aprendiz.id_aprendiz) }}" class="space-y-6">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Nombre -->
+                <div>
+                    <label for="nombre" class="font-semibold text-gray-700">Nombre</label>
+                    <input type="text" name="nombre" id="nombre" required
+                           value="{{ aprendiz.nombre }}"
+                           class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                </div>
+
+                <!-- Apellido -->
+                <div>
+                    <label for="apellido" class="font-semibold text-gray-700">Apellido</label>
+                    <input type="text" name="apellido" id="apellido" required
+                           value="{{ aprendiz.apellido }}"
+                           class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                </div>
+
+                <!-- Tipo de documento -->
+                <div>
+                    <label for="tipo_documento" class="font-semibold text-gray-700">Tipo de documento</label>
+                    <select name="tipo_documento" id="tipo_documento" required
+                            class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                        <option value="Cedula de Ciudadania" {% if aprendiz.tipo_documento == 'Cedula de Ciudadania' %}selected{% endif %}>Cédula de Ciudadanía</option>
+                        <option value="Tarjeta de Identidad" {% if aprendiz.tipo_documento == 'Tarjeta de Identidad' %}selected{% endif %}>Tarjeta de Identidad</option>
+                        <option value="Cedula Extrangeria" {% if aprendiz.tipo_documento == 'Cedula Extrangeria' %}selected{% endif %}>Cédula de Extranjería</option>
+                        <option value="Registro Civil" {% if aprendiz.tipo_documento == 'Registro Civil' %}selected{% endif %}>Registro Civil</option>
+                    </select>
+                </div>
+
+                <!-- Documento -->
+                <div>
+                    <label for="documento" class="font-semibold text-gray-700">Documento</label>
+                    <input type="text" name="documento" id="documento" required pattern="[0-9]+"
+                           value="{{ aprendiz.documento }}"
+                           class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                </div>
+
+                <!-- Correo -->
+                <div>
+                    <label for="email" class="font-semibold text-gray-700">Correo Electrónico</label>
+                    <input type="email" name="email" id="email" required
+                           value="{{ aprendiz.email }}"
+                           class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                </div>
+
+                <!-- Celular -->
+                <div>
+                    <label for="celular" class="font-semibold text-gray-700">Celular</label>
+                    <input type="text" name="celular" id="celular" required pattern="[0-9]+"
+                           value="{{ aprendiz.celular }}"
+                           class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                </div>
             </div>
 
-            <div class="mt-4 flex justify-between">
-                <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">Guardar Cambios</button>
+            <!-- Contraseña -->
+            <div class="mt-4">
+                <label for="password_aprendiz" class="font-semibold text-gray-700">Nueva Contraseña (opcional)</label>
+                <input type="password" name="password_aprendiz" id="password_aprendiz" minlength="8"
+                       class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                <p class="text-xs text-gray-500 mt-1">Deja vacío si no quieres cambiar la contraseña</p>
+            </div>
 
-                <!-- Botón Cancelar según rol -->
+            <!-- Botones -->
+            <div class="flex gap-4 mt-6">
+                <button type="submit" class="flex-1 bg-sena-primary hover:bg-sena-dark text-white py-3 rounded-lg font-medium transition-colors">
+                    Actualizar Perfil
+                </button>
                 {% if rol_actual == 'Aprendiz' %}
-                    <a href="{{ url_for('aprendiz_bp.dashboard_aprendiz', aprendiz_id=current_user.id_aprendiz) }}" 
-                       class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">Cancelar</a>
+                    <a href="{{ url_for('aprendiz_bp.dashboard_aprendiz') }}/{{ current_user.id_aprendiz }}"
+                       class="bg-sena-secondary hover:bg-sena-dark text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                        Volver al Dashboard
+                    </a>
                 {% elif rol_actual == 'Instructor' %}
-                    <a href="{{ url_for('aprendiz_bp.dashboard_aprendiz', aprendiz_id=aprendiz.id_aprendiz) }}" 
-                       class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">Cancelar</a>
+                    <a href="{{ url_for('aprendiz_bp.dashboard_aprendiz') }}/{{ aprendiz.id_aprendiz }}"
+                       class="bg-sena-secondary hover:bg-sena-dark text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                        Volver al Dashboard
+                    </a>
                 {% else %}
-                    <a href="{{ url_for('auth.dashboard') }}" 
-                       class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">Cancelar</a>
+                    <a href="{{ url_for('auth.dashboard') }}"
+                       class="bg-sena-secondary hover:bg-sena-dark text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                        Volver al Dashboard
+                    </a>
                 {% endif %}
             </div>
         </form>
 
         {% else %}
-        <!-- Modo solo visualización -->
-        <div class="space-y-4 text-gray-700">
-            <p><strong>Nombres:</strong> {{ aprendiz.nombre }}</p>
-            <p><strong>Apellidos:</strong> {{ aprendiz.apellido }}</p>
-            <p><strong>Tipo de documento:</strong> {{ aprendiz.tipo_documento }}</p>
-            <p><strong>Documento:</strong> {{ aprendiz.documento }}</p>
-            <p><strong>Email:</strong> {{ aprendiz.email }}</p>
-            <p><strong>Celular:</strong> {{ aprendiz.celular }}</p>
+        <!-- Modo solo visualización con casillas -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <label class="font-semibold text-gray-700">Nombre</label>
+                <p class="text-gray-900 mt-1">{{ aprendiz.nombre }}</p>
+            </div>
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <label class="font-semibold text-gray-700">Apellido</label>
+                <p class="text-gray-900 mt-1">{{ aprendiz.apellido }}</p>
+            </div>
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <label class="font-semibold text-gray-700">Tipo de documento</label>
+                <p class="text-gray-900 mt-1">{{ aprendiz.tipo_documento }}</p>
+            </div>
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <label class="font-semibold text-gray-700">Documento</label>
+                <p class="text-gray-900 mt-1">{{ aprendiz.documento }}</p>
+            </div>
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <label class="font-semibold text-gray-700">Correo Electrónico</label>
+                <p class="text-gray-900 mt-1">{{ aprendiz.email }}</p>
+            </div>
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <label class="font-semibold text-gray-700">Celular</label>
+                <p class="text-gray-900 mt-1">{{ aprendiz.celular }}</p>
+            </div>
         </div>
 
-        <div class="mt-8 flex justify-between">
-            <!-- Botón Editar Perfil -->
+        <!-- Botones -->
+        <div class="flex gap-4 mt-6">
             <a href="{{ url_for('aprendiz_bp.editar_aprendiz', id=aprendiz.id_aprendiz) }}"
-               class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">
+               class="flex-1 bg-sena-primary hover:bg-sena-dark text-white py-3 rounded-lg font-medium transition-colors text-center">
                Editar Perfil
             </a>
-
-            <!-- Botón Volver según rol -->
             {% if rol_actual == 'Aprendiz' %}
-                <a href="{{ url_for('aprendiz_bp.dashboard_aprendiz', aprendiz_id=current_user.id_aprendiz) }}"
-                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">Volver</a>
+                <a href="{{ url_for('aprendiz_bp.dashboard_aprendiz') }}/{{ current_user.id_aprendiz }}"
+                   class="bg-sena-secondary hover:bg-sena-dark text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                    Volver al Dashboard
+                </a>
             {% elif rol_actual == 'Instructor' %}
-                <a href="{{ url_for('aprendiz_bp.dashboard_aprendiz', aprendiz_id=aprendiz.id_aprendiz) }}"
-                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">Volver</a>
+                <a href="{{ url_for('aprendiz_bp.dashboard_aprendiz') }}/{{ aprendiz.id_aprendiz }}"
+                   class="bg-sena-secondary hover:bg-sena-dark text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                    Volver al Dashboard
+                </a>
             {% else %}
                 <a href="{{ url_for('auth.dashboard') }}"
-                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">Volver</a>
+                   class="bg-sena-secondary hover:bg-sena-dark text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                    Volver al Dashboard
+                </a>
             {% endif %}
         </div>
         {% endif %}
 
     </div>
-
-    <!-- Modal de éxito -->
-    <div id="successModal" class="fixed inset-0 hidden bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg shadow-lg p-6 w-96 text-center">
-        <h2 class="text-xl font-bold text-green-600 mb-4">✅ Éxito</h2>
-        <p id="successMessage" class="text-gray-700 mb-6"></p>
-        <button onclick="closeModal()" 
-                class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">OK</button>
-      </div>
-    </div>
-
-    <script>
-        function showModal(message) {
-            document.getElementById('successMessage').innerText = message;
-            document.getElementById('successModal').classList.remove('hidden');
-        }
-        function closeModal() {
-            document.getElementById('successModal').classList.add('hidden');
-        }
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            window.onload = function() {
-                {% for category, message in messages %}
-                  {% if category == 'success' %}
-                    showModal("{{ message }}");
-                  {% endif %}
-                {% endfor %}
-            }
-          {% endif %}
-        {% endwith %}
-    </script>
-</body>
-</html>
+</div>
+{% endblock %}

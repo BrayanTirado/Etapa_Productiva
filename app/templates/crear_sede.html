@@ -1,11 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Crear Sede{% endblock %}
+{% block title %}{% if modo == 'editar' %}Editar Sede{% else %}Crear Sede{% endif %}{% endblock %}
 
 {% block content %}
 
 <div class="bg-white shadow-2xl rounded-3xl p-10 w-full max-w-lg mx-auto my-20">
-    <h2 class="text-4xl font-extrabold text-center text-green-700 mb-8">Crear Nueva Sede</h2>
+    <h2 class="text-4xl font-extrabold text-center text-green-700 mb-8">
+        {% if modo == 'editar' %}Editar Sede{% else %}Crear Nueva Sede{% endif %}
+    </h2>
 
     <!-- Mensajes flash generales -->
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -26,30 +28,55 @@
       {% endif %}
     {% endwith %}
 
-    <!-- Formulario de creación -->
-    <form method="POST" action="{{ url_for('coordinador_bp.crear_sede') }}" class="space-y-6">
+    <!-- Formulario de creación/edición -->
+    <form method="POST" action="{{ url_for('crear_sede_bp.crear_sede') }}" class="space-y-6">
+        {% if modo != 'editar' %}
         <div>
             <label class="block text-gray-700 font-semibold text-lg mb-2">Token de administrador:</label>
             <input type="text" name="token" required
                    placeholder="Ingresa el token suministrado por el administrador"
                    class="w-full px-5 py-3 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-blue-500 shadow-sm">
         </div>
+        {% endif %}
 
+        <!-- Nombre sede con búsqueda -->
         <div>
             <label class="block text-gray-700 font-semibold text-lg mb-2">Nombre de la sede:</label>
-            <input type="text" name="nombre" required
-                   class="w-full px-5 py-3 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-blue-500 shadow-sm">
+            <select name="nombre_sede" id="nombre_sede" required oninput="filtrarOpciones(this)"
+                    class="w-full px-5 py-3 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-blue-500 shadow-sm">
+                <option value="">Selecciona una sede o escribe para buscar</option>
+                {% for option_value, option_text in [
+                    ('CGAO', 'CGAO - CENTRO DE GESTIÓN AGROEMPRESARIAL DEL ORIENTE'),
+                    ('CCS', 'CCS - CENTRO DE COMERCIO Y SERVICIOS'),
+                    ('CDM', 'CDM - CENTRO DE DISEÑO Y METROLOGÍA'),
+                    ('CGAF', 'CGAF - CENTRO DE GESTIÓN ADMINISTRATIVA Y FINANCIERA'),
+                    ('CGPI', 'CGPI - CENTRO DE GESTIÓN DE LA PRODUCCIÓN INDUSTRIAL'),
+                    ('CTIC', 'CTIC - CENTRO DE TECNOLOGÍA DE LA INFORMACIÓN Y COMUNICACIONES'),
+                    ('CBA', 'CBA - CENTRO DE BIOTECNOLOGÍA AGROPECUARIA'),
+                    ('CEM', 'CEM - CENTRO DE ENERGÍA Y MINAS'),
+                    ('CSF', 'CSF - CENTRO DE SERVICIOS FINANCIEROS'),
+                    ('CFGR', 'CFGR - CENTRO DE FORMACIÓN EN GESTIÓN DEL RIESGO')
+                ] %}
+                <option value="{{ option_text }}" {% if modo == 'editar' and sede.nombre_sede == option_text %}selected{% endif %}>
+                    {{ option_text }}
+                </option>
+                {% endfor %}
+            </select>
         </div>
 
+        <!-- Ciudad -->
         <div>
             <label class="block text-gray-700 font-semibold text-lg mb-2">Ciudad:</label>
             <input type="text" name="ciudad" required
+                   value="{% if modo == 'editar' %}{{ sede.ciudad }}{% endif %}"
+                   placeholder="Ej: Bogotá, Medellín, Bucaramanga..."
                    class="w-full px-5 py-3 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-blue-500 shadow-sm">
         </div>
 
+        <!-- Botón -->
         <button type="submit"
                 class="w-full bg-green-700 text-white py-3 rounded-xl font-bold text-lg hover:bg-green-400 transition-colors shadow-lg">
-            Crear Sede
+            {% if modo == 'editar' %}Actualizar Sede{% else %}Crear Sede{% endif %}
         </button>
     </form>
 </div>
@@ -74,5 +101,20 @@
     {% endfor %}
   {% endif %}
 {% endwith %}
+
+<!-- Script para filtrar opciones mientras se escribe -->
+<script>
+function filtrarOpciones(select) {
+  const input = select.value.toLowerCase();
+  for (let i = 0; i < select.options.length; i++) {
+    const txt = select.options[i].text.toLowerCase();
+    if (txt.includes(input) || select.options[i].value === "") {
+      select.options[i].style.display = "";
+    } else {
+      select.options[i].style.display = "none";
+    }
+  }
+}
+</script>
 
 {% endblock %}

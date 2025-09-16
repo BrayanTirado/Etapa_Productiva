@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Perfil Coordinador{% endblock %}
+
+{% block content %}
+<div class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white shadow-lg rounded-xl w-full max-w-3xl p-8 space-y-6">
+
+        <h2 class="text-2xl font-bold text-center text-sena-primary">
+            Editar Perfil de Coordinador
+        </h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-4">
+                    {% for category, message in messages %}
+                        <div class="p-4 rounded-lg text-white
+                            {% if category == 'success' %}bg-green-500
+                            {% elif category == 'danger' %}bg-red-500
+                            {% elif category == 'warning' %}bg-yellow-500
+                            {% else %}bg-blue-500{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('coordinador_bp.editar_perfil') }}" class="space-y-6">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Nombre -->
+                <div>
+                    <label for="nombre" class="font-semibold text-gray-700">Nombre</label>
+                    <input type="text" name="nombre" id="nombre" required
+                           value="{{ coordinador.nombre }}"
+                           class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                </div>
+
+                <!-- Apellido -->
+                <div>
+                    <label for="apellido" class="font-semibold text-gray-700">Apellido</label>
+                    <input type="text" name="apellido" id="apellido" required
+                           value="{{ coordinador.apellido }}"
+                           class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                </div>
+
+                <!-- Tipo de documento -->
+                <div>
+                    <label for="tipo_documento" class="font-semibold text-gray-700">Tipo de documento</label>
+                    <select name="tipo_documento" id="tipo_documento" required
+                            class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                        <option value="Cedula de Ciudadania" {% if coordinador.tipo_documento == 'Cedula de Ciudadania' %}selected{% endif %}>Cédula de Ciudadanía</option>
+                        <option value="Tarjeta de Identidad" {% if coordinador.tipo_documento == 'Tarjeta de Identidad' %}selected{% endif %}>Tarjeta de Identidad</option>
+                        <option value="Cedula Extrangeria" {% if coordinador.tipo_documento == 'Cedula Extrangeria' %}selected{% endif %}>Cédula de Extranjería</option>
+                        <option value="Registro Civil" {% if coordinador.tipo_documento == 'Registro Civil' %}selected{% endif %}>Registro Civil</option>
+                    </select>
+                </div>
+
+                <!-- Documento -->
+                <div>
+                    <label for="documento" class="font-semibold text-gray-700">Documento</label>
+                    <input type="text" name="documento" id="documento" required pattern="[0-9]+"
+                           value="{{ coordinador.documento }}"
+                           class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                </div>
+
+                <!-- Correo -->
+                <div>
+                    <label for="correo" class="font-semibold text-gray-700">Correo Electrónico</label>
+                    <input type="email" name="correo" id="correo" required
+                           value="{{ coordinador.correo }}"
+                           class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                </div>
+
+                <!-- Celular -->
+                <div>
+                    <label for="celular" class="font-semibold text-gray-700">Celular</label>
+                    <input type="text" name="celular" id="celular" required pattern="[0-9]+"
+                           value="{{ coordinador.celular }}"
+                           class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                </div>
+            </div>
+
+            <!-- Contraseña -->
+            <div class="mt-4">
+                <label for="password" class="font-semibold text-gray-700">Nueva Contraseña (opcional)</label>
+                <input type="password" name="password" id="password" minlength="8"
+                       class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                <p class="text-xs text-gray-500 mt-1">Deja vacío si no quieres cambiar la contraseña</p>
+            </div>
+
+            <!-- Botones -->
+            <div class="flex gap-4 mt-6">
+                <button type="submit" class="flex-1 bg-sena-primary hover:bg-sena-dark text-white py-3 rounded-lg font-medium transition-colors">
+                    Actualizar Perfil
+                </button>
+                <a href="{{ url_for('coordinador_bp.dashboard') }}"
+                    class="bg-sena-secondary hover:bg-sena-dark text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                    Volver al Dashboard
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

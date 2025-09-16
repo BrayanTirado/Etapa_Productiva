@@ -1,29 +1,10 @@
 from datetime import datetime
-import secrets
-from flask import Blueprint, request, render_template, redirect, url_for, flash, session
+from flask import Blueprint, request, render_template, redirect, url_for, flash
 from app import db
 from app.models.users import Sede, TokenCoordinador
 from flask_login import current_user, login_required
 
 bp = Blueprint('crear_sede_bp', __name__, url_prefix='/crear_sede')
-
-# Clave secreta para acceso inicial al formulario (opcional)
-CLAVE_SECRETA = "PruebaUno"
-
-# -----------------------------
-# Página de acceso con clave
-# -----------------------------
-@bp.route('/', methods=['GET', 'POST'])
-def acceso_formulario():
-    if request.method == 'POST':
-        clave = request.form.get('clave')
-        if clave != CLAVE_SECRETA:
-            flash("Clave incorrecta", "error")
-            return render_template('clave_secreta.html', now=datetime.now())
-        session['autorizado'] = True
-        return redirect(url_for('crear_sede_bp.formulario_sede'))
-    return render_template('clave_secreta.html', now=datetime.now())
-
 
 # -----------------------------
 # Formulario crear sede
@@ -31,11 +12,7 @@ def acceso_formulario():
 @bp.route('/form', methods=['GET'])
 @login_required
 def formulario_sede():
-    if not session.get('autorizado'):
-        flash("Acceso no autorizado", "error")
-        return redirect(url_for('crear_sede_bp.acceso_formulario'))
     return render_template('crear_sede.html', now=datetime.now())
-
 
 # -----------------------------
 # Crear sede
@@ -43,49 +20,58 @@ def formulario_sede():
 @bp.route('/nueva', methods=['POST'])
 @login_required
 def crear_sede():
-    if not session.get('autorizado'):
-        flash("Acceso no autorizado", "error")
-        return redirect(url_for('crear_sede_bp.acceso_formulario'))
+    nombre_sede = request.form.get('nombre_sede', "").strip()
+    ciudad = request.form.get('ciudad', "").strip()
+    token_input = request.form.get('token', "").strip()
 
-    nombre = request.form.get('nombre')
-    ciudad = request.form.get('direccion')
-    token_input = request.form.get('token')
-
-    if not nombre or not ciudad or not token_input:
-        flash("Todos los campos son obligatorios, incluyendo el token", "error")
+    # Validación de campos obligatorios
+    if not nombre_sede or not ciudad or not token_input:
+        flash("Todos los campos son obligatorios, incluyendo el token.", "error")
         return redirect(url_for('crear_sede_bp.formulario_sede'))
 
-    # Verificar que la sede no exista
-    if Sede.query.filter_by(nombre=nombre).first():
-        flash(f"La sede '{nombre}' ya existe.", "error")
+    # Verificar que el coordinador no tenga ya sede
+    if current_user.sede_id:
+        flash("Ya tienes una sede asignada. No puedes crear otra.", "error")
+        return redirect(url_for('coordinador_bp.dashboard'))
+
+    # Verificar que la sede no exista (mismo nombre y misma ciudad)
+    sede_existente = Sede.query.filter_by(nombre_sede=nombre_sede, ciudad=ciudad).first()
+    if sede_existente:
+        flash(f"La sede '{nombre_sede}' en la ciudad '{ciudad}' ya existe.", "error")
         return redirect(url_for('crear_sede_bp.formulario_sede'))
 
-    # Validar token de coordinador generado por admin
+    # Validar token
     token_obj = TokenCoordinador.query.filter_by(token=token_input).first()
     if not token_obj:
-        flash("Token inválido", "error")
+        flash("Token inválido.", "error")
         return redirect(url_for('crear_sede_bp.formulario_sede'))
 
     if not token_obj.usado:
-        flash("El token aún no se ha usado para registrar el coordinador", "error")
+        flash("El token aún no se ha usado para registrar el coordinador.", "error")
         return redirect(url_for('crear_sede_bp.formulario_sede'))
 
     if token_obj.usado_para_sede:
-        flash("Este token ya se ha usado para registrar una sede", "error")
+        flash("Este token ya se usó para registrar una sede.", "error")
         return redirect(url_for('crear_sede_bp.formulario_sede'))
 
-    # Registrar la sede
+    # Crear la nueva sede
     nueva_sede = Sede(
-    nombre=nombre,
-    ciudad=ciudad
-)
+        nombre_sede=nombre_sede,
+        ciudad=ciudad
+    )
     db.session.add(nueva_sede)
+    db.session.commit()  # Necesario para obtener id_sede
+
+    # Asignar la sede al coordinador actual
+    current_user.sede_id = nueva_sede.id_sede
 
     # Marcar token como usado para sede
     token_obj.usado_para_sede = True
 
+    # Guardar cambios
+    db.session.add(current_user)
+    db.session.add(token_obj)
     db.session.commit()
 
-    flash(f"Sede '{nombre}' creada con éxito.", "success")
-    session.pop('autorizado', None)
+    flash(f"Sede '{nombre_sede}' en '{ciudad}' creada exitosamente y asignada al coordinador.", "success")
     return redirect(url_for('coordinador_bp.dashboard'))

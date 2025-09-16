@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
-from app.models.users import Instructor, Aprendiz, TokenInstructor, Notificacion, Coordinador, Administrador
+from app.models.users import Instructor, Aprendiz, TokenInstructor, Notificacion, Coordinador, Administrador, Contrato, Programa, Sede
 from app import db
 from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import IntegrityError
@@ -48,27 +48,47 @@ def dashboard_instructor():
         flash("Acceso denegado", "error")
         return redirect(url_for('auth.dashboard'))
 
-    # Filtrar aprendices asignados
+    sede_id = current_user.sede_id  # ✅ sede del instructor
+
+    # ✅ Filtrar aprendices asignados SOLO en la misma sede
     documento = request.args.get('documento')
-    query = Aprendiz.query.filter_by(instructor_id=current_user.id_instructor)
+    query = Aprendiz.query.filter_by(instructor_id=current_user.id_instructor, sede_id=sede_id)
     if documento:
         query = query.filter(Aprendiz.documento.like(f"%{documento}%"))
     aprendices_asignados = query.all()
 
-    # Cargar coordinadores y administradores
-    coordinadores = Coordinador.query.all()
+    # ✅ Coordinadores SOLO de la misma sede
+    coordinadores = Coordinador.query.filter_by(sede_id=sede_id).all()
+
+    # ✅ Administradores (estos pueden ser globales, los dejo sin sede, pero si quieres, también filtras por sede_id)
     administradores = Administrador.query.all()
 
-    # Notificaciones no leídas
+    # ✅ Notificaciones no leídas SOLO del instructor actual
     notificaciones_no_leidas = Notificacion.query.filter(
-        Notificacion.rol_destinatario=="Instructor",
-        Notificacion.visto==False,
-        or_(Notificacion.destinatario_id==current_user.id_instructor, Notificacion.destinatario_id==None)
+        Notificacion.rol_destinatario == "Instructor",
+        Notificacion.visto == False,
+        Notificacion.destinatario_id == current_user.id_instructor
     ).count()
 
-    eventos = []  # Eventos si los tienes
+    # ✅ Aprendices que finalizan para armar eventos (SOLO de la misma sede)
+    aprendices_finalizan = (
+        db.session.query(Aprendiz, Contrato, Programa)
+        .join(Contrato, Aprendiz.contrato_id == Contrato.id_contrato)
+        .join(Programa, Aprendiz.programa_id == Programa.id_programa)
+        .filter(Contrato.fecha_fin.isnot(None))
+        .filter(Aprendiz.sede_id == sede_id)  # 🔑 Filtrar por sede del instructor
+        .all()
+    )
 
-    from datetime import datetime
+    eventos = []
+    for aprendiz, contrato, programa in aprendices_finalizan:
+        eventos.append({
+            "fecha_fin": contrato.fecha_fin.strftime("%Y-%m-%d"),
+            "fecha_inicio": contrato.fecha_inicio.strftime("%Y-%m-%d"),
+            "nombre": f"{aprendiz.nombre} {aprendiz.apellido}",
+            "ficha": programa.ficha
+        })
+
     return render_template(
         'dasboardh_instructor.html',
         instructor=current_user,
@@ -81,11 +101,13 @@ def dashboard_instructor():
         now=datetime.now()
     )
 
+
 # -------------------------------
 # Crear nuevo instructor usando token
 # -------------------------------
 @bp.route('/nuevo', methods=['GET', 'POST'])
 def nuevo_instructor():
+    from app.models.users import Sede  # Importar Sede aquí
     if request.method == 'POST':
         token_input = request.form.get('token').strip()
         nombre = request.form.get('nombre_instructor').strip()
@@ -95,30 +117,71 @@ def nuevo_instructor():
         correo = request.form.get('correo_instructor').strip().lower()
         celular = request.form.get('celular_instructor').strip()
         password = request.form.get('password_instructor')
+        sede_nombre = request.form.get('sede_id')
 
-        if not all([token_input, nombre, apellido, tipo_documento, documento, correo, celular, password]):
+        if not all([token_input, nombre, apellido, tipo_documento, documento, correo, celular, password, sede_nombre]):
             flash('Todos los campos son obligatorios, incluyendo el token.', 'warning')
             return redirect(url_for('instructor_bp.nuevo_instructor'))
 
+        # Buscar la sede por nombre
+        sede = Sede.query.filter_by(nombre_sede=sede_nombre).first()
+        if not sede:
+            flash('La sede seleccionada no existe en el sistema.', 'danger')
+            return redirect(url_for('instructor_bp.nuevo_instructor'))
+
+        # ✅ Validar token
         token = TokenInstructor.query.filter_by(token=token_input).first()
         if not token or token.fecha_expiracion < datetime.utcnow() or not token.activo:
             flash('Token inválido, expirado o inactivo.', 'danger')
             return redirect(url_for('instructor_bp.nuevo_instructor'))
 
-        if token.coordinador_id is None:
-            flash('El token no tiene un coordinador válido asignado.', 'danger')
+        if token.coordinador_id is None or token.sede_id is None:
+            flash('El token no tiene un coordinador o sede válidos asignados.', 'danger')
             return redirect(url_for('instructor_bp.nuevo_instructor'))
 
-        existe = Instructor.query.filter(
-            or_(Instructor.documento == documento,
-                Instructor.correo_instructor == correo,
-                Instructor.celular_instructor == celular)
-        ).first()
-        if existe:
-            flash('Ya existe un instructor con ese documento, correo o celular.', 'danger')
+        # ✅ Validar duplicados globales (todos los tipos de usuario)
+        from app.models.users import Administrador, Coordinador, Aprendiz
+
+        # Verificar documento en todos los modelos
+        documento_existe = (Instructor.query.filter_by(documento=documento).first() or
+                            Administrador.query.filter_by(documento=documento).first() or
+                            Coordinador.query.filter_by(documento=documento).first() or
+                            Aprendiz.query.filter_by(documento=documento).first())
+
+        # Verificar email (solo en modelos que tienen email)
+        email_existe = (Instructor.query.filter_by(correo_instructor=correo).first() or
+                        Coordinador.query.filter_by(correo=correo).first() or
+                        Aprendiz.query.filter_by(email=correo).first())
+
+        # Verificar celular (solo en modelos que tienen celular)
+        celular_existe = (Instructor.query.filter_by(celular_instructor=celular).first() or
+                          Coordinador.query.filter_by(celular=celular).first() or
+                          Aprendiz.query.filter_by(celular=celular).first())
+
+        if documento_existe:
+            flash('Ya existe un usuario con ese documento.', 'danger')
             return redirect(url_for('instructor_bp.nuevo_instructor'))
 
+        if email_existe:
+            flash('Ya existe un usuario con ese email.', 'danger')
+            return redirect(url_for('instructor_bp.nuevo_instructor'))
+
+        if celular_existe:
+            flash('Ya existe un usuario con ese número de celular.', 'danger')
+            return redirect(url_for('instructor_bp.nuevo_instructor'))
+
+        # ✅ Crear instructor con la sede_id heredada del token
         hashed_password = generate_password_hash(password)
+
+        # 🔎 Debug 1: valores que vienen del token
+        print("DEBUG TOKEN:",
+              "id_token:", token.id_token,
+              "coordinador_id:", token.coordinador_id,
+              "sede_id:", token.sede_id)
+
+        # Usar sede del formulario si se proporciona, sino la del token
+        sede_id_final = sede.id_sede if sede else token.sede_id
+
         nuevo = Instructor(
             nombre_instructor=nombre,
             apellido_instructor=apellido,
@@ -127,20 +190,35 @@ def nuevo_instructor():
             correo_instructor=correo,
             celular_instructor=celular,
             password_instructor=hashed_password,
-            coordinador_id=token.coordinador_id
+            coordinador_id=token.coordinador_id,
+            sede_id=sede_id_final
         )
+
+        # 🔎 Debug 2: antes del commit
+        print("DEBUG NUEVO INSTRUCTOR (antes de commit):",
+              "nombre:", nuevo.nombre_instructor,
+              "coordinador_id:", nuevo.coordinador_id,
+              "sede_id:", nuevo.sede_id)
 
         try:
             db.session.add(nuevo)
             db.session.commit()
+
+            # 🔎 Debug 3: después del commit
+            print("DEBUG INSTRUCTOR GUARDADO:",
+                  "id_instructor:", nuevo.id_instructor,
+                  "coordinador_id:", nuevo.coordinador_id,
+                  "sede_id:", nuevo.sede_id)
+
             flash('Instructor creado exitosamente. Ahora puedes iniciar sesión.', 'modal')
             return redirect(url_for('auth.login'))
         except Exception as e:
             db.session.rollback()
             flash(f'Error al crear el instructor: {str(e)}', 'danger')
 
-    return render_template('instructor.html')
-
+    # Mostrar TODAS las sedes disponibles para que el instructor pueda elegir
+    sedes = Sede.query.all()
+    return render_template('instructor.html', sedes=sedes)
 
 # -------------------------------
 # Editar instructor
@@ -148,6 +226,7 @@ def nuevo_instructor():
 @bp.route('/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_instructor(id):
+    from app.models.users import Sede  # Importar Sede aquí
     instructor = Instructor.query.get_or_404(id)
     if request.method == 'POST':
         nombre = request.form.get('nombre_instructor').strip()
@@ -157,9 +236,16 @@ def editar_instructor(id):
         correo = request.form.get('correo_instructor').strip().lower()
         celular = request.form.get('celular_instructor').strip()
         password = request.form.get('password_instructor')
+        sede_nombre = request.form.get('sede_id')
 
-        if not all([nombre, apellido, tipo_documento, documento, correo, celular]):
+        if not all([nombre, apellido, tipo_documento, documento, correo, celular, sede_nombre]):
             flash('Faltan campos obligatorios.', 'warning')
+            return redirect(url_for('instructor_bp.editar_instructor', id=id))
+
+        # Buscar la sede por nombre
+        sede = Sede.query.filter_by(nombre_sede=sede_nombre).first()
+        if not sede:
+            flash('La sede seleccionada no existe en el sistema.', 'danger')
             return redirect(url_for('instructor_bp.editar_instructor', id=id))
 
         instructor.nombre_instructor = nombre
@@ -168,6 +254,7 @@ def editar_instructor(id):
         instructor.documento = documento
         instructor.correo_instructor = correo
         instructor.celular_instructor = celular
+        instructor.sede_id = sede.id_sede
         if password:
             instructor.password_instructor = generate_password_hash(password)
 
@@ -182,7 +269,8 @@ def editar_instructor(id):
             db.session.rollback()
             flash(f'Error: {str(e)}', 'danger')
 
-    return render_template('instructor.html', instructor=instructor, mode='edit', now=datetime.now())
+    sedes = Sede.query.all()
+    return render_template('instructor.html', instructor=instructor, mode='edit', sedes=sedes, now=datetime.now())
 
 
 # -------------------------------

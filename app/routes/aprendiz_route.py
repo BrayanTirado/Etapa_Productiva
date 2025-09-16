@@ -89,19 +89,57 @@ def registro():
         correo = request.form.get('correo')
         celular = request.form.get('celular')
         password = request.form.get('password')
+        sede_id_form = request.form.get('sede_id')
 
         if not all([nombre, apellido, tipo_documento, documento, correo, celular, password]):
             flash("Todos los campos son obligatorios", "error")
             return render_template('aprendiz/registro.html', now=datetime.now())
 
-        existe = Aprendiz.query.filter(
-            or_(Aprendiz.documento == documento, Aprendiz.correo == correo)
-        ).first()
-        if existe:
-            flash("Ya existe un aprendiz con ese documento o correo", "error")
+        # Verificar unicidad global (todos los tipos de usuario)
+        from app.models.users import Administrador, Coordinador, Instructor
+
+        # Verificar documento en todos los modelos
+        documento_existe = (Aprendiz.query.filter_by(documento=documento).first() or
+                           Administrador.query.filter_by(documento=documento).first() or
+                           Coordinador.query.filter_by(documento=documento).first() or
+                           Instructor.query.filter_by(documento=documento).first())
+
+        # Verificar email (solo en modelos que tienen email)
+        email_existe = (Aprendiz.query.filter_by(correo=correo).first() or
+                       Coordinador.query.filter_by(correo=correo).first() or
+                       Instructor.query.filter_by(correo_instructor=correo).first())
+
+        # Verificar celular (solo en modelos que tienen celular)
+        celular_existe = (Aprendiz.query.filter_by(celular=celular).first() or
+                         Coordinador.query.filter_by(celular=celular).first() or
+                         Instructor.query.filter_by(celular_instructor=celular).first())
+
+        if documento_existe:
+            flash("Ya existe un usuario con ese documento", "error")
+            return render_template('aprendiz/registro.html', sedes=sedes, now=datetime.now())
+
+        if email_existe:
+            flash("Ya existe un usuario con ese email", "error")
+            return render_template('aprendiz/registro.html', sedes=sedes, now=datetime.now())
+
+        if celular_existe:
+            flash("Ya existe un usuario con ese número de celular", "error")
+            return render_template('aprendiz/registro.html', sedes=sedes, now=datetime.now())
+        password_hash = generate_password_hash(password)
+
+        # Verificar instructor actual y su sede
+        if not current_user or not hasattr(current_user, "id_instructor"):
+            flash("Error: solo un instructor puede registrar aprendices.", "error")
             return render_template('aprendiz/registro.html', now=datetime.now())
 
-        password_hash = generate_password_hash(password)
+        instructor = Instructor.query.get(current_user.id_instructor)
+        if not instructor or not instructor.sede_id:
+            flash("El instructor no tiene una sede válida asignada.", "error")
+            return render_template('aprendiz/registro.html', now=datetime.now())
+
+        # Usar sede del formulario si se proporciona, sino la del instructor
+        sede_id_final = int(sede_id_form) if sede_id_form else instructor.sede_id
+
         aprendiz = Aprendiz(
             nombre=nombre,
             apellido=apellido,
@@ -109,7 +147,10 @@ def registro():
             documento=documento,
             correo=correo,
             celular=celular,
-            password=password_hash
+            password=password_hash,
+            instructor_id=instructor.id_instructor,
+            coordinador_id=instructor.coordinador_id,  # ✅ opcional pero útil
+            sede_id=sede_id_final
         )
 
         try:
@@ -120,9 +161,15 @@ def registro():
         except Exception as e:
             db.session.rollback()
             flash(f"Ocurrió un error al registrar: {str(e)}", "error")
-            return render_template('aprendiz/registro.html', now=datetime.now())
+            from app.models.users import Sede
+            sedes = Sede.query.all()
+            return render_template('aprendiz/registro.html', sedes=sedes, now=datetime.now())
 
-    return render_template('aprendiz/registro.html', now=datetime.now())
+    # Mostrar TODAS las sedes disponibles para que el aprendiz pueda elegir
+    from app.models.users import Sede
+    sedes = Sede.query.all()
+
+    return render_template('aprendiz/registro.html', sedes=sedes, now=datetime.now())
 
 # -------------------------------
 # Login del aprendiz
@@ -207,14 +254,17 @@ def dashboard_aprendiz(aprendiz_id):
             progreso_tiempo = min(max(progreso_tiempo, 0), 100)
 
     # -----------------------------
-    # Notificaciones no leídas
+    # Notificaciones no leídas (ahora usa aprendiz_obj)
     # -----------------------------
-    notificaciones_no_leidas = 0
-    if isinstance(current_user, Aprendiz):
-        notificaciones_no_leidas = Notificacion.query.filter(
-            Notificacion.rol_destinatario == 'Aprendiz',
-            Notificacion.visto == False
-        ).count() or 0
+    notificaciones_no_leidas = Notificacion.query.filter(
+        Notificacion.rol_destinatario == 'Aprendiz',
+        Notificacion.visto == False
+    ).filter(
+        or_(
+            Notificacion.destinatario_id == aprendiz_obj.id_aprendiz,
+            Notificacion.destinatario_id == None  # solo si es global
+        )
+    ).count()
 
     # -----------------------------
     # Usuarios para mensajes (solo si es Aprendiz)
@@ -236,7 +286,7 @@ def dashboard_aprendiz(aprendiz_id):
         progreso_tiempo=progreso_tiempo,
         contrato=contrato,
         notificaciones_no_leidas=notificaciones_no_leidas,
-        es_aprendiz=es_aprendiz,  # variable segura para template
+        es_aprendiz=es_aprendiz,
         now=datetime.now(),
         usuarios=usuarios
     )
@@ -250,7 +300,7 @@ def dashboard_aprendiz(aprendiz_id):
 def editar_aprendiz(id):
     if id != current_user.id_aprendiz:
         flash("No puedes editar este perfil", "error")
-        return redirect(url_for('aprendiz_bp.dashboard_aprendiz'))
+        return redirect(url_for('aprendiz_bp.dashboard_aprendiz', aprendiz_id=current_user.id_aprendiz))
 
     aprendiz = Aprendiz.query.get_or_404(id)
     if request.method == 'POST':
@@ -278,12 +328,13 @@ def editar_aprendiz(id):
         try:
             db.session.commit()
             flash('Perfil actualizado correctamente.', 'modal')
-            return redirect(url_for('aprendiz_bp.dashboard_aprendiz'))
+            # Redireccionar al dashboard del aprendiz con su id
+            return redirect(url_for('aprendiz_bp.dashboard_aprendiz', aprendiz_id=aprendiz.id_aprendiz))
         except Exception as e:
             db.session.rollback()
             flash(f'Error: {str(e)}', 'danger')
 
-    return render_template('aprendiz/editar.html', aprendiz=aprendiz, now=datetime.now())
+    return render_template('perfil_aprendiz.html', aprendiz=aprendiz, mode='edit', rol_actual='Aprendiz', id_usuario=aprendiz.id_aprendiz, now=datetime.now())
 
 # -------------------------------
 # Eliminar aprendiz
@@ -398,20 +449,22 @@ def enviar_mensaje():
 @login_required
 @aprendiz_required
 def notificaciones():
-    # Página actual desde la query string
     pagina = request.args.get('pagina', 1, type=int)
-    per_page = 10  # Notificaciones por página
+    per_page = 10
 
-    # Query con filtro para aprendiz
+    # Filtrar notificaciones que sean individuales o globales
     pagination = Notificacion.query.filter(
         Notificacion.rol_destinatario == "Aprendiz",
-        or_(Notificacion.destinatario_id == current_user.id_aprendiz, Notificacion.destinatario_id == None)
-    ).order_by(Notificacion.fecha_creacion.desc()).paginate(page=pagina, per_page=per_page, error_out=False)
+        ((Notificacion.destinatario_id == current_user.id_aprendiz) |
+         (Notificacion.destinatario_id == None))
+    ).order_by(Notificacion.fecha_creacion.desc()).paginate(
+        page=pagina, per_page=per_page, error_out=False
+    )
 
     notificaciones = pagination.items
     total_paginas = pagination.pages
 
-    # Asignar remitente a cada notificación
+    # Asignar remitente
     for noti in notificaciones:
         noti.remitente_nombre = obtener_remitente(noti)
 
@@ -422,6 +475,7 @@ def notificaciones():
         total_paginas=total_paginas,
         now=datetime.now()
     )
+
 # -------------------------------
 # Ver notificación
 # -------------------------------
@@ -429,10 +483,11 @@ def notificaciones():
 @login_required
 @aprendiz_required
 def ver_notificacion(noti_id):
+    # Solo puede ver notificación que le pertenece
     noti = Notificacion.query.filter(
         Notificacion.id == noti_id,
         Notificacion.rol_destinatario == 'Aprendiz',
-        or_(Notificacion.destinatario_id == current_user.id_aprendiz, Notificacion.destinatario_id == None)
+        Notificacion.destinatario_id == current_user.id_aprendiz
     ).first_or_404()
 
     if not noti.visto:
@@ -449,7 +504,6 @@ def ver_notificacion(noti_id):
         now=datetime.now(),
         fecha_local=fecha_local
     )
-
 
 # -------------------------------
 # Responder notificación

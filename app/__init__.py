@@ -21,7 +21,7 @@ def create_app():
     login_manager.login_view = 'auth.login'
 
     # --- Importa modelos aquí para evitar import circular ---
-    from app.models.users import Aprendiz, Instructor, Coordinador, Administrador, Sede
+    from app.models.users import Aprendiz, Instructor, Coordinador, Administrador, Sede, Empresa, Contrato, Programa, Seguimiento, Evidencia, Notificacion
 
     # --- Importa Blueprints ---
     from app.routes.index_route import bp as index_bp
@@ -59,7 +59,12 @@ def create_app():
 
     # --- Crea tablas en la base de datos ---
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+            print("Conexión a la base de datos exitosa y tablas creadas.")
+        except Exception as e:
+            print(f"Error al conectar con la base de datos: {e}")
+            raise
 
     return app
 

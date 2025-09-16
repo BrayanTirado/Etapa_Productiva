@@ -48,6 +48,30 @@
                     <label for="celular" class="font-semibold text-gray-700">CELULAR</label>
                     <input type="tel" name="celular" id="celular" required pattern="[0-9]{10}" title="Debe contener 10 dígitos" class="w-full rounded-lg border p-2">
                 </div>
+
+                <div class="md:col-span-2">
+                    <label for="sede_id" class="font-semibold text-gray-700">SEDE</label>
+                    <select name="sede_id" id="sede_id" required oninput="filtrarOpciones(this)"
+                            class="w-full px-5 py-3 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-blue-500 shadow-sm">
+                        <option value="">Selecciona una sede o escribe para buscar</option>
+                        {% for option_value, option_text in [
+                            ('CGAO', 'CGAO - CENTRO DE GESTIÓN AGROEMPRESARIAL DEL ORIENTE'),
+                            ('CCS', 'CCS - CENTRO DE COMERCIO Y SERVICIOS'),
+                            ('CDM', 'CDM - CENTRO DE DISEÑO Y METROLOGÍA'),
+                            ('CGAF', 'CGAF - CENTRO DE GESTIÓN ADMINISTRATIVA Y FINANCIERA'),
+                            ('CGPI', 'CGPI - CENTRO DE GESTIÓN DE LA PRODUCCIÓN INDUSTRIAL'),
+                            ('CTIC', 'CTIC - CENTRO DE TECNOLOGÍA DE LA INFORMACIÓN Y COMUNICACIONES'),
+                            ('CBA', 'CBA - CENTRO DE BIOTECNOLOGÍA AGROPECUARIA'),
+                            ('CEM', 'CEM - CENTRO DE ENERGÍA Y MINAS'),
+                            ('CSF', 'CSF - CENTRO DE SERVICIOS FINANCIEROS'),
+                            ('CFGR', 'CFGR - CENTRO DE FORMACIÓN EN GESTIÓN DEL RIESGO')
+                        ] %}
+                        <option value="{{ option_text }}">
+                            {{ option_text }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
 
             <!-- Contraseña -->
@@ -63,8 +87,22 @@
         </form>
 
         <p class="mt-6 text-sm text-center text-gray-600">
-            ¿Ya tienes una cuenta? 
+            ¿Ya tienes una cuenta?
             <a href="{{ url_for('auth.login') }}" class="text-sena-primary font-semibold hover:text-sena-dark">Inicia sesión aquí</a>
         </p>
     </div>
+
+    <script>
+    function filtrarOpciones(select) {
+        const input = select.value.toLowerCase();
+        for (let i = 0; i < select.options.length; i++) {
+            const txt = select.options[i].text.toLowerCase();
+            if (txt.includes(input) || select.options[i].value === "") {
+                select.options[i].style.display = "";
+            } else {
+                select.options[i].style.display = "none";
+            }
+        }
+    }
+    </script>
 {% endblock %}

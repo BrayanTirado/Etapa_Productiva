@@ -74,40 +74,39 @@ def login():
 @bp.route('/dashboard')
 @login_required
 def dashboard():
-   if isinstance(current_user, Aprendiz):
-    aprendiz = current_user
-    total_requerido = 17
+    if isinstance(current_user, Aprendiz):
+        aprendiz = current_user
+        total_requerido = 17
 
-    # Contar solo evidencias realmente subidas
-    evidencias_subidas = (
-        db.session.query(Evidencia)
-        .filter_by(aprendiz_id_aprendiz=aprendiz.id_aprendiz)
-        .filter(Evidencia.fecha_subida.isnot(None), Evidencia.url_archivo != '')
-        .count()
-    )
+        # Contar solo evidencias realmente subidas
+        evidencias_subidas = (
+            db.session.query(Evidencia)
+            .filter_by(aprendiz_id_aprendiz=aprendiz.id_aprendiz)
+            .filter(Evidencia.fecha_subida.isnot(None), Evidencia.url_archivo != '')
+            .count()
+        )
 
-    progreso = int((evidencias_subidas / total_requerido) * 100) if total_requerido > 0 else 0
+        progreso = int((evidencias_subidas / total_requerido) * 100) if total_requerido > 0 else 0
 
-    contrato = aprendiz.contrato
-    progreso_tiempo = 0
-    if contrato and contrato.fecha_inicio and contrato.fecha_fin:
-        fecha_inicio = contrato.fecha_inicio.date() if hasattr(contrato.fecha_inicio, "date") else contrato.fecha_inicio
-        fecha_fin = contrato.fecha_fin.date() if hasattr(contrato.fecha_fin, "date") else contrato.fecha_fin
-        total_dias = (fecha_fin - fecha_inicio).days
-        dias_transcurridos = (date.today() - fecha_inicio).days
-        if total_dias > 0:
-            progreso_tiempo = round((dias_transcurridos / total_dias) * 100, 2)
-            progreso_tiempo = min(max(progreso_tiempo, 0), 100)
+        contrato = aprendiz.contrato
+        progreso_tiempo = 0
+        if contrato and contrato.fecha_inicio and contrato.fecha_fin:
+            fecha_inicio = contrato.fecha_inicio.date() if hasattr(contrato.fecha_inicio, "date") else contrato.fecha_inicio
+            fecha_fin = contrato.fecha_fin.date() if hasattr(contrato.fecha_fin, "date") else contrato.fecha_fin
+            total_dias = (fecha_fin - fecha_inicio).days
+            dias_transcurridos = (date.today() - fecha_inicio).days
+            if total_dias > 0:
+                progreso_tiempo = round((dias_transcurridos / total_dias) * 100, 2)
+                progreso_tiempo = min(max(progreso_tiempo, 0), 100)
 
         return render_template(
-        'dasboardh_aprendiz.html',
-        aprendiz=aprendiz,
-        progreso=progreso,
-        progreso_tiempo=progreso_tiempo,
-        contrato=contrato,
-        now=datetime.now()
-    )
-
+            'dasboardh_aprendiz.html',
+            aprendiz=aprendiz,
+            progreso=progreso,
+            progreso_tiempo=progreso_tiempo,
+            contrato=contrato,
+            now=datetime.now()
+        )
 
     elif isinstance(current_user, Instructor):
         aprendices_finalizan = (
@@ -154,6 +153,7 @@ def logout():
 # --- REGISTRO DE APRENDIZ ---
 @bp.route('/aprendiz', methods=['GET', 'POST'])
 def registro_aprendiz():
+    from app.models.users import Sede  # Importar Sede aquí
     if request.method == 'POST':
         nombre = request.form.get('nombre').strip()
         apellido = request.form.get('apellido').strip()
@@ -162,18 +162,47 @@ def registro_aprendiz():
         email = request.form.get('email').strip().lower()
         celular = request.form.get('celular').strip()
         password = request.form.get('password')
+        sede_nombre = request.form.get('sede_id')
 
-        if not all([nombre, apellido, tipo_documento, documento, email, celular, password]):
+        if not all([nombre, apellido, tipo_documento, documento, email, celular, password, sede_nombre]):
             flash('Todos los campos son obligatorios.', 'warning')
             return redirect(url_for('auth.registro_aprendiz'))
 
-        existe = Aprendiz.query.filter(
-            or_(Aprendiz.documento == documento,
-                Aprendiz.email == email,
-                Aprendiz.celular == celular)
-        ).first()
-        if existe:
-            flash('Error: Ya existe un aprendiz con ese documento, email o celular.', 'danger')
+        # Buscar la sede por nombre
+        sede = Sede.query.filter_by(nombre_sede=sede_nombre).first()
+        if not sede:
+            flash('La sede seleccionada no existe en el sistema.', 'danger')
+            return redirect(url_for('auth.registro_aprendiz'))
+
+        # Verificar unicidad global (todos los tipos de usuario)
+        from app.models.users import Administrador, Coordinador, Instructor
+
+        # Verificar documento en todos los modelos
+        documento_existe = (Aprendiz.query.filter_by(documento=documento).first() or
+                            Administrador.query.filter_by(documento=documento).first() or
+                            Coordinador.query.filter_by(documento=documento).first() or
+                            Instructor.query.filter_by(documento=documento).first())
+
+        # Verificar email (solo en modelos que tienen email)
+        email_existe = (Aprendiz.query.filter_by(email=email).first() or
+                        Coordinador.query.filter_by(correo=email).first() or
+                        Instructor.query.filter_by(correo_instructor=email).first())
+
+        # Verificar celular (solo en modelos que tienen celular)
+        celular_existe = (Aprendiz.query.filter_by(celular=celular).first() or
+                          Coordinador.query.filter_by(celular=celular).first() or
+                          Instructor.query.filter_by(celular_instructor=celular).first())
+
+        if documento_existe:
+            flash('Error: Ya existe un usuario con ese documento.', 'danger')
+            return redirect(url_for('auth.registro_aprendiz'))
+
+        if email_existe:
+            flash('Error: Ya existe un usuario con ese email.', 'danger')
+            return redirect(url_for('auth.registro_aprendiz'))
+
+        if celular_existe:
+            flash('Error: Ya existe un usuario con ese número de celular.', 'danger')
             return redirect(url_for('auth.registro_aprendiz'))
 
         hashed_password = generate_password_hash(password)
@@ -184,7 +213,8 @@ def registro_aprendiz():
             documento=documento,
             email=email,
             celular=celular,
-            password_aprendiz=hashed_password
+            password_aprendiz=hashed_password,
+            sede_id=sede.id_sede
         )
         try:
             db.session.add(nuevo)
@@ -196,12 +226,14 @@ def registro_aprendiz():
             flash(f'Error al crear el aprendiz: {str(e)}', 'danger')
             return redirect(url_for('auth.registro_aprendiz'))
 
-    return render_template('aprendiz.html', now=datetime.now())
+    sedes = Sede.query.all()
+    return render_template('aprendiz.html', sedes=sedes, now=datetime.now())
 
 
 # --- REGISTRO DE INSTRUCTOR ---
 @bp.route('/instructor', methods=['GET', 'POST'])
 def instructor():
+    from app.models.users import Sede  # Importar Sede aquí
     if request.method == 'POST':
         token_input = request.form.get('token').strip()
         nombre = request.form.get('nombre_instructor').strip()
@@ -211,9 +243,16 @@ def instructor():
         correo = request.form.get('correo_instructor').strip().lower()
         celular = request.form.get('celular_instructor').strip()
         password = request.form.get('password')
+        sede_nombre = request.form.get('sede_id')
 
-        if not all([token_input, nombre, apellido, tipo_documento, documento, correo, celular, password]):
+        if not all([token_input, nombre, apellido, tipo_documento, documento, correo, celular, password, sede_nombre]):
             flash('Todos los campos son obligatorios, incluido el token.', 'warning')
+            return redirect(url_for('auth.instructor'))
+
+        # Buscar la sede por nombre
+        sede = Sede.query.filter_by(nombre_sede=sede_nombre).first()
+        if not sede:
+            flash('La sede seleccionada no existe en el sistema.', 'danger')
             return redirect(url_for('auth.instructor'))
 
         # Verificar token válido
@@ -228,16 +267,41 @@ def instructor():
             flash("El token ha expirado.", "danger")
             return redirect(url_for('auth.instructor'))
 
-        existe = Instructor.query.filter(
-            or_(Instructor.documento == documento,
-                Instructor.correo_instructor == correo,
-                Instructor.celular_instructor == celular)
-        ).first()
-        if existe:
-            flash('Error: Ya existe un instructor con ese documento, correo o celular.', 'danger')
+        # Verificar unicidad global (todos los tipos de usuario)
+        from app.models.users import Administrador, Coordinador, Aprendiz
+
+        # Verificar documento en todos los modelos
+        documento_existe = (Instructor.query.filter_by(documento=documento).first() or
+                            Administrador.query.filter_by(documento=documento).first() or
+                            Coordinador.query.filter_by(documento=documento).first() or
+                            Aprendiz.query.filter_by(documento=documento).first())
+
+        # Verificar email (solo en modelos que tienen email)
+        email_existe = (Instructor.query.filter_by(correo_instructor=correo).first() or
+                        Coordinador.query.filter_by(correo=correo).first() or
+                        Aprendiz.query.filter_by(email=correo).first())
+
+        # Verificar celular (solo en modelos que tienen celular)
+        celular_existe = (Instructor.query.filter_by(celular_instructor=celular).first() or
+                          Coordinador.query.filter_by(celular=celular).first() or
+                          Aprendiz.query.filter_by(celular=celular).first())
+
+        if documento_existe:
+            flash('Error: Ya existe un usuario con ese documento.', 'danger')
+            return redirect(url_for('auth.instructor'))
+
+        if email_existe:
+            flash('Error: Ya existe un usuario con ese email.', 'danger')
+            return redirect(url_for('auth.instructor'))
+
+        if celular_existe:
+            flash('Error: Ya existe un usuario con ese número de celular.', 'danger')
             return redirect(url_for('auth.instructor'))
 
         hashed_password = generate_password_hash(password)
+        # Usar sede del formulario si se proporciona, sino la del token
+        sede_id_final = sede.id_sede if sede else token.sede_id
+
         nuevo = Instructor(
             nombre_instructor=nombre,
             apellido_instructor=apellido,
@@ -246,7 +310,8 @@ def instructor():
             correo_instructor=correo,
             celular_instructor=celular,
             password_instructor=hashed_password,
-            coordinador_id=token.coordinador_id
+            coordinador_id=token.coordinador_id,
+            sede_id=sede_id_final
         )
 
         try:
@@ -259,4 +324,5 @@ def instructor():
             flash(f'Error al crear el instructor: {str(e)}', 'danger')
             return redirect(url_for('auth.instructor'))
 
-    return render_template('instructor.html')
+    sedes = Sede.query.all()
+    return render_template('instructor.html', sedes=sedes)

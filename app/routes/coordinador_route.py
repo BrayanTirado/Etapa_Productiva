@@ -85,6 +85,13 @@ def registro():
             return render_template('coordinador/registro.html', now=datetime.now())
 
         password_hash = generate_password_hash(password)
+
+        # --- Obtener sede desde el token si el token la contiene ---
+        # soporta token_obj.sede_id o token_obj.id_sede (según cómo definiste la columna)
+        sede_from_token = getattr(token_obj, 'sede_id', None) or getattr(token_obj, 'id_sede', None)
+
+        # Si no quieres asignar sede automáticamente (coordinador la crea luego),
+        # deja sede_from_token = None. Aquí lo usamos solo si existe.
         coordinador = Coordinador(
             nombre=nombre,
             apellido=apellido,
@@ -92,16 +99,16 @@ def registro():
             documento=documento,
             correo=correo,
             celular=celular,
-            password=password_hash
+            password=password_hash,
+            sede_id=sede_from_token  # será None si el token no tiene sede
         )
 
         try:
             db.session.add(coordinador)
             token_obj.usado = True
             db.session.commit()
-            # ✅ Flash de éxito
             flash("Registro exitoso. Ahora inicia sesión", "success")
-            return render_template('coordinador/registro.html', now=datetime.now())  # Mostrar modal en la misma página
+            return render_template('coordinador/registro.html', now=datetime.now())
         except Exception as e:
             db.session.rollback()
             flash(f"Ocurrió un error al registrar: {str(e)}", "error")
@@ -146,42 +153,60 @@ def logout():
 @login_required
 @coordinador_required
 def dashboard():
-    sede_creada = current_user.sede
+    sede_creada = getattr(current_user, 'sede', None)
+
     notificaciones_no_leidas = Notificacion.query.filter_by(
-        rol_destinatario='Coordinador',
+        rol_destinatario="Coordinador",
         destinatario_id=current_user.id_coordinador,
         visto=False
     ).count() or 0
+
+    tokens = TokenInstructor.query.filter_by(coordinador_id=current_user.id_coordinador).all()
+
+    # Obtener filtro de sede
+    sede_filter = request.args.get('sede_filter')
+
+    # ✅ Filtrar instructores y aprendices por sede del coordinador o por filtro
+    instructores = []
+    aprendices = []
+    if sede_filter:
+        # Filtrar por sede seleccionada
+        instructores = Instructor.query.filter_by(sede_id=int(sede_filter)).all()
+        aprendices = Aprendiz.query.filter_by(sede_id=int(sede_filter)).all()
+    elif sede_creada:
+        # Filtrar por sede del coordinador
+        instructores = Instructor.query.filter_by(sede_id=sede_creada.id_sede).all()
+        aprendices = Aprendiz.query.filter_by(sede_id=sede_creada.id_sede).all()
+
+    # ✅ Administradores siempre van completos
     administradores = Administrador.query.all()
+
+    # Obtener todas las sedes para el filtro
+    from app.models.users import Sede
+    sedes = Sede.query.all()
+
     return render_template(
         'coordinador/dashboard_coordinador.html',
         sede_creada=sede_creada,
         notificaciones_no_leidas=notificaciones_no_leidas,
         roles=["Administrador", "Instructor", "Aprendiz"],
+        tokens=tokens,
+        now=datetime.now(),
+        instructores=instructores,
+        aprendices=aprendices,
         administradores=administradores,
-        now=datetime.now()
+        sedes=sedes
     )
 
-@bp.route('/dashboard/instructores')
-@login_required
-@coordinador_required
-def dashboard_instructores():
-    instructores = Instructor.query.filter_by(coordinador_id=current_user.id_coordinador).all()
-    return render_template(
-        'coordinador/listar_instructores.html',
-        instructores=instructores
-    )
+
 
 
 @bp.route('/listar_instructores')
 @login_required
 @coordinador_required
 def listar_instructores():
-    # Traemos todos los instructores de la base de datos
-    instructores = Instructor.query.all()
+    instructores = Instructor.query.filter_by(sede_id=current_user.sede_id).all()
     return render_template('coordinador/listar_instructores.html', instructores=instructores)
-
-
 
 # -------------------------------
 # Generación de token para instructores
@@ -195,13 +220,22 @@ def generar_token():
         token_str = secrets.token_urlsafe(8)
         fecha_expiracion = datetime.utcnow() + timedelta(days=dias_validos)
 
+        # ✅ Verificar que el coordinador tenga una sede asignada
+        if not current_user.sede_id:
+            flash("Error: Debes crear una sede primero antes de generar tokens para instructores.", "error")
+            return redirect(url_for('coordinador_bp.dashboard'))
+
+        # ✅ Incluir la sede_id del coordinador al generar el token
         token = TokenInstructor(
             token=token_str,
             fecha_expiracion=fecha_expiracion,
-            coordinador_id=current_user.id_coordinador
+            coordinador_id=current_user.id_coordinador,
+            sede_id=current_user.sede_id   # 🔑 hereda la sede del coordinador
         )
+
         db.session.add(token)
         db.session.commit()
+
         flash(f"Token generado: {token_str} (válido {dias_validos} días)", "success")
 
         enviar_notificacion(
@@ -220,7 +254,8 @@ def generar_token():
 @login_required
 @coordinador_required
 def asignar_aprendiz():
-    instructores = Instructor.query.all()
+    # Solo instructores de la misma sede
+    instructores = Instructor.query.filter_by(sede_id=current_user.sede_id).all()
     aprendices = []
     aprendices_asignados = []
     programa = None
@@ -229,21 +264,34 @@ def asignar_aprendiz():
     if ficha:
         programa = Programa.query.filter_by(ficha=ficha).first()
         if programa:
-            # Aprendices disponibles (sin asignar)
-            aprendices = Aprendiz.query.filter_by(
-                programa_id=programa.id_programa,
-                instructor_id=None
+            # Aprendices disponibles (sin asignar) de la misma sede o sin sede
+            aprendices = Aprendiz.query.filter(
+                Aprendiz.programa_id == programa.id_programa,
+                Aprendiz.instructor_id == None,
+                or_(Aprendiz.sede_id == current_user.sede_id, Aprendiz.sede_id == None)
             ).all()
 
-            # Aprendices ya asignados en esa ficha
+            # Aprendices ya asignados en esa ficha y sede
             aprendices_asignados = Aprendiz.query.filter(
                 Aprendiz.programa_id == programa.id_programa,
-                Aprendiz.instructor_id.isnot(None)
+                Aprendiz.instructor_id.isnot(None),
+                Aprendiz.sede_id == current_user.sede_id
             ).all()
     else:
-        aprendices = Aprendiz.query.filter_by(instructor_id=None).all()
-        aprendices_asignados = Aprendiz.query.filter(Aprendiz.instructor_id.isnot(None)).all()
+        # Sin ficha: mostrar todos los aprendices sin asignar de la sede o sin sede
+        aprendices = Aprendiz.query.filter(
+            Aprendiz.instructor_id == None,
+            or_(Aprendiz.sede_id == current_user.sede_id, Aprendiz.sede_id == None)
+        ).all()
 
+        aprendices_asignados = Aprendiz.query.filter(
+            Aprendiz.instructor_id.isnot(None),
+            Aprendiz.sede_id == current_user.sede_id
+        ).all()
+
+    # ------------------------------
+    # Procesar asignación (POST)
+    # ------------------------------
     if request.method == "POST":
         aprendiz_ids = request.form.getlist("aprendices")
         instructor_id = request.form.get("instructor_id")
@@ -252,15 +300,25 @@ def asignar_aprendiz():
             flash("Debes seleccionar al menos un aprendiz y un instructor", "warning")
             return redirect(url_for("coordinador_bp.asignar_aprendiz", ficha=ficha))
 
+        instructor = Instructor.query.get(int(instructor_id))
+        if not instructor or instructor.sede_id != current_user.sede_id:
+            flash("El instructor seleccionado no existe o no pertenece a tu sede", "error")
+            return redirect(url_for("coordinador_bp.asignar_aprendiz", ficha=ficha))
+
         for aprendiz_id in aprendiz_ids:
             aprendiz = Aprendiz.query.get(int(aprendiz_id))
             if aprendiz:
-                aprendiz.instructor_id = int(instructor_id)
+                # Al asignar, se asegura que el aprendiz quede con la sede del instructor
+                aprendiz.instructor_id = instructor.id_instructor
+                aprendiz.coordinador_id = instructor.coordinador_id
+                aprendiz.sede_id = instructor.sede_id  
+
                 db.session.add(aprendiz)
 
+                # Notificación al instructor
                 enviar_notificacion(
                     mensaje=f"Se te ha asignado un nuevo aprendiz: {aprendiz.nombre} {aprendiz.apellido}",
-                    destinatario_id=instructor_id,
+                    destinatario_id=instructor.id_instructor,
                     rol_destinatario="Instructor"
                 )
 
@@ -268,7 +326,19 @@ def asignar_aprendiz():
         flash("Aprendices asignados correctamente", "success")
         return redirect(url_for("coordinador_bp.asignar_aprendiz", ficha=ficha))
 
-    programas = Programa.query.group_by(Programa.ficha).all()
+    # ------------------------------
+    # Renderizar formulario (GET)
+    # ------------------------------
+    programas = (
+        Programa.query
+        .join(Aprendiz)
+        .filter(
+            Aprendiz.instructor_id == None,
+            or_(Aprendiz.sede_id == current_user.sede_id, Aprendiz.sede_id == None)
+        )
+        .group_by(Programa.id_programa)
+        .all()
+    )
 
     return render_template(
         "coordinador/asignar_aprendiz.html",
@@ -281,31 +351,91 @@ def asignar_aprendiz():
     )
 
 
-# -------------------------------
-# Enviar mensaje a un rol o usuario específico
-# -------------------------------
-@bp.route('/enviar_mensaje', methods=['POST'])
+
+@bp.route('/enviar_mensaje', methods=['GET', 'POST'])
 @login_required
 @coordinador_required
 def enviar_mensaje():
-    rol_destinatario = request.form.get('rol_destinatario')
-    destinatario_id = request.form.get('destinatario_id')
-    motivo = request.form.get('motivo')
-    mensaje = request.form.get('mensaje')
+    roles_disponibles = ["Administrador", "Instructor", "Aprendiz"]
 
-    if not rol_destinatario:
-        flash("Debes seleccionar un rol para enviar el mensaje.", "danger")
+    # ✅ Filtrar instructores y aprendices por sede del coordinador
+    sede_id = current_user.sede_id
+    administradores = Administrador.query.all()
+    instructores = Instructor.query.filter_by(sede_id=sede_id).all()
+    aprendices = Aprendiz.query.filter_by(sede_id=sede_id).all()
+
+    notificaciones_no_leidas = Notificacion.query.filter_by(
+        rol_destinatario="Coordinador",
+        destinatario_id=current_user.id_coordinador,
+        visto=False
+    ).count()
+
+    if request.method == 'POST':
+        rol_destinatario = request.form.get('rol_destinatario')
+        destinatario_id = request.form.get('destinatario_id')  # puede venir vacío
+        motivo = request.form.get('motivo')
+        mensaje = request.form.get('mensaje')
+
+        if not rol_destinatario:
+            flash("Debes seleccionar un rol para enviar el mensaje.", "danger")
+            return redirect(url_for('coordinador_bp.dashboard'))
+
+        # ✅ Caso 1: mensaje a un usuario específico
+        if destinatario_id:
+            destinatario_id = int(destinatario_id)
+
+            user = None
+            if rol_destinatario == "Administrador":
+                user = Administrador.query.get(destinatario_id)
+            elif rol_destinatario == "Instructor":
+                user = Instructor.query.filter_by(id_instructor=destinatario_id, sede_id=sede_id).first()
+            elif rol_destinatario == "Aprendiz":
+                user = Aprendiz.query.filter_by(id_aprendiz=destinatario_id, sede_id=sede_id).first()
+
+            if user:
+                # Determinar nombre completo según rol
+                if rol_destinatario == "Instructor":
+                    nombre_completo = f"{user.nombre_instructor} {user.apellido_instructor}"
+                elif rol_destinatario == "Administrador":
+                    nombre_completo = f"{user.nombre} {user.apellido}"
+                else:  # Aprendiz
+                    nombre_completo = f"{user.nombre} {user.apellido}"
+
+                enviar_notificacion(
+                    mensaje=f"[{motivo}] {mensaje}",
+                    destinatario_id=destinatario_id,
+                    rol_destinatario=rol_destinatario
+                )
+                flash(
+                    f"Notificación enviada con éxito a {nombre_completo} ({rol_destinatario}).",
+                    "success"
+                )
+            else:
+                flash("El destinatario no existe o no pertenece a tu sede.", "danger")
+
+        # ✅ Caso 2: mensaje general al rol completo
+        else:
+            enviar_notificacion(
+                mensaje=f"[{motivo}] {mensaje}",
+                destinatario_id=None,  # 👈 general
+                rol_destinatario=rol_destinatario
+            )
+            flash(f"Notificación general enviada a todos los {rol_destinatario.lower()}s.", "success")
+
         return redirect(url_for('coordinador_bp.dashboard'))
 
-    destinatario_id = int(destinatario_id) if destinatario_id else None
-
-    enviar_notificacion(
-        mensaje=f"[{motivo}] {mensaje}",
-        destinatario_id=destinatario_id,
-        rol_destinatario=rol_destinatario
+    return render_template(
+        'coordinador/dashboard.html',
+        roles=roles_disponibles,
+        administradores=administradores,
+        instructores=instructores,
+        aprendices=aprendices,
+        notificaciones_no_leidas=notificaciones_no_leidas,
+        sede_creada=current_user.sede,  # mostrar la sede registrada
+        now=datetime.now(),
+        coordinador_nombre=f"{current_user.nombre} {current_user.apellido}"
     )
-    flash("Notificación enviada correctamente.", "success")
-    return redirect(url_for('coordinador_bp.dashboard'))
+
 
 
 # -------------------------------
@@ -473,61 +603,135 @@ def marcar_todas_notificaciones():
     return "", 200
 
 # -------------------------------
-# Crear sede
+# Editar perfil coordinador
+# -------------------------------
+@bp.route('/editar_perfil', methods=['GET', 'POST'])
+@login_required
+@coordinador_required
+def editar_perfil():
+    if request.method == 'POST':
+        nombre = request.form.get('nombre').strip()
+        apellido = request.form.get('apellido').strip()
+        tipo_documento = request.form.get('tipo_documento').strip()
+        documento = request.form.get('documento').strip()
+        correo = request.form.get('correo').strip().lower()
+        celular = request.form.get('celular').strip()
+        password = request.form.get('password')
+
+        if not all([nombre, apellido, tipo_documento, documento, correo, celular]):
+            flash('Faltan campos obligatorios.', 'warning')
+            return redirect(url_for('coordinador_bp.editar_perfil'))
+
+        # Verificar si documento o correo ya existen en otro coordinador
+        existing_coordinador = Coordinador.query.filter(
+            (Coordinador.documento == documento) | (Coordinador.correo == correo)
+        ).filter(Coordinador.id_coordinador != current_user.id_coordinador).first()
+
+        if existing_coordinador:
+            flash('Documento o correo ya están en uso por otro coordinador.', 'danger')
+            return redirect(url_for('coordinador_bp.editar_perfil'))
+
+        # Actualizar datos
+        current_user.nombre = nombre
+        current_user.apellido = apellido
+        current_user.tipo_documento = tipo_documento
+        current_user.documento = documento
+        current_user.correo = correo
+        current_user.celular = celular
+
+        if password:
+            from werkzeug.security import generate_password_hash
+            current_user.password = generate_password_hash(password)
+
+        try:
+            db.session.commit()
+            flash('Perfil actualizado correctamente.', 'success')
+            return redirect(url_for('coordinador_bp.dashboard'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al actualizar perfil: {str(e)}', 'danger')
+
+    return render_template('coordinador/editar_perfil.html', coordinador=current_user, now=datetime.now())
+
+# -------------------------------
+# Crear/Editar sede
 # -------------------------------
 @bp.route('/crear_sede', methods=['GET', 'POST'])
 @login_required
 @coordinador_required
 def crear_sede():
+    # Lista de sedes definidas en el Enum
+    opciones_sede = Sede.__table__.columns['nombre_sede'].type.enums  
+
+    sede_existente = getattr(current_user, 'sede', None)
+
     if request.method == 'POST':
-        nombre = request.form.get('nombre')
+        nombre_sede = request.form.get('nombre_sede')
         ciudad = request.form.get('ciudad')
         token_input = request.form.get('token')
 
-        if not all([nombre, ciudad, token_input]):
-            flash("Token, nombre y ciudad son obligatorios", "error")
-            return render_template('crear_sede.html', now=datetime.now())
+        if sede_existente:
+            # --- MODO EDICIÓN ---
+            if not all([nombre_sede, ciudad]):
+                flash("Nombre de sede y ciudad son obligatorios", "error")
+                return render_template('crear_sede.html', sede=sede_existente, modo='editar',
+                                       opciones_sede=opciones_sede, now=datetime.now())
 
-        # Validar token
-        token_obj = TokenCoordinador.query.filter_by(token=token_input).first()
-        if not token_obj:
-            flash("Token inválido", "error")
-            return render_template('crear_sede.html', now=datetime.now())
+            try:
+                sede_existente.nombre_sede = nombre_sede
+                sede_existente.ciudad = ciudad
+                db.session.commit()
 
-        # Verificar que ya fue usado por el coordinador
-        if not token_obj.usado:
-            flash("El token aún no ha sido usado para registrar el coordinador", "error")
-            return render_template('crear_sede.html', now=datetime.now())
+                flash(f"Sede '{sede_existente.nombre_sede}' actualizada exitosamente.", "success")
+                return redirect(url_for('coordinador_bp.dashboard'))
 
-        # Verificar si ya fue usado para crear una sede
-        if getattr(token_obj, 'usado_para_sede', False):
-            flash("Este token ya se ha usado para registrar una sede", "error")
-            return render_template('crear_sede.html', now=datetime.now())
+            except Exception as e:
+                db.session.rollback()
+                flash(f"Ocurrió un error al actualizar la sede: {str(e)}", "error")
+                return render_template('crear_sede.html', sede=sede_existente, modo='editar',
+                                       opciones_sede=opciones_sede, now=datetime.now())
 
-        # Crear sede
-        sede = Sede(
-            nombre=nombre,
-            ciudad=ciudad
-        )
+        else:
+            # --- MODO CREACIÓN ---
+            if not all([nombre_sede, ciudad, token_input]):
+                flash("Token, nombre de sede y ciudad son obligatorios", "error")
+                return render_template('crear_sede.html', opciones_sede=opciones_sede, now=datetime.now())
 
-        try:
-            db.session.add(sede)
-            db.session.flush()  # Flush para generar el ID de la sede antes de asignar
+            token_obj = TokenCoordinador.query.filter_by(token=token_input).first()
+            if not token_obj:
+                flash("Token inválido", "error")
+                return render_template('crear_sede.html', opciones_sede=opciones_sede, now=datetime.now())
 
-            # Asignar la sede al coordinador actual
-            current_user.sede_id = sede.id_sede  # O alternativamente: current_user.sede = sede
-            # Si usas la relación: sede.coordinadores.append(current_user)
+            if not token_obj.usado:
+                flash("El token aún no ha sido usado para registrar al coordinador", "error")
+                return render_template('crear_sede.html', opciones_sede=opciones_sede, now=datetime.now())
 
-            # Marcar token como usado para sede
-            token_obj.usado_para_sede = True
-            db.session.commit()
+            if getattr(token_obj, 'usado_para_sede', False):
+                flash("Este token ya se ha usado para registrar una sede", "error")
+                return render_template('crear_sede.html', opciones_sede=opciones_sede, now=datetime.now())
 
-            # Flash de éxito
-            flash(f"Sede '{sede.nombre}' en '{sede.ciudad}' creada exitosamente. Coordinador asignado automáticamente.", "success_sede")
-            return redirect(url_for('coordinador_bp.crear_sede'))  # redirige a mismo form
-        except Exception as e:
-            db.session.rollback()
-            flash(f"Ocurrió un error al registrar la sede: {str(e)}", "error")
-            return render_template('crear_sede.html', now=datetime.now())
+            try:
+                sede = Sede(nombre_sede=nombre_sede, ciudad=ciudad)
+                db.session.add(sede)
+                db.session.commit()
 
-    return render_template('crear_sede.html', now=datetime.now())
+                current_user.sede_id = sede.id_sede
+                token_obj.usado_para_sede = True
+                db.session.add(current_user)
+                db.session.commit()
+
+                flash(f"Sede '{sede.nombre_sede}' creada exitosamente.", "success")
+                return redirect(url_for('coordinador_bp.dashboard'))
+
+            except Exception as e:
+                db.session.rollback()
+                flash(f"Ocurrió un error al registrar la sede: {str(e)}", "error")
+                return render_template('crear_sede.html', opciones_sede=opciones_sede, now=datetime.now())
+
+    # GET → renderizar formulario
+    if sede_existente:
+        return render_template('crear_sede.html', sede=sede_existente, modo='editar',
+                               opciones_sede=opciones_sede, now=datetime.now())
+    else:
+        return render_template('crear_sede.html', opciones_sede=opciones_sede, now=datetime.now())
+

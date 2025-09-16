@@ -14,6 +14,11 @@
 
   <!-- Botones a la derecha -->
   <div class="absolute right-0 flex items-center gap-4">
+    <!-- Editar Perfil -->
+    <a href="{{ url_for('adm_bp.editar_perfil') }}" class="btn-sena-secondary">
+      Editar Perfil
+    </a>
+
     <!-- Campana -->
     <a href="{{ url_for('adm_bp.notificaciones') }}" class="relative text-2xl">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-sena-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">

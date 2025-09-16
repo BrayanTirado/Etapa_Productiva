@@ -53,7 +53,7 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 .btn-sena-primary {
-    background-color: #0369a1;
+    background-color: #39A900;
     color:white;
     padding:12px;
     border-radius:8px;
@@ -61,16 +61,16 @@
     text-align:center;
     transition:0.3s;
 }
-.btn-sena-primary:hover { background-color: #075985; }
+.btn-sena-primary:hover { background-color: #2E7D32; }
 .btn-sena-secondary {
-    background-color: #64748b;
+    background-color: #8BC34A;
     color:white;
     padding:12px;
     border-radius:8px;
     font-weight:600;
     text-align:center;
 }
-.btn-sena-secondary:hover { background-color: #475569; }
+.btn-sena-secondary:hover { background-color: #689F38; }
 .form-sena .form-select, .form-sena .form-textarea {
     width: 100%;
     padding:10px;
@@ -110,20 +110,20 @@
             <div class="flex items-center space-x-4 mt-4 md:mt-0">
                 <!-- Campana de notificaciones -->
                 <div class="relative">
-                    <a href="{{ url_for('instructor_bp.notificaciones') }}" class="text-gray-700 hover:text-gray-900">
+                    <a href="{{ url_for('instructor_bp.notificaciones') }}" class="text-sena-primary hover:text-sena-dark">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3c0 .386-.149.735-.395 1.001L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                         </svg>
                         {% if notificaciones_no_leidas > 0 %}
-                        <span class="absolute top-0 right-0 inline-block w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full text-center">
+                        <span class="absolute -top-1 -right-1 inline-block w-5 h-5 bg-sena-primary text-white text-xs font-bold rounded-full text-center border-2 border-white">
                             {{ notificaciones_no_leidas }}
                         </span>
                         {% endif %}
                     </a>
                 </div>
 
-                <a href="{{ url_for('auth.logout') }}" class="btn-sena-secondary px-4 py-2 rounded-md">Cerrar Sesión</a>
+                <a href="{{ url_for('auth.logout') }}" class="btn-sena-danger">Cerrar Sesión</a>
             </div>
         </div>
     </div>
@@ -156,6 +156,21 @@
                 <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div class="text-sena-secondary">Sáb</div><div class="text-sena-secondary">Dom</div>
             </div>
             <div id="calendario" class="grid gap-2"></div>
+
+            <!-- Leyenda del calendario -->
+            <div class="mt-4 p-3 bg-gray-50 rounded-lg">
+                <h4 class="text-sm font-semibold text-gray-700 mb-2">Leyenda:</h4>
+                <div class="flex flex-wrap gap-4 text-xs">
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 bg-sena-primary rounded-full"></div>
+                        <span>Hoy</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 bg-green-400 rounded"></div>
+                        <span>Fin de etapa productiva</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Botones de acceso -->
@@ -237,7 +252,6 @@
         </div>
     </div>
 </footer>
-
 <script>
 // Calendario
 const calendario = document.getElementById("calendario");
@@ -254,68 +268,108 @@ let fechaHoy = new Date();
 let mesActual = fechaHoy.getMonth();
 let añoActual = fechaHoy.getFullYear();
 
-for(let i=añoActual-50;i<=añoActual+50;i++){
+for (let i = añoActual - 50; i <= añoActual + 50; i++) {
     const option = document.createElement("option");
-    option.value=i;
-    option.textContent=i;
+    option.value = i;
+    option.textContent = i;
     anioSelect.appendChild(option);
 }
 anioSelect.value = añoActual;
 
 const eventos = {{ eventos|tojson }};
 
-function generarCalendario(mes){
-    calendario.innerHTML="";
-    const primerDia = new Date(añoActual, mes,1).getDay();
-    const diasMes = new Date(añoActual, mes+1,0).getDate();
-    let inicio = primerDia===0?6:primerDia-1;
-    for(let i=0;i<inicio;i++){
-        const div=document.createElement("div");
-        div.className="p-2 border border-gray-100";
+function generarCalendario(mes) {
+    calendario.innerHTML = "";
+    const primerDia = new Date(añoActual, mes, 1).getDay();
+    const diasMes = new Date(añoActual, mes + 1, 0).getDate();
+    let inicio = primerDia === 0 ? 6 : primerDia - 1;
+
+    for (let i = 0; i < inicio; i++) {
+        const div = document.createElement("div");
+        div.className = "p-2 border border-gray-100";
         calendario.appendChild(div);
     }
-    for(let d=1;d<=diasMes;d++){
-        const div=document.createElement("div");
-        div.textContent=d;
-        div.className="p-2 border border-gray-200 hover:bg-blue-100 cursor-pointer rounded-lg";
-        if(mes===fechaHoy.getMonth() && d===fechaHoy.getDate() && añoActual===fechaHoy.getFullYear()){
-            div.classList.add("bg-blue-500","text-white","font-bold","shadow-md");
+
+    for (let d = 1; d <= diasMes; d++) {
+        const div = document.createElement("div");
+        div.textContent = d;
+        div.className = "p-2 border border-gray-200 hover:bg-blue-100 cursor-pointer rounded-lg";
+
+        if (mes === fechaHoy.getMonth() && d === fechaHoy.getDate() && añoActual === fechaHoy.getFullYear()) {
+            div.classList.add("bg-sena-primary", "text-white", "font-bold", "shadow-md", "rounded-full", "w-8", "h-8", "flex", "items-center", "justify-center", "mx-auto");
         }
-        const pos=inicio+d-1;
-        if(pos%7===5||pos%7===6) div.classList.add("text-red-600","font-semibold");
-        const eventosDelDia = eventos.filter(e => e.fecha_fin===`${añoActual}-${String(mes+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`);
-        if(eventosDelDia.length>0){
-            div.classList.add("bg-green-400","text-white","font-bold","shadow-md");
-            div.title = eventosDelDia.map(e=>`Nombre: ${e.nombre}\nFicha: ${e.ficha}\nInicio: ${e.fecha_inicio}\nFin: ${e.fecha_fin}`).join("\n\n");
-            div.addEventListener("click",()=>abrirModal("Detalles del Aprendiz", eventosDelDia.map(e=>`<p><strong>Nombre:</strong> ${e.nombre}</p><p><strong>Ficha:</strong> ${e.ficha}</p><p><strong>Inicio:</strong> ${e.fecha_inicio}</p><p><strong>Fin:</strong> ${e.fecha_fin}</p>`).join("<hr>")));
+
+        const pos = inicio + d - 1;
+        if (pos % 7 === 5 || pos % 7 === 6) div.classList.add("text-red-600", "font-semibold");
+
+        // --- Normalizar fecha del día ---
+        const fechaDiaObj = new Date(añoActual, mes, d);
+        fechaDiaObj.setHours(0,0,0,0);
+
+        // --- Buscar eventos que caigan en este día (solo el día exacto) ---
+        const eventosDelDia = eventos.filter(e => {
+            // Parseamos la fecha de forma segura como YYYY-MM-DD para evitar desplazamientos por zona horaria
+            let fechaFin;
+            if (typeof e.fecha_fin === 'string') {
+                // si viene con hora (ej. "2025-09-29T00:00:00") cortamos la parte de la fecha
+                const fechaStr = e.fecha_fin.split('T')[0];
+                const parts = fechaStr.split('-');
+                if (parts.length >= 3) {
+                    fechaFin = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                } else {
+                    fechaFin = new Date(e.fecha_fin);
+                }
+            } else {
+                fechaFin = new Date(e.fecha_fin);
+            }
+
+            fechaFin.setHours(0,0,0,0); // normalizar fecha fin a medianoche local
+            return fechaDiaObj.getTime() === fechaFin.getTime(); // ✅ solo el día exacto
+        });
+
+        if (eventosDelDia.length > 0) {
+            div.classList.add("bg-green-400", "text-white", "font-bold", "shadow-md");
+            div.title = eventosDelDia.map(e =>
+                `Nombre: ${e.nombre}\nFicha: ${e.ficha}\nInicio: ${e.fecha_inicio}\nFin: ${e.fecha_fin}`
+            ).join("\n\n");
+
+            div.addEventListener("click", () =>
+                abrirModal("Detalles del Aprendiz", eventosDelDia.map(e =>
+                    `<p><strong>Nombre:</strong> ${e.nombre}</p>
+                     <p><strong>Ficha:</strong> ${e.ficha}</p>
+                     <p><strong>Inicio:</strong> ${e.fecha_inicio}</p>
+                     <p><strong>Fin:</strong> ${e.fecha_fin}</p>`
+                ).join("<hr>"))
+            );
         }
+
         calendario.appendChild(div);
     }
 }
 
-function abrirModal(titulo, contenido){
+function abrirModal(titulo, contenido) {
     modal.querySelector("h3").textContent = titulo;
-    modalBody.innerHTML=contenido;
-    modal.style.display="flex";
+    modalBody.innerHTML = contenido;
+    modal.style.display = "flex";
 }
-function cerrarModal(){ modal.style.display="none"; }
+function cerrarModal() { modal.style.display = "none"; }
 
-mesSelect.addEventListener("change",()=>{ mesActual=parseInt(mesSelect.value); generarCalendario(mesActual); });
-anioSelect.addEventListener("change",()=>{ añoActual=parseInt(anioSelect.value); generarCalendario(mesActual); });
-btnMesAnterior.addEventListener("click",()=>{ mesActual=(mesActual-1+12)%12; if(mesActual===11)añoActual--; mesSelect.value=mesActual; anioSelect.value=añoActual; generarCalendario(mesActual); });
-btnMesSiguiente.addEventListener("click",()=>{ mesActual=(mesActual+1)%12; if(mesActual===0)añoActual++; mesSelect.value=mesActual; anioSelect.value=añoActual; generarCalendario(mesActual); });
-btnAnioAnterior.addEventListener("click",()=>{ añoActual--; anioSelect.value=añoActual; generarCalendario(mesActual); });
-btnAnioSiguiente.addEventListener("click",()=>{ añoActual++; anioSelect.value=añoActual; generarCalendario(mesActual); });
+mesSelect.addEventListener("change", () => { mesActual = parseInt(mesSelect.value); generarCalendario(mesActual); });
+anioSelect.addEventListener("change", () => { añoActual = parseInt(anioSelect.value); generarCalendario(mesActual); });
+btnMesAnterior.addEventListener("click", () => { mesActual = (mesActual - 1 + 12) % 12; if (mesActual === 11) añoActual--; mesSelect.value = mesActual; anioSelect.value = añoActual; generarCalendario(mesActual); });
+btnMesSiguiente.addEventListener("click", () => { mesActual = (mesActual + 1) % 12; if (mesActual === 0) añoActual++; mesSelect.value = mesActual; anioSelect.value = añoActual; generarCalendario(mesActual); });
+btnAnioAnterior.addEventListener("click", () => { añoActual--; anioSelect.value = añoActual; generarCalendario(mesActual); });
+btnAnioSiguiente.addEventListener("click", () => { añoActual++; anioSelect.value = añoActual; generarCalendario(mesActual); });
 
-mesSelect.value=mesActual;
+mesSelect.value = mesActual;
 generarCalendario(mesActual);
-window.addEventListener("click",(event)=>{ if(event.target===modal)cerrarModal(); });
+window.addEventListener("click", (event) => { if (event.target === modal) cerrarModal(); });
 
 // Flash messages en modal
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
-    {% for category,message in messages %}
-      abrirModal("{{ category|capitalize }}","{{ message|safe }}");
+    {% for category, message in messages %}
+      abrirModal("{{ category|capitalize }}", "{{ message|safe }}");
     {% endfor %}
   {% endif %}
 {% endwith %}
@@ -324,15 +378,16 @@ window.addEventListener("click",(event)=>{ if(event.target===modal)cerrarModal()
 const rolSelect = document.getElementById('rol_destinatario');
 const destinatarioSelect = document.getElementById('destinatario_id');
 
-rolSelect.addEventListener('change',()=>{
+rolSelect.addEventListener('change', () => {
     const rol = rolSelect.value;
-    for(const option of destinatarioSelect.options){
-        if(option.value===""){ option.style.display='block'; continue; }
-        if(option.classList.contains(rol.toLowerCase())) option.style.display='block';
-        else option.style.display='none';
+    for (const option of destinatarioSelect.options) {
+        if (option.value === "") { option.style.display = 'block'; continue; }
+        if (option.classList.contains(rol.toLowerCase())) option.style.display = 'block';
+        else option.style.display = 'none';
     }
-    destinatarioSelect.value="";
+    destinatarioSelect.value = "";
 });
 </script>
+
 
 {% endblock %}

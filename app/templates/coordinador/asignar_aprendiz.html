@@ -4,16 +4,23 @@
   <meta charset="UTF-8">
   <title>Asignar Aprendices</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Colores oficiales del SENA */
+    .sena-primary { background-color: #009639; border-color: #009639; }
+    .sena-dark { background-color: #007a2f; border-color: #007a2f; }
+    .sena-secondary { background-color: #00b050; border-color: #00b050; }
+    .sena-text { color: #009639; }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen p-6">
+<body class="bg-gray-50 min-h-screen p-6">
 
-  <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
-    <h1 class="text-2xl font-bold mb-6">Asignar Aprendices a Instructores</h1>
+<div class="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-lg border border-green-600">
+  <h1 class="text-2xl font-bold mb-6 sena-text">Asignar Aprendices a Instructores</h1>
 
-    <!-- FILTRO POR FICHA (ASIGNACIÓN NORMAL) -->
-    <form method="GET" action="{{ url_for('coordinador_bp.asignar_aprendiz') }}" class="mb-6">
-      <label for="ficha" class="block text-gray-700 font-medium mb-2">Filtrar por ficha para asignar</label>
-      <select id="ficha" name="ficha" onchange="this.form.submit()" class="w-full border rounded px-3 py-2">
+  <!-- FILTRO POR FICHA (ASIGNACIÓN NORMAL) -->
+  <form method="GET" action="{{ url_for('coordinador_bp.asignar_aprendiz') }}" class="mb-6">
+    <label for="ficha" class="block text-green-900 font-medium mb-2">Filtrar por ficha para asignar</label>
+    <select id="ficha" name="ficha" onchange="this.form.submit()" class="w-full border border-green-600 rounded-md px-3 py-2 focus:ring-green-500 focus:border-green-500">
         <option value="">-- Seleccione una ficha --</option>
         {% for prog in programas %}
           <option value="{{ prog.ficha }}" 
@@ -22,137 +29,160 @@
           </option>
         {% endfor %}
       </select>
-    </form>
+  </form>
 
-    {% if programa %}
-      <h2 class="text-xl font-semibold mb-4">Aprendices de la ficha {{ programa.ficha }} - {{ programa.nombre_programa }}</h2>
+  {% if programa %}
+    <h2 class="text-xl font-semibold mb-4 text-green-900">Aprendices de la ficha {{ programa.ficha }} - {{ programa.nombre_programa }}</h2>
 
-      <!-- FORM PARA ASIGNAR APRENDICES -->
-      <form method="POST" action="{{ url_for('coordinador_bp.asignar_aprendiz', ficha=programa.ficha) }}">
-        
-        <!-- JORNADAS -->
-        {% for jornada in ["Mañana", "Tarde", "Noche"] %}
-          <h3 class="text-lg font-medium mt-6 mb-2">{{ jornada }}</h3>
-          <table class="min-w-full border border-gray-300 mb-4">
-            <thead>
-              <tr class="bg-gray-200">
-                <th class="border px-3 py-2">Nombre</th>
-                <th class="border px-3 py-2">Apellido</th>
-                <th class="border px-3 py-2 text-center">Jornada</th>
-                <th class="border px-3 py-2 text-center">Seleccionar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% set aprendices_jornada = [] %}
-              {% for ap in aprendices %}
-                {% if ap.programa.jornada == jornada %}
-                  {% set _ = aprendices_jornada.append(ap) %}
-                  <tr>
-                    <td class="border px-3 py-2">{{ ap.nombre}}</td>
-                    <td class="border px-3 py-2">{{ ap.apellido}}</td>
-                    <td class="border px-3 py-2 text-center">{{ ap.programa.jornada }}</td>
-                    <td class="border px-3 py-2 text-center">
-                      <input type="checkbox" name="aprendices" value="{{ ap.id_aprendiz }}">
-                    </td>
-                  </tr>
-                {% endif %}
-              {% endfor %}
-              {% if aprendices_jornada|length == 0 %}
-                <tr class="bg-gray-50">
-                  <td colspan="4" class="border px-3 py-2 text-center text-gray-500">No hay aprendices en esta jornada</td>
-                </tr>
-              {% endif %}
-            </tbody>
-          </table>
-        {% endfor %}
-
-        <!-- LISTA DE INSTRUCTORES -->
-        <h2 class="text-xl font-semibold mt-8 mb-4">Asignar a un instructor</h2>
-        <div class="space-y-2">
-          {% for inst in instructores %}
-            <div class="flex justify-between items-center border rounded px-3 py-2 bg-gray-100">
-              <span>{{ inst.nombre_instructor }} {{ inst.apellido_instructor }}</span>
-              <button type="submit" name="instructor_id" value="{{ inst.id_instructor }}"
-                      class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">
-                Asignar aprendices
-              </button>
-            </div>
-          {% endfor %}
-        </div>
-
-        <div class="mt-6">
-          <a href="{{ url_for('coordinador_bp.dashboard') }}" 
-             class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
-            Volver al Dashboard
-          </a>
-        </div>
-      </form>
-    {% endif %}
-
-    <!-- LISTA GLOBAL DE APRENDICES ASIGNADOS -->
-    <div class="mt-12">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-2xl font-bold">Lista global de aprendices asignados</h2>
-        <button onclick="document.getElementById('tabla_asignados').classList.toggle('hidden')" 
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-          Mostrar aprendices asignados
-        </button>
-      </div>
-
-      <div id="tabla_asignados" class="hidden">
-        <!-- Buscador -->
-        <input type="text" id="filtro" placeholder="Buscar por nombre, apellido, documento o ficha"
-               class="w-full p-2 border rounded mb-4">
-
-        <!-- Tabla -->
-        <div class="overflow-x-auto">
-          <table class="w-full border text-sm">
-            <thead class="bg-gray-200">
-              <tr>
-                <th class="p-2 border">Documento</th>
-                <th class="p-2 border">Nombre</th>
-                <th class="p-2 border">Apellido</th>
-                <th class="p-2 border">Ficha</th>
-                <th class="p-2 border">Instructor asignado</th>
-              </tr>
-            </thead>
-            <tbody id="tabla-body">
-              {% if aprendices_asignados %}
-                {% for a in aprendices_asignados %}
+    <!-- FORM PARA ASIGNAR APRENDICES -->
+    <form method="POST" action="{{ url_for('coordinador_bp.asignar_aprendiz', ficha=programa.ficha) }}">
+      
+      <!-- JORNADAS -->
+      {% for jornada in ["Mañana", "Tarde", "Noche"] %}
+        <h3 class="text-lg font-medium mt-6 mb-2 text-green-800">{{ jornada }}</h3>
+        <table class="min-w-full border border-green-600 mb-4 rounded-lg overflow-hidden">
+          <thead>
+            <tr class="bg-green-600 text-white">
+              <th class="border border-green-600 px-3 py-2">Nombre</th>
+              <th class="border border-green-600 px-3 py-2">Apellido</th>
+              <th class="border border-green-600 px-3 py-2 text-center">Jornada</th>
+              <th class="border border-green-600 px-3 py-2 text-center">Seleccionar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% set aprendices_jornada = [] %}
+            {% for ap in aprendices %}
+              {% if ap.programa.jornada == jornada %}
+                {% set _ = aprendices_jornada.append(ap) %}
                 <tr>
-                  <td class="p-2 border">{{ a.documento }}</td>
-                  <td class="p-2 border">{{ a.nombre }}</td>
-                  <td class="p-2 border">{{ a.apellido }}</td>
-                  <td class="p-2 border">{{ a.programa.ficha }}</td>
-                  <td class="p-2 border">
-                    {{ a.instructor.nombre_instructor }} {{ a.instructor.apellido_instructor }}
+                  <td class="border px-3 py-2">{{ ap.nombre}}</td>
+                  <td class="border px-3 py-2">{{ ap.apellido}}</td>
+                  <td class="border px-3 py-2 text-center">{{ ap.programa.jornada }}</td>
+                  <td class="border px-3 py-2 text-center">
+                    <input type="checkbox" name="aprendices" value="{{ ap.id_aprendiz }}">
                   </td>
                 </tr>
-                {% endfor %}
-              {% else %}
-                <tr>
-                  <td colspan="5" class="p-2 border text-center text-gray-500">No hay aprendices asignados</td>
-                </tr>
               {% endif %}
-            </tbody>
-          </table>
-        </div>
+            {% endfor %}
+            {% if aprendices_jornada|length == 0 %}
+              <tr class="bg-green-50">
+                <td colspan="4" class="border px-3 py-2 text-center text-green-700">No hay aprendices en esta jornada</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      {% endfor %}
+
+      <!-- LISTA DE INSTRUCTORES -->
+      <h2 class="text-xl font-semibold mt-8 mb-4 text-green-900">Asignar a un instructor</h2>
+      <div class="space-y-2">
+        {% for inst in instructores %}
+          <div class="flex justify-between items-center border border-green-600 rounded-md px-3 py-2 bg-green-50 hover:bg-green-100 transition-colors">
+            <span class="text-green-900">{{ inst.nombre_instructor }} {{ inst.apellido_instructor }}</span>
+            <button type="submit" name="instructor_id" value="{{ inst.id_instructor }}"
+                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors border border-green-600">
+              Asignar aprendices
+            </button>
+          </div>
+        {% endfor %}
       </div>
+
+      <div class="mt-6">
+        <a href="{{ url_for('coordinador_bp.dashboard') }}"
+           class="bg-green-500 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors border border-green-500 inline-block">
+          Volver al Dashboard
+        </a>
+      </div>
+    </form>
+  {% endif %}
+
+  <!-- LISTA GLOBAL DE APRENDICES ASIGNADOS -->
+  <div class="mt-12">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold text-green-900">Lista global de aprendices asignados</h2>
+      <button onclick="document.getElementById('tabla_asignados').classList.toggle('hidden')"
+              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+        Mostrar aprendices asignados
+      </button>
     </div>
 
+    <div id="tabla_asignados" class="hidden">
+      <!-- Buscador -->
+      <input type="text" id="filtro" placeholder="Buscar por nombre, apellido, documento o ficha"
+             class="w-full p-2 border border-green-600 rounded mb-4 focus:ring-green-500 focus:border-green-500">
+
+      <!-- Buscador por instructor -->
+      <input type="text" id="filtroInstructor" placeholder="Buscar por instructor asignado"
+             class="w-full p-2 border border-green-600 rounded mb-4 focus:ring-green-500 focus:border-green-500">
+
+      <!-- Tabla -->
+      <div class="overflow-x-auto">
+        <table class="w-full border border-green-600 text-sm rounded-lg overflow-hidden">
+          <thead class="bg-green-600 text-white">
+            <tr>
+              <th class="p-2 border border-green-600">Documento</th>
+              <th class="p-2 border border-green-600">Nombre</th>
+              <th class="p-2 border border-green-600">Apellido</th>
+              <th class="p-2 border border-green-600">Ficha</th>
+              <th class="p-2 border border-green-600">Instructor asignado</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-body">
+            {% if aprendices_asignados %}
+              {% for a in aprendices_asignados %}
+              <tr>
+                <td class="p-2 border">{{ a.documento }}</td>
+                <td class="p-2 border">{{ a.nombre }}</td>
+                <td class="p-2 border">{{ a.apellido }}</td>
+                <td class="p-2 border">{{ a.programa.ficha }}</td>
+                <td class="p-2 border">
+                  {{ a.instructor.nombre_instructor }} {{ a.instructor.apellido_instructor }}
+                </td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="5" class="p-2 border text-center text-green-700">No hay aprendices asignados</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-6">
+        <a href="{{ url_for('coordinador_bp.dashboard') }}"
+           class="bg-green-500 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors border border-green-500 inline-block">
+          Volver al Dashboard
+        </a>
+      </div>
+    </div>
   </div>
 
-  <!-- Script de filtrado -->
-  <script>
-  document.getElementById("filtro")?.addEventListener("keyup", function() {
-      let filtro = this.value.toLowerCase();
-      let filas = document.querySelectorAll("#tabla-body tr");
+</div>
 
-      filas.forEach(fila => {
-          let texto = fila.innerText.toLowerCase();
-          fila.style.display = texto.includes(filtro) ? "" : "none";
-      });
+<!-- Script de filtrado -->
+<script>
+document.getElementById("filtro")?.addEventListener("keyup", function() {
+    let filtro = this.value.toLowerCase();
+    let filas = document.querySelectorAll("#tabla-body tr");
+
+    filas.forEach(fila => {
+        let texto = fila.innerText.toLowerCase();
+        fila.style.display = texto.includes(filtro) ? "" : "none";
+    });
+});
+
+// 🔹 Filtro exclusivo para instructores
+document.getElementById("filtroInstructor")?.addEventListener("keyup", function() {
+  let filtro = this.value.toLowerCase();
+  let filas = document.querySelectorAll("#tabla-body tr");
+
+  filas.forEach(fila => {
+    let columnaInstructor = fila.cells[4]?.innerText.toLowerCase(); // la 5ta columna (índice 4)
+    fila.style.display = columnaInstructor?.includes(filtro) ? "" : "none";
   });
-  </script>
+});
+</script>
+
 </body>
 </html>

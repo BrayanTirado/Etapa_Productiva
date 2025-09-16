@@ -4,10 +4,17 @@
     <meta charset="UTF-8">
     <title>Empresas Registradas</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Colores oficiales SENA */
+        .sena-primary { background-color: #009639; border-color: #009639; }
+        .sena-dark { background-color: #007a2f; border-color: #007a2f; }
+        .sena-text { color: #009639; }
+    </style>
 </head>
-<body class="bg-gray-100 p-6">
-    <div class="max-w-7xl mx-auto bg-white shadow-lg rounded-lg p-6">
-        <h1 class="text-2xl font-bold mb-6 text-gray-800">📋 Empresas Registradas</h1>
+<body class="bg-green-50 p-6">
+
+    <div class="max-w-7xl mx-auto bg-white shadow-lg rounded-lg p-6 border border-green-600">
+        <h1 class="text-2xl font-bold mb-6 text-green-900">📋 Empresas Registradas</h1>
 
         <!-- Botón Nuevo Empresa (solo si es aprendiz y no hay empresas) -->
         {% if not empresas and rol_actual == 'Aprendiz' %}
@@ -21,8 +28,8 @@
 
         {% if empresas %}
         <div class="overflow-x-auto">
-            <table class="w-full border border-gray-200 rounded-lg overflow-hidden text-sm">
-                <thead class="bg-gray-200 text-gray-700">
+            <table class="w-full border border-green-600 rounded-lg overflow-hidden text-sm">
+                <thead class="bg-green-600 text-white">
                     <tr>
                         <th class="border p-3 text-left w-16">ID</th>
                         <th class="border p-3 text-left w-48">Nombre Empresa</th>
@@ -40,7 +47,7 @@
                 </thead>
                 <tbody>
                     {% for empresa in empresas %}
-                    <tr class="hover:bg-gray-50 even:bg-gray-100">
+                    <tr class="hover:bg-green-50 even:bg-green-100">
                         <td class="border p-3 text-center">{{ empresa.id_empresa }}</td>
                         <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">{{ empresa.nombre_empresa }}</td>
                         <td class="border p-3 whitespace-nowrap overflow-hidden text-ellipsis">{{ empresa.nit }}</td>
@@ -64,7 +71,7 @@
                             <div class="flex justify-center space-x-2">
                                 {% if rol_actual == 'Aprendiz' and current_user.id_aprendiz == empresa.aprendiz_id_aprendiz %}
                                     <a href="{{ url_for('empresa_bp.editar_empresa', id=empresa.id_empresa) }}" 
-                                       class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition">Editar</a>
+                                       class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition">Editar</a>
                                     <form action="{{ url_for('empresa_bp.eliminar_empresa', id=empresa.id_empresa) }}" method="POST" class="inline">
                                         <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
                                                 onclick="return confirm('¿Seguro de eliminar esta empresa?')">
@@ -82,23 +89,23 @@
             </table>
         </div>
         {% else %}
-            <p class="mt-6 text-gray-600 text-center">⚠️ No hay empresas registradas aún.</p>
+            <p class="mt-6 text-green-700 text-center">⚠️ No hay empresas registradas aún.</p>
         {% endif %}
 
         <!-- Botón Volver -->
         <div class="mt-6 text-center">
             {% if aprendiz_id %}
                 <a href="{{ url_for('aprendiz_bp.dashboard_aprendiz', aprendiz_id=aprendiz_id) }}" 
-                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">Volver</a>
+                   class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">Volver</a>
             {% elif rol_actual == 'Instructor' %}
                 <a href="{{ url_for('instructor_bp.dashboard_instructor', instructor_id=current_user.id_instructor) }}" 
-                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">Volver</a>
+                   class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">Volver</a>
             {% elif rol_actual == 'Coordinador' %}
                 <a href="{{ url_for('coordinador_bp.dashboard', coordinador_id=current_user.id_coordinador) }}" 
-                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">Volver</a>
+                   class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">Volver</a>
             {% else %}
                 <a href="{{ url_for('auth.login') }}" 
-                   class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">Volver</a>
+                   class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">Volver</a>
             {% endif %}
         </div>
 
