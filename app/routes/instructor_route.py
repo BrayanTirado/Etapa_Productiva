@@ -436,10 +436,10 @@ def marcar_todas_notificaciones():
     user_id = current_user.id_instructor
     rol = "Instructor"
 
-    # Marcar todas las notificaciones como vistas
+    # Marcar todas las notificaciones como vistas (incluyendo globales)
     Notificacion.query.filter(
-        Notificacion.destinatario_id == user_id,
         Notificacion.rol_destinatario == rol,
+        or_(Notificacion.destinatario_id == user_id, Notificacion.destinatario_id == None),
         Notificacion.visto == False
     ).update({ "visto": True }, synchronize_session=False)
 

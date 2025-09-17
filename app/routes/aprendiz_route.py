@@ -272,8 +272,11 @@ def dashboard_aprendiz(aprendiz_id):
     usuarios = {}
     es_aprendiz = isinstance(current_user, Aprendiz)
     if es_aprendiz:
-        usuarios['Instructor'] = Instructor.query.all()
-        usuarios['Coordinador'] = Coordinador.query.all()
+        # Filtrar instructor asignado
+        usuarios['Instructor'] = Instructor.query.filter_by(id_instructor=current_user.instructor_id).all() if current_user.instructor_id else []
+        # Filtrar coordinador de la sede
+        usuarios['Coordinador'] = Coordinador.query.filter_by(sede_id=current_user.sede_id).all() if current_user.sede_id else []
+        # Administradores todos
         usuarios['Administrador'] = Administrador.query.all()
 
     # -----------------------------
@@ -411,6 +414,14 @@ def enviar_mensaje():
             user = Administrador.query.get(destinatario_id)
 
         if user:
+            # Validar permisos según rol
+            if rol_destinatario == "Instructor" and user.id_instructor != current_user.instructor_id:
+                flash("Solo puedes enviar mensajes a tu instructor asignado.", "error")
+                return redirect(url_for('aprendiz_bp.dashboard_aprendiz'))
+            elif rol_destinatario == "Coordinador" and user.sede_id != current_user.sede_id:
+                flash("Solo puedes enviar mensajes al coordinador de tu sede.", "error")
+                return redirect(url_for('aprendiz_bp.dashboard_aprendiz'))
+
             # Nombre completo según rol
             if rol_destinatario == "Instructor":
                 nombre_completo = f"{user.nombre_instructor} {user.apellido_instructor}"
