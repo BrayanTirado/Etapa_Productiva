@@ -244,3 +244,90 @@
 .table-sena tr:hover {
   background-color: rgba(57, 169, 0, 0.1);
 }
+
+/* Estilos responsivos */
+@media (max-width: 768px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .btn-sena-primary,
+  .btn-sena-secondary,
+  .btn-sena-danger {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+  }
+
+  .card-sena {
+    padding: 1rem;
+  }
+
+  .table-sena th,
+  .table-sena td {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .header-sena {
+    padding: 0.75rem;
+  }
+
+  .footer-sena {
+    padding: 1rem;
+  }
+
+  /* Ajustes para tablas en móviles */
+  .overflow-x-auto {
+    font-size: 0.8rem;
+  }
+
+  /* Ajustes para formularios */
+  .form-sena input,
+  .form-sena select,
+  .form-sena textarea {
+    padding: 0.75rem;
+  }
+
+  /* Ajustes para headers */
+  header h1 {
+    font-size: 1.5rem;
+  }
+
+  /* Ajustes para menús */
+  .flex.flex-wrap {
+    flex-direction: column;
+  }
+
+  .space-y-2 > * + * {
+    margin-top: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .text-3xl {
+    font-size: 1.25rem;
+  }
+
+  .text-xl {
+    font-size: 1rem;
+  }
+
+  .px-4 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .py-6 {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .mb-6 {
+    margin-bottom: 1rem;
+  }
+
+  .gap-4 {
+    gap: 0.75rem;
+  }
+}

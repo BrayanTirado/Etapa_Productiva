@@ -34,10 +34,13 @@ def crear_admin():
     if request.method == 'POST':
         nombre = request.form.get('nombre')
         apellido = request.form.get('apellido')
+        tipo_documento = request.form.get('tipo_documento')
         documento = request.form.get('documento')
+        correo = request.form.get('correo')
+        celular = request.form.get('celular')
         password = request.form.get('password')
 
-        if not all([nombre, apellido, documento, password]):
+        if not all([nombre, apellido, tipo_documento, documento, correo, celular, password]):
             flash("Todos los campos son obligatorios.", "warning")
             return render_template("crear_admin.html", now=datetime.now())
 
@@ -45,7 +48,10 @@ def crear_admin():
         nuevo_admin = Administrador(
             nombre=nombre,
             apellido=apellido,
+            tipo_documento=tipo_documento,
             documento=documento,
+            correo=correo,
+            celular=celular,
             password=hashed_password
         )
 

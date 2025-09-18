@@ -10,7 +10,15 @@ class Administrador(db.Model, UserMixin):
     id_admin = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     apellido = db.Column(db.String(100), nullable=False)
+    tipo_documento = db.Column(db.Enum(
+        'Cedula de Ciudadania',
+        'Tarjeta de Identidad',
+        'Cedula Extrangeria',
+        'Registro Civil'
+    ), nullable=False)
     documento = db.Column(db.String(50), unique=True, nullable=False)
+    correo = db.Column(db.String(100), nullable=False, unique=True)
+    celular = db.Column(db.String(45), nullable=False)
     password = db.Column(db.String(200), nullable=False)
 
     tokens_coordinador = db.relationship("TokenCoordinador", back_populates="administrador", lazy=True)
