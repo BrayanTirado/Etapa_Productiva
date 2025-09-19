@@ -313,7 +313,15 @@ class PasswordResetToken(db.Model):
     used = db.Column(db.Boolean, default=False)
 
     def is_expired(self):
-        return datetime.utcnow() > self.expires_at
+        # Asegurar comparación sin zona horaria
+        current_time = datetime.utcnow()
+        expires_time = self.expires_at
+
+        # Si expires_at tiene zona horaria, removerla para comparación consistente
+        if hasattr(expires_time, 'replace') and hasattr(expires_time, 'tzinfo') and expires_time.tzinfo is not None:
+            expires_time = expires_time.replace(tzinfo=None)
+
+        return current_time.replace(tzinfo=None) > expires_time
 
 # -------------------------
 # TABLA NOTIFICACION

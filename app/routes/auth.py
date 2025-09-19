@@ -266,7 +266,7 @@ def instructor():
             flash("El token no es válido.", "danger")
             return redirect(url_for('auth.instructor'))
 
-        if token.fecha_expiracion < datetime.utcnow():
+        if token.fecha_expiracion.replace(tzinfo=None) < datetime.utcnow().replace(tzinfo=None):
             flash("El token ha expirado.", "danger")
             return redirect(url_for('auth.instructor'))
 
@@ -417,6 +417,9 @@ def forgot_password():
         token = generate_reset_token()
         expires_at = datetime.utcnow() + timedelta(hours=1)  # Expira en 1 hora
 
+        print(f"🔑 Generando token para {email} (tipo: {user_type})")
+        print(f"⏰ Token expira: {expires_at}")
+
         # Crear registro del token
         # Mapeo de atributos de ID por tipo de usuario
         id_attr_map = {
@@ -426,20 +429,48 @@ def forgot_password():
             'administrador': 'id_admin'
         }
         id_attr = id_attr_map.get(user_type, f'id_{user_type}')
+        user_id = getattr(user, id_attr)
+
+        print(f"👤 User ID: {user_id} (atributo: {id_attr})")
+
         reset_token = PasswordResetToken(
             token=token,
             email=email,
             user_type=user_type,
-            user_id=getattr(user, id_attr),
+            user_id=user_id,
             expires_at=expires_at
         )
 
         try:
+            print(f"💾 Guardando token en BD...")
+
+            # Verificar que la tabla existe
+            from sqlalchemy import inspect
+            inspector = inspect(db.engine)
+            tables = inspector.get_table_names()
+            if 'password_reset_token' not in tables:
+                print(f"❌ ERROR: Tabla 'password_reset_token' no existe")
+                print(f"📋 Tablas disponibles: {tables}")
+                db.create_all()
+                print(f"🔧 Tablas creadas")
+
             db.session.add(reset_token)
             db.session.commit()
+            print(f"✅ Token guardado exitosamente - ID: {reset_token.id}")
+
+            # Verificar que se guardó correctamente
+            saved_token = PasswordResetToken.query.filter_by(token=token).first()
+            if saved_token:
+                print(f"🔍 Verificación: Token encontrado en BD - ID: {saved_token.id}")
+                print(f"   Token: {saved_token.token}")
+                print(f"   Email: {saved_token.email}")
+                print(f"   Expires: {saved_token.expires_at}")
+            else:
+                print(f"❌ ERROR: Token no se encontró después del commit")
 
             # Generar URL de restablecimiento
             reset_url = url_for('auth.reset_password', token=token, _external=True)
+            print(f"🔗 URL generada: {reset_url}")
 
             # Enviar email (simulado)
             send_reset_email(email, reset_url)
@@ -448,6 +479,10 @@ def forgot_password():
             return redirect(url_for('auth.login'))
 
         except Exception as e:
+            print(f"❌ ERROR al guardar token: {e}")
+            print(f"🔍 Tipo de error: {type(e).__name__}")
+            import traceback
+            print(f"🔍 Traceback: {traceback.format_exc()}")
             db.session.rollback()
             flash('Error al procesar la solicitud. Inténtalo de nuevo.', 'danger')
             return redirect(url_for('auth.forgot_password'))
@@ -458,16 +493,68 @@ def forgot_password():
 @bp.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     """Página para restablecer contraseña usando token"""
-    # Buscar token válido
-    reset_token = PasswordResetToken.query.filter_by(token=token, used=False).first()
+    print(f"🔍 Validando token: {token[:20]}...")
+    print(f"📏 Longitud del token: {len(token)}")
 
-    if not reset_token:
+    # Validar que el token no esté vacío
+    if not token or len(token.strip()) == 0:
+        print("❌ Token vacío o inválido")
         flash('El enlace de restablecimiento no es válido o ha expirado.', 'danger')
         return redirect(url_for('auth.login'))
 
-    if reset_token.is_expired():
+    # Verificar conexión a BD y tabla
+    try:
+        # Verificar que podemos hacer consultas
+        total_tokens = PasswordResetToken.query.count()
+        print(f"📊 Total de tokens en BD: {total_tokens}")
+
+        # Buscar token válido
+        reset_token = PasswordResetToken.query.filter_by(token=token, used=False).first()
+
+        if not reset_token:
+            print(f"❌ Token no encontrado en BD: {token[:20]}...")
+            # Verificar si existe pero está usado
+            used_token = PasswordResetToken.query.filter_by(token=token).first()
+            if used_token:
+                print(f"⚠️ Token encontrado pero usado: {used_token.used}")
+                print(f"   Token data: ID={used_token.id}, Email={used_token.email}")
+            else:
+                print("❌ Token no existe en la base de datos")
+                # Mostrar algunos tokens existentes para debug
+                all_tokens = PasswordResetToken.query.limit(3).all()
+                if all_tokens:
+                    print("🔍 Tokens existentes en BD:")
+                    for t in all_tokens:
+                        print(f"   - {t.token[:20]}... (Email: {t.email})")
+                else:
+                    print("🔍 No hay tokens en la BD")
+
+            flash('El enlace de restablecimiento no es válido o ha expirado.', 'danger')
+            return redirect(url_for('auth.login'))
+
+    except Exception as db_error:
+        print(f"❌ ERROR de base de datos: {db_error}")
+        flash('Error interno del servidor. Inténtalo de nuevo.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    print(f"✅ Token encontrado - ID: {reset_token.id}, Email: {reset_token.email}, Used: {reset_token.used}")
+    print(f"⏰ Created: {reset_token.created_at}")
+    print(f"⏰ Expires: {reset_token.expires_at}")
+    print(f"⏰ Current: {datetime.utcnow()}")
+
+    # Verificar expiración con más detalle
+    is_expired = reset_token.is_expired()
+    print(f"🔍 Método is_expired(): {is_expired}")
+
+    if is_expired:
+        print(f"❌ Token expirado")
+        print(f"   Expires at: {reset_token.expires_at}")
+        print(f"   Current time: {datetime.utcnow()}")
+        print(f"   Difference: {(datetime.utcnow() - reset_token.expires_at).total_seconds()} seconds")
         flash('El enlace de restablecimiento ha expirado. Solicita uno nuevo.', 'danger')
         return redirect(url_for('auth.forgot_password'))
+
+    print("✅ Token válido, mostrando formulario")
 
     if request.method == 'POST':
         password = request.form.get('password')
