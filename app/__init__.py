@@ -21,7 +21,7 @@ def create_app():
     login_manager.login_view = 'auth.login'
 
     # --- Importa modelos aquí para evitar import circular ---
-    from app.models.users import Aprendiz, Instructor, Coordinador, Administrador, Sede, Empresa, Contrato, Programa, Seguimiento, Evidencia, Notificacion
+    from app.models.users import Aprendiz, Instructor, Coordinador, Administrador, Sede, Empresa, Contrato, Programa, Seguimiento, Evidencia, Notificacion, PasswordResetToken
 
     # --- Importa Blueprints ---
     from app.routes.index_route import bp as index_bp

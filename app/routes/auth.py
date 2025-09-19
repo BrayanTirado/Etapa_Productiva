@@ -1,11 +1,13 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from app.models.users import Aprendiz, Instructor, Contrato, Programa, Coordinador, Administrador, Evidencia
+from app.models.users import Aprendiz, Instructor, Contrato, Programa, Coordinador, Administrador, Evidencia, PasswordResetToken
 from app import db
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
-from datetime import datetime, date  
+from datetime import datetime, date, timedelta
+import secrets
+import re
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -326,3 +328,184 @@ def instructor():
 
     sedes = Sede.query.all()
     return render_template('instructor.html', sedes=sedes)
+
+
+# --- FUNCIONES AUXILIARES PARA RECUPERACIÓN DE CONTRASEÑA ---
+
+def generate_reset_token():
+    """Genera un token único para recuperación de contraseña"""
+    return secrets.token_urlsafe(32)
+
+def find_user_by_email(email):
+    """Busca un usuario por email en todos los tipos de usuario"""
+    # Buscar en Aprendiz
+    user = Aprendiz.query.filter_by(email=email).first()
+    if user:
+        return user, 'aprendiz'
+
+    # Buscar en Instructor
+    user = Instructor.query.filter_by(correo_instructor=email).first()
+    if user:
+        return user, 'instructor'
+
+    # Buscar en Coordinador
+    user = Coordinador.query.filter_by(correo=email).first()
+    if user:
+        return user, 'coordinador'
+
+    # Buscar en Administrador
+    user = Administrador.query.filter_by(correo=email).first()
+    if user:
+        return user, 'administrador'
+
+    return None, None
+
+def send_reset_email(email, reset_url):
+    """Simula el envío de email (en producción usarías un servicio real)"""
+    print(f"""
+    === SIMULACIÓN DE ENVÍO DE EMAIL ===
+    Para: {email}
+    Asunto: Recuperación de contraseña - SENA
+
+    Hola,
+
+    Has solicitado restablecer tu contraseña. Haz clic en el siguiente enlace para continuar:
+
+    {reset_url}
+
+    Este enlace expirará en 1 hora.
+
+    Si no solicitaste este cambio, ignora este mensaje.
+
+    Atentamente,
+    Sistema SENA
+    ================================
+    """)
+
+# --- RUTAS PARA RECUPERACIÓN DE CONTRASEÑA ---
+
+@bp.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    """Página para solicitar recuperación de contraseña"""
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+
+        if not email:
+            flash('Por favor ingresa tu correo electrónico.', 'warning')
+            return redirect(url_for('auth.forgot_password'))
+
+        # Validar formato de email
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+            flash('Por favor ingresa un correo electrónico válido.', 'warning')
+            return redirect(url_for('auth.forgot_password'))
+
+        # Buscar usuario por email
+        user, user_type = find_user_by_email(email)
+
+        if not user:
+            # Por seguridad, no revelamos si el email existe o no
+            flash('Si tu correo electrónico está registrado, recibirás un enlace para restablecer tu contraseña.', 'info')
+            return redirect(url_for('auth.login'))
+
+        # Generar token
+        token = generate_reset_token()
+        expires_at = datetime.utcnow() + timedelta(hours=1)  # Expira en 1 hora
+
+        # Crear registro del token
+        reset_token = PasswordResetToken(
+            token=token,
+            email=email,
+            user_type=user_type,
+            user_id=getattr(user, f'id_{user_type}'),
+            expires_at=expires_at
+        )
+
+        try:
+            db.session.add(reset_token)
+            db.session.commit()
+
+            # Generar URL de restablecimiento
+            reset_url = url_for('auth.reset_password', token=token, _external=True)
+
+            # Enviar email (simulado)
+            send_reset_email(email, reset_url)
+
+            flash('Si tu correo electrónico está registrado, recibirás un enlace para restablecer tu contraseña.', 'info')
+            return redirect(url_for('auth.login'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash('Error al procesar la solicitud. Inténtalo de nuevo.', 'danger')
+            return redirect(url_for('auth.forgot_password'))
+
+    return render_template('forgot_password.html', now=datetime.now())
+
+
+@bp.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    """Página para restablecer contraseña usando token"""
+    # Buscar token válido
+    reset_token = PasswordResetToken.query.filter_by(token=token, used=False).first()
+
+    if not reset_token:
+        flash('El enlace de restablecimiento no es válido o ha expirado.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    if reset_token.is_expired():
+        flash('El enlace de restablecimiento ha expirado. Solicita uno nuevo.', 'danger')
+        return redirect(url_for('auth.forgot_password'))
+
+    if request.method == 'POST':
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+
+        if not password or not confirm_password:
+            flash('Por favor completa todos los campos.', 'warning')
+            return redirect(url_for('auth.reset_password', token=token))
+
+        if len(password) < 8:
+            flash('La contraseña debe tener al menos 8 caracteres.', 'warning')
+            return redirect(url_for('auth.reset_password', token=token))
+
+        if password != confirm_password:
+            flash('Las contraseñas no coinciden.', 'warning')
+            return redirect(url_for('auth.reset_password', token=token))
+
+        # Buscar usuario según tipo
+        user = None
+        if reset_token.user_type == 'aprendiz':
+            user = Aprendiz.query.get(reset_token.user_id)
+            password_field = 'password_aprendiz'
+        elif reset_token.user_type == 'instructor':
+            user = Instructor.query.get(reset_token.user_id)
+            password_field = 'password_instructor'
+        elif reset_token.user_type == 'coordinador':
+            user = Coordinador.query.get(reset_token.user_id)
+            password_field = 'password'
+        elif reset_token.user_type == 'administrador':
+            user = Administrador.query.get(reset_token.user_id)
+            password_field = 'password'
+
+        if not user:
+            flash('Usuario no encontrado.', 'danger')
+            return redirect(url_for('auth.login'))
+
+        try:
+            # Actualizar contraseña
+            hashed_password = generate_password_hash(password)
+            setattr(user, password_field, hashed_password)
+
+            # Marcar token como usado
+            reset_token.used = True
+
+            db.session.commit()
+
+            flash('Tu contraseña ha sido restablecida exitosamente. Ya puedes iniciar sesión.', 'success')
+            return redirect(url_for('auth.login'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash('Error al restablecer la contraseña. Inténtalo de nuevo.', 'danger')
+            return redirect(url_for('auth.reset_password', token=token))
+
+    return render_template('reset_password.html', token=token, now=datetime.now())

@@ -298,7 +298,22 @@ class TokenInstructor(db.Model):
 
     def __repr__(self):
         return f"<TokenInstructor {self.token} - Válido hasta {self.fecha_expiracion} - Sede {self.sede_id}>"
+# -------------------------
+# TABLA PASSWORD RESET TOKEN
+# -------------------------
+class PasswordResetToken(db.Model):
+    __tablename__ = 'password_reset_token'
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(100), unique=True, nullable=False)
+    email = db.Column(db.String(100), nullable=False)
+    user_type = db.Column(db.String(20), nullable=False)  # 'aprendiz', 'instructor', 'coordinador', 'administrador'
+    user_id = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used = db.Column(db.Boolean, default=False)
 
+    def is_expired(self):
+        return datetime.utcnow() > self.expires_at
 
 # -------------------------
 # TABLA NOTIFICACION
