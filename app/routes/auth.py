@@ -1,8 +1,9 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_user, logout_user, login_required, current_user
+from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.models.users import Aprendiz, Instructor, Contrato, Programa, Coordinador, Administrador, Evidencia, PasswordResetToken
-from app import db
+from app import db, mail
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
 from datetime import datetime, date, timedelta
@@ -361,26 +362,31 @@ def find_user_by_email(email):
     return None, None
 
 def send_reset_email(email, reset_url):
-    """Simula el envío de email (en producción usarías un servicio real)"""
-    print(f"""
-    === SIMULACIÓN DE ENVÍO DE EMAIL ===
-    Para: {email}
-    Asunto: Recuperación de contraseña - SENA
+    """Envía el email de recuperación de contraseña"""
+    try:
+        msg = Message(
+            subject='Recuperación de contraseña - SENA',
+            recipients=[email],
+            body=f"""
+Hola,
 
-    Hola,
+Has solicitado restablecer tu contraseña. Haz clic en el siguiente enlace para continuar:
 
-    Has solicitado restablecer tu contraseña. Haz clic en el siguiente enlace para continuar:
+{reset_url}
 
-    {reset_url}
+Este enlace expirará en 1 hora.
 
-    Este enlace expirará en 1 hora.
+Si no solicitaste este cambio, ignora este mensaje.
 
-    Si no solicitaste este cambio, ignora este mensaje.
-
-    Atentamente,
-    Sistema SENA
-    ================================
-    """)
+Atentamente,
+Sistema SENA
+            """.strip()
+        )
+        mail.send(msg)
+        print(f"Email de recuperación enviado a {email}")
+    except Exception as e:
+        print(f"Error al enviar email: {e}")
+        raise
 
 # --- RUTAS PARA RECUPERACIÓN DE CONTRASEÑA ---
 
@@ -412,11 +418,19 @@ def forgot_password():
         expires_at = datetime.utcnow() + timedelta(hours=1)  # Expira en 1 hora
 
         # Crear registro del token
+        # Mapeo de atributos de ID por tipo de usuario
+        id_attr_map = {
+            'aprendiz': 'id_aprendiz',
+            'instructor': 'id_instructor',
+            'coordinador': 'id_coordinador',
+            'administrador': 'id_admin'
+        }
+        id_attr = id_attr_map.get(user_type, f'id_{user_type}')
         reset_token = PasswordResetToken(
             token=token,
             email=email,
             user_type=user_type,
-            user_id=getattr(user, f'id_{user_type}'),
+            user_id=getattr(user, id_attr),
             expires_at=expires_at
         )
 
