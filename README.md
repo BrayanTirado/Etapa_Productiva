@@ -50,9 +50,45 @@ export MAIL_DEFAULT_SENDER=tu-email@gmail.com
 
 ## 🐛 **Si los Emails No Llegan**
 
-1. **Verifica las variables de entorno** en el servidor de producción
-2. **Revisa los logs** de la aplicación
-3. **Confirma que el puerto 465 no esté bloqueado** por el firewall del hosting
+### **Diagnóstico Automático**
+Ejecuta este script en tu servidor de producción:
+```bash
+python check_production_email.py
+```
+
+Este script verifica:
+- ✅ Variables de entorno configuradas
+- ✅ Conexión SMTP funcional
+- ✅ Envío de email de prueba
+
+### **Solución de Problemas**
+
+1. **Variables de entorno no configuradas:**
+   ```bash
+   export MAIL_USERNAME=tu-email@gmail.com
+   export MAIL_PASSWORD=tu-contraseña-aplicación
+   export MAIL_DEFAULT_SENDER=tu-email@gmail.com
+   ```
+
+2. **Puerto 465 bloqueado (prueba configuración alternativa):**
+   ```bash
+   # Copiar la configuración alternativa:
+   cp config_alternative.py config.py
+   ```
+   O cambiar manualmente en `config.py`:
+   ```python
+   MAIL_PORT = 587  # En lugar de 465
+   MAIL_USE_TLS = True  # TLS activado
+   MAIL_USE_SSL = False  # SSL desactivado
+   ```
+
+3. **Logs de la aplicación:**
+   - Los logs ahora muestran exactamente qué está fallando
+   - Busca líneas que empiecen con `[EMAIL]`
+
+4. **Contactar al proveedor de hosting:**
+   - Pedir que permitan conexiones SMTP salientes
+   - Verificar que no haya restricciones de firewall
 
 ---
 

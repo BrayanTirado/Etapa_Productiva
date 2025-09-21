@@ -365,17 +365,52 @@ def send_reset_email(email, reset_url):
     """Envía el email de recuperación de contraseña usando SMTP"""
     from flask import current_app
     from flask_mail import Message, Mail
+    import os
 
-    print(f"[EMAIL] Enviando email a {email}")
+    print(f"[EMAIL] ===== INICIANDO ENVÍO DE EMAIL =====")
+    print(f"[EMAIL] Destinatario: {email}")
+    print(f"[EMAIL] URL: {reset_url}")
+
+    # Verificar configuración de email
+    mail_server = current_app.config.get('MAIL_SERVER')
+    mail_port = current_app.config.get('MAIL_PORT')
+    mail_username = current_app.config.get('MAIL_USERNAME')
+    mail_password = current_app.config.get('MAIL_PASSWORD')
+    mail_default_sender = current_app.config.get('MAIL_DEFAULT_SENDER')
+    mail_use_ssl = current_app.config.get('MAIL_USE_SSL')
+    mail_use_tls = current_app.config.get('MAIL_USE_TLS')
+
+    print(f"[EMAIL] Configuración SMTP:")
+    print(f"[EMAIL]   MAIL_SERVER: {mail_server}")
+    print(f"[EMAIL]   MAIL_PORT: {mail_port}")
+    print(f"[EMAIL]   MAIL_USERNAME: {'***' if mail_username else 'None'}")
+    print(f"[EMAIL]   MAIL_DEFAULT_SENDER: {mail_default_sender}")
+    print(f"[EMAIL]   MAIL_USE_SSL: {mail_use_ssl}")
+    print(f"[EMAIL]   MAIL_USE_TLS: {mail_use_tls}")
+
+    # Verificar variables de entorno
+    print(f"[EMAIL] Variables de entorno:")
+    print(f"[EMAIL]   MAIL_USERNAME env: {'Presente' if os.environ.get('MAIL_USERNAME') else 'Ausente'}")
+    print(f"[EMAIL]   MAIL_PASSWORD env: {'Presente' if os.environ.get('MAIL_PASSWORD') else 'Ausente'}")
+    print(f"[EMAIL]   MAIL_DEFAULT_SENDER env: {'Presente' if os.environ.get('MAIL_DEFAULT_SENDER') else 'Ausente'}")
+
+    # Verificar que tengamos las credenciales necesarias
+    if not mail_username or not mail_password:
+        print(f"[EMAIL] ERROR CRÍTICO: Credenciales de email faltantes")
+        print(f"[EMAIL] MAIL_USERNAME: {'Presente' if mail_username else 'Ausente'}")
+        print(f"[EMAIL] MAIL_PASSWORD: {'Presente' if mail_password else 'Ausente'}")
+        return False
 
     try:
+        print(f"[EMAIL] Creando instancia de Flask-Mail...")
         # Crear instancia de Mail si no existe
         mail = Mail(current_app)
 
+        print(f"[EMAIL] Creando mensaje...")
         msg = Message(
             subject='Recuperación de contraseña - SENA',
             recipients=[email],
-            sender=current_app.config.get('MAIL_DEFAULT_SENDER'),
+            sender=mail_default_sender,
             body=f"""
 Hola,
 
@@ -392,12 +427,33 @@ Sistema SENA
             """.strip()
         )
 
+        print(f"[EMAIL] Enviando mensaje...")
         mail.send(msg)
-        print(f"[EMAIL] SUCCESS: Email enviado a {email}")
+        print(f"[EMAIL] SUCCESS: Email enviado exitosamente a {email}")
         return True
 
     except Exception as e:
-        print(f"[EMAIL] ERROR: {e}")
+        print(f"[EMAIL] ERROR: Falló el envío de email a {email}")
+        print(f"[EMAIL] Detalle del error: {e}")
+        print(f"[EMAIL] Tipo de error: {type(e).__name__}")
+
+        # Diagnosticar el error específico
+        error_str = str(e).lower()
+        if "authentication" in error_str:
+            print(f"[EMAIL] DIAGNOSTICO: Error de autenticación - verificar MAIL_USERNAME y MAIL_PASSWORD")
+        elif "connection" in error_str or "connect" in error_str:
+            print(f"[EMAIL] DIAGNOSTICO: Error de conexión - verificar conectividad a internet y puerto {mail_port}")
+        elif "timeout" in error_str:
+            print(f"[EMAIL] DIAGNOSTICO: Timeout - verificar velocidad de conexión")
+        elif "smtp" in error_str:
+            print(f"[EMAIL] DIAGNOSTICO: Error SMTP - verificar configuración del servidor")
+        else:
+            print(f"[EMAIL] DIAGNOSTICO: Error desconocido")
+
+        import traceback
+        print(f"[EMAIL] Traceback completo:")
+        print(f"[EMAIL] {traceback.format_exc()}")
+
         return False
 
 # --- RUTAS PARA RECUPERACIÓN DE CONTRASEÑA ---
