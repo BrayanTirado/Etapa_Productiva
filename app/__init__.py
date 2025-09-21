@@ -40,6 +40,30 @@ def check_email_config():
         print("   • Crea una contraseña de aplicación en: https://myaccount.google.com/apppasswords")
         print("   • Verifica que no haya restricciones de seguridad en tu cuenta Gmail")
 
+    # Verificar configuración para URLs externas
+    server_name = os.environ.get('SERVER_NAME')
+    preferred_scheme = os.environ.get('PREFERRED_URL_SCHEME', 'https')
+
+    if not server_name:
+        print("\n⚠️  ADVERTENCIA: SERVER_NAME no configurado")
+        print("   Esto puede causar problemas con los enlaces de restablecimiento de contraseña en producción")
+        print("   Configura SERVER_NAME en tu archivo .env con tu dominio real")
+        print("   Ejemplo: SERVER_NAME=tu-dominio.com")
+    else:
+        print(f"\n✓ SERVER_NAME configurado: {server_name}")
+
+    print(f"✓ PREFERRED_URL_SCHEME: {preferred_scheme}")
+
+    # Probar conexión SMTP si estamos en modo de desarrollo o si se solicita
+    test_smtp = os.environ.get('TEST_SMTP_ON_STARTUP', 'false').lower() == 'true'
+    if test_smtp:
+        print("\n🔧 Probando conexión SMTP...")
+        try:
+            from app.routes.auth import test_email_connection
+            test_email_connection()
+        except Exception as e:
+            print(f"❌ Error al probar conexión SMTP: {e}")
+
     print("=" * 50)
     print()
 

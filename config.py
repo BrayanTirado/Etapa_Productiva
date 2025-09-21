@@ -28,3 +28,7 @@ class Config:
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', MAIL_USERNAME)
+
+    # Configuración para URLs externas (necesario para producción)
+    SERVER_NAME = os.environ.get('SERVER_NAME')  # Ej: 'tu-dominio.com'
+    PREFERRED_URL_SCHEME = os.environ.get('PREFERRED_URL_SCHEME', 'https')  # 'https' para producción

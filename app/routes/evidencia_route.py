@@ -109,6 +109,8 @@ def puede_subir_archivo(aprendiz_id: int, tipo: str, sesion_excel: str = None) -
     if tipo == 'word':
         primera_subida = db.session.query(Evidencia.primera_subida_word)\
             .filter_by(aprendiz_id_aprendiz=aprendiz_id)\
+            .filter(Evidencia.primera_subida_word.isnot(None))\
+            .order_by(Evidencia.primera_subida_word)\
             .first()
         if primera_subida and primera_subida[0]:
             dias_desde_primera = (hoy - primera_subida[0]).days
@@ -122,9 +124,11 @@ def puede_subir_archivo(aprendiz_id: int, tipo: str, sesion_excel: str = None) -
 
         if sesion_excel == '15_dias':
             print(f"DEBUG: Aplicando lógica de 15 días")
-            # Buscar la primera subida de Excel 15 días
+            # Buscar la primera subida de Excel 15 días (ordenada por fecha más antigua)
             primera_subida = db.session.query(Evidencia.primera_subida_excel_15)\
                 .filter_by(aprendiz_id_aprendiz=aprendiz_id)\
+                .filter(Evidencia.primera_subida_excel_15.isnot(None))\
+                .order_by(Evidencia.primera_subida_excel_15)\
                 .first()
             print(f"DEBUG: Primera subida Excel 15 días encontrada: {primera_subida}")
 
@@ -148,9 +152,11 @@ def puede_subir_archivo(aprendiz_id: int, tipo: str, sesion_excel: str = None) -
                     return False, f"No puedes subir otro archivo Excel (sesión 15 días). Debes esperar {dias_restantes} días más.", fecha_proxima.strftime('%d/%m/%Y')
         elif sesion_excel == '3_meses':
             print(f"DEBUG: Aplicando lógica de 3 meses")
-            # Buscar la primera subida de Excel 3 meses
+            # Buscar la primera subida de Excel 3 meses (ordenada por fecha más antigua)
             primera_subida = db.session.query(Evidencia.primera_subida_excel_3)\
                 .filter_by(aprendiz_id_aprendiz=aprendiz_id)\
+                .filter(Evidencia.primera_subida_excel_3.isnot(None))\
+                .order_by(Evidencia.primera_subida_excel_3)\
                 .first()
             print(f"DEBUG: Primera subida Excel 3 meses encontrada: {primera_subida}")
 
@@ -180,6 +186,8 @@ def puede_subir_archivo(aprendiz_id: int, tipo: str, sesion_excel: str = None) -
     elif tipo == 'pdf':
         primera_subida = db.session.query(Evidencia.primera_subida_pdf)\
             .filter_by(aprendiz_id_aprendiz=aprendiz_id)\
+            .filter(Evidencia.primera_subida_pdf.isnot(None))\
+            .order_by(Evidencia.primera_subida_pdf)\
             .first()
         if primera_subida and primera_subida[0]:
             dias_desde_primera = (hoy - primera_subida[0]).days
