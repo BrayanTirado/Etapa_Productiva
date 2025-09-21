@@ -20,14 +20,8 @@ class Config:
     SQLALCHEMY_POOL_RECYCLE = 1800  # Reciclar conexiones cada 30 minutos
     SQLALCHEMY_MAX_OVERFLOW = 10
 
-    # Configuración de email
-    MAIL_SERVER = 'smtp.gmail.com'
-    MAIL_PORT = 587
-    MAIL_USE_TLS = True
-    MAIL_USE_SSL = False
-    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', MAIL_USERNAME)
+    # Email se maneja exclusivamente con Gmail API
+    # No se requiere configuración SMTP
 
     # Configuración para URLs externas (necesario para producción)
     SERVER_NAME = os.environ.get('SERVER_NAME')  # Ej: 'tu-dominio.com'

@@ -1,7 +1,6 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-from flask_mail import Mail
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 import sys
@@ -9,56 +8,7 @@ import sys
 # --- Extensiones globales ---
 db = SQLAlchemy()
 login_manager = LoginManager()
-mail = Mail()
 
-def check_email_config():
-    """Verifica la configuración de email y muestra advertencias si es necesario"""
-    print("=" * 50)
-    print("VERIFICACIÓN DE CONFIGURACIÓN DE EMAIL")
-    print("=" * 50)
-
-    # Verificar variables de entorno
-    mail_username = os.environ.get('MAIL_USERNAME')
-    mail_password = os.environ.get('MAIL_PASSWORD')
-    mail_default_sender = os.environ.get('MAIL_DEFAULT_SENDER')
-
-    print(f"MAIL_USERNAME: {'[OK] Configurado' if mail_username else '[ERROR] No configurado'}")
-    print(f"MAIL_PASSWORD: {'[OK] Configurado' if mail_password else '[ERROR] No configurado'}")
-    print(f"MAIL_DEFAULT_SENDER: {'[OK] Configurado' if mail_default_sender else '[ERROR] No configurado'}")
-
-    if not all([mail_username, mail_password, mail_default_sender]):
-        print("\n[WARNING] ADVERTENCIA: Variables de entorno de email no configuradas")
-        print("   El envío de emails no funcionará correctamente")
-        print("   Asegúrate de configurar MAIL_USERNAME, MAIL_PASSWORD y MAIL_DEFAULT_SENDER")
-    else:
-        print(f"\n[OK] Configuración básica OK - Usuario: {mail_username}")
-
-    # Verificar configuración de Gmail
-    if mail_username and mail_username.endswith('@gmail.com'):
-        print("\n[GMAIL] Detectado Gmail - Recordatorios importantes:")
-        print("   • Asegúrate de tener activada la autenticación de 2 factores")
-        print("   • MAIL_PASSWORD debe ser una 'contraseña de aplicación', no tu contraseña normal")
-        print("   • Crea una contraseña de aplicación en: https://myaccount.google.com/apppasswords")
-        print("   • Verifica que no haya restricciones de seguridad en tu cuenta Gmail")
-
-    # Verificar configuración para URLs externas
-    server_name = os.environ.get('SERVER_NAME')
-    preferred_scheme = os.environ.get('PREFERRED_URL_SCHEME', 'https')
-
-    if not server_name:
-        print("\n[WARNING] ADVERTENCIA: SERVER_NAME no configurado")
-        print("   Esto puede causar problemas con los enlaces de restablecimiento de contraseña en producción")
-        print("   Configura SERVER_NAME en tu archivo .env con tu dominio real")
-        print("   Ejemplo: SERVER_NAME=tu-dominio.com")
-    else:
-        print(f"\n[OK] SERVER_NAME configurado: {server_name}")
-
-    print(f"[OK] PREFERRED_URL_SCHEME: {preferred_scheme}")
-
-    # Nota: La prueba SMTP se ejecutará después de crear el contexto de la aplicación
-
-    print("=" * 50)
-    print()
 
 def create_app():
     """Crea y configura la aplicación Flask"""
@@ -68,14 +18,10 @@ def create_app():
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(24))
     app.config.from_object('config.Config')
 
-    # Verificar configuración de email
-    check_email_config()
-
     # Inicializa extensiones
     db.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
-    mail.init_app(app)
 
     # --- Importa modelos aquí para evitar import circular ---
     from app.models.users import Aprendiz, Instructor, Coordinador, Administrador, Sede, Empresa, Contrato, Programa, Seguimiento, Evidencia, Notificacion, PasswordResetToken
@@ -123,15 +69,8 @@ def create_app():
             print(f"Error al conectar con la base de datos: {e}")
             raise
 
-        # Probar conexión SMTP si se solicita (dentro del contexto de la aplicación)
-        test_smtp = os.environ.get('TEST_SMTP_ON_STARTUP', 'false').lower() == 'true'
-        if test_smtp:
-            print("\n[TEST] Probando conexión SMTP...")
-            try:
-                from app.routes.auth import test_email_connection
-                test_email_connection()
-            except Exception as e:
-                print(f"[ERROR] Error al probar conexión SMTP: {e}")
+        # Email se maneja exclusivamente con Gmail API
+        # No se requieren pruebas SMTP
 
     # --- Configuración para proxy reverso (PRODUCCIÓN) ---
     # Esto es necesario cuando Flask está detrás de un proxy reverso (Nginx, Apache, etc.)
