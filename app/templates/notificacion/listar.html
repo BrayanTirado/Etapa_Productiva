@@ -30,9 +30,12 @@
         <ul class="space-y-2">
         {% for noti in notificaciones %}
             <li class="p-4 rounded-lg border {% if not noti.visto %}bg-blue-100{% else %}bg-gray-100{% endif %}">
+                {% if noti.motivo %}
+                <h4 class="font-bold text-lg">{{ noti.motivo }}</h4>
+                {% endif %}
                 <p>{{ noti.mensaje[:50] }}{% if noti.mensaje|length > 50 %}...{% endif %}</p>
                 <small class="text-gray-500">
-                    De: {{ noti.remitente_nombre }} | 
+                    De: {{ noti.remitente_nombre }} |
                     {{ noti.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}
                 </small>
                 <div class="mt-2">

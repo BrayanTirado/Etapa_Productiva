@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from app.models.users import Aprendiz, Instructor, Contrato, Programa, Coordinador, Administrador, Evidencia, PasswordResetToken
+from app.models.users import Aprendiz, Instructor, Contrato, Programa, Coordinador, Administrador, Evidencia, PasswordResetToken, Notificacion
 from app import db
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
@@ -222,6 +222,24 @@ def registro_aprendiz():
         try:
             db.session.add(nuevo)
             db.session.commit()
+
+            # Crear notificaciones para los coordinadores de la sede
+            coordinadores = sede.coordinadores
+            mensaje_notificacion = f"El aprendiz {nuevo.nombre} {nuevo.apellido} se ha registrado exitosamente."
+
+            for coordinador in coordinadores:
+                notificacion = Notificacion(
+                    motivo="Registro de aprendiz",
+                    mensaje=mensaje_notificacion,
+                    remitente_id=nuevo.id_aprendiz,
+                    rol_remitente="aprendiz",
+                    destinatario_id=coordinador.id_coordinador,
+                    rol_destinatario="coordinador"
+                )
+                db.session.add(notificacion)
+
+            db.session.commit()
+
             flash('Aprendiz creado exitosamente.', 'success')
             return redirect(url_for('auth.login'))
         except Exception as e:
@@ -367,10 +385,6 @@ def send_reset_email(email, reset_url):
     from flask_mail import Message, Mail
     import os
 
-    print(f"[EMAIL] ===== INICIANDO ENVÍO DE EMAIL =====")
-    print(f"[EMAIL] Destinatario: {email}")
-    print(f"[EMAIL] URL: {reset_url}")
-
     # Verificar configuración de email
     mail_server = current_app.config.get('MAIL_SERVER')
     mail_port = current_app.config.get('MAIL_PORT')
@@ -380,33 +394,14 @@ def send_reset_email(email, reset_url):
     mail_use_ssl = current_app.config.get('MAIL_USE_SSL')
     mail_use_tls = current_app.config.get('MAIL_USE_TLS')
 
-    print(f"[EMAIL] Configuración SMTP:")
-    print(f"[EMAIL]   MAIL_SERVER: {mail_server}")
-    print(f"[EMAIL]   MAIL_PORT: {mail_port}")
-    print(f"[EMAIL]   MAIL_USERNAME: {'***' if mail_username else 'None'}")
-    print(f"[EMAIL]   MAIL_DEFAULT_SENDER: {mail_default_sender}")
-    print(f"[EMAIL]   MAIL_USE_SSL: {mail_use_ssl}")
-    print(f"[EMAIL]   MAIL_USE_TLS: {mail_use_tls}")
-
-    # Verificar variables de entorno
-    print(f"[EMAIL] Variables de entorno:")
-    print(f"[EMAIL]   MAIL_USERNAME env: {'Presente' if os.environ.get('MAIL_USERNAME') else 'Ausente'}")
-    print(f"[EMAIL]   MAIL_PASSWORD env: {'Presente' if os.environ.get('MAIL_PASSWORD') else 'Ausente'}")
-    print(f"[EMAIL]   MAIL_DEFAULT_SENDER env: {'Presente' if os.environ.get('MAIL_DEFAULT_SENDER') else 'Ausente'}")
-
     # Verificar que tengamos las credenciales necesarias
     if not mail_username or not mail_password:
-        print(f"[EMAIL] ERROR CRÍTICO: Credenciales de email faltantes")
-        print(f"[EMAIL] MAIL_USERNAME: {'Presente' if mail_username else 'Ausente'}")
-        print(f"[EMAIL] MAIL_PASSWORD: {'Presente' if mail_password else 'Ausente'}")
         return False
 
     try:
-        print(f"[EMAIL] Creando instancia de Flask-Mail...")
         # Crear instancia de Mail si no existe
         mail = Mail(current_app)
 
-        print(f"[EMAIL] Creando mensaje...")
         msg = Message(
             subject='Recuperación de contraseña - SENA',
             recipients=[email],
@@ -427,33 +422,10 @@ Sistema SENA
             """.strip()
         )
 
-        print(f"[EMAIL] Enviando mensaje...")
         mail.send(msg)
-        print(f"[EMAIL] SUCCESS: Email enviado exitosamente a {email}")
         return True
 
     except Exception as e:
-        print(f"[EMAIL] ERROR: Falló el envío de email a {email}")
-        print(f"[EMAIL] Detalle del error: {e}")
-        print(f"[EMAIL] Tipo de error: {type(e).__name__}")
-
-        # Diagnosticar el error específico
-        error_str = str(e).lower()
-        if "authentication" in error_str:
-            print(f"[EMAIL] DIAGNOSTICO: Error de autenticación - verificar MAIL_USERNAME y MAIL_PASSWORD")
-        elif "connection" in error_str or "connect" in error_str:
-            print(f"[EMAIL] DIAGNOSTICO: Error de conexión - verificar conectividad a internet y puerto {mail_port}")
-        elif "timeout" in error_str:
-            print(f"[EMAIL] DIAGNOSTICO: Timeout - verificar velocidad de conexión")
-        elif "smtp" in error_str:
-            print(f"[EMAIL] DIAGNOSTICO: Error SMTP - verificar configuración del servidor")
-        else:
-            print(f"[EMAIL] DIAGNOSTICO: Error desconocido")
-
-        import traceback
-        print(f"[EMAIL] Traceback completo:")
-        print(f"[EMAIL] {traceback.format_exc()}")
-
         return False
 
 # --- RUTAS PARA RECUPERACIÓN DE CONTRASEÑA ---
@@ -486,9 +458,6 @@ def forgot_password():
         token = generate_reset_token()
         expires_at = datetime.utcnow() + timedelta(hours=1)  # Expira en 1 hora
 
-        print(f"[KEY] Generando token para {email} (tipo: {user_type})")
-        print(f"[TIME] Token expira: {expires_at}")
-
         # Crear registro del token
         # Mapeo de atributos de ID por tipo de usuario
         id_attr_map = {
@@ -500,8 +469,6 @@ def forgot_password():
         id_attr = id_attr_map.get(user_type, f'id_{user_type}')
         user_id = getattr(user, id_attr)
 
-        print(f"[USER] User ID: {user_id} (atributo: {id_attr})")
-
         reset_token = PasswordResetToken(
             token=token,
             email=email,
@@ -511,53 +478,30 @@ def forgot_password():
         )
 
         try:
-            print(f"[SAVE] Guardando token en BD...")
-
             # Verificar que la tabla existe
             from sqlalchemy import inspect
             inspector = inspect(db.engine)
             tables = inspector.get_table_names()
             if 'password_reset_token' not in tables:
-                print(f"[ERROR] ERROR: Tabla 'password_reset_token' no existe")
-                print(f"[LIST] Tablas disponibles: {tables}")
                 db.create_all()
-                print(f"[TOOLS] Tablas creadas")
 
             db.session.add(reset_token)
             db.session.commit()
-            print(f"[OK] Token guardado exitosamente - ID: {reset_token.id}")
-
-            # Verificar que se guardó correctamente
-            saved_token = PasswordResetToken.query.filter_by(token=token).first()
-            if saved_token:
-                print(f"[SEARCH] Verificación: Token encontrado en BD - ID: {saved_token.id}")
-                print(f"   Token: {saved_token.token}")
-                print(f"   Email: {saved_token.email}")
-                print(f"   Expires: {saved_token.expires_at}")
-            else:
-                print(f"[ERROR] ERROR: Token no se encontró después del commit")
 
             # Generar URL de restablecimiento
             reset_url = url_for('auth.reset_password', token=token, _external=True)
-            print(f"[LINK] URL generada: {reset_url}")
 
             # Enviar email
             email_sent = send_reset_email(email, reset_url)
 
             if email_sent:
-                print(f"[SUCCESS] Proceso de recuperación completado exitosamente para {email}")
                 flash('Si tu correo electrónico está registrado, recibirás un enlace para restablecer tu contraseña.', 'info')
             else:
-                print(f"[WARNING] Email no pudo enviarse, pero token guardado para {email}")
                 flash('Hemos procesado tu solicitud, pero puede haber un problema temporal con el envío de emails. Contacta al administrador si no recibes el mensaje.', 'warning')
 
             return redirect(url_for('auth.login'))
 
         except Exception as e:
-            print(f"[ERROR] ERROR al guardar token: {e}")
-            print(f"[SEARCH] Tipo de error: {type(e).__name__}")
-            import traceback
-            print(f"[SEARCH] Traceback: {traceback.format_exc()}")
             db.session.rollback()
             flash('Error al procesar la solicitud. Inténtalo de nuevo.', 'danger')
             return redirect(url_for('auth.forgot_password'))
@@ -571,28 +515,21 @@ def reset_password(token):
     import time
     start_time = time.time()
 
-    print(f"[SEARCH] Validando token: {token[:20]}...")
-    print(f"[RULER] Longitud del token: {len(token)}")
-
     # Validar que el token no esté vacío
     if not token or len(token.strip()) == 0:
-        print("[ERROR] Token vacío o inválido")
         flash('El enlace de restablecimiento no es válido o ha expirado.', 'danger')
         return redirect(url_for('auth.login'))
 
     try:
         # Verificar conexión a BD con timeout
-        print("[PLUG] Verificando conexión a BD...")
         db_start = time.time()
 
         # Consulta simple para verificar conexión
         from sqlalchemy import text
         db.session.execute(text("SELECT 1")).first()
         db_time = time.time() - db_start
-        print(f"[OK] Conexión a BD verificada en {db_time:.2f}s")
 
         # Buscar token válido con timeout y optimización
-        print("[SEARCH] Buscando token en BD...")
         search_start = time.time()
 
         reset_token = None
@@ -629,16 +566,13 @@ def reset_password(token):
                         expires_at=result[6],
                         used=result[7]
                     )
-                    print(f"[OK] Token encontrado en intento {attempt + 1}")
                     break
                 else:
                     reset_token = None
                     break
 
             except Exception as query_error:
-                print(f"[ERROR] Error en consulta SQL (intento {attempt + 1}): {query_error}")
                 if attempt < max_retries - 1:
-                    print(f"[INFO] Reintentando en {retry_delay} segundos...")
                     import time
                     time.sleep(retry_delay)
                     continue
@@ -649,85 +583,41 @@ def reset_password(token):
                                   .filter(PasswordResetToken.token == token)
                                   .filter(PasswordResetToken.used == False)
                                   .first())
-                    print("[OK] Fallback a consulta ORM exitoso")
                     break
                 except Exception as orm_error:
-                    print(f"[ERROR] Error en consulta ORM fallback: {orm_error}")
                     reset_token = None
                     break
 
         search_time = time.time() - search_start
-        print(f"[SEARCH] Búsqueda completada en {search_time:.2f}s")
 
         # Verificar si la búsqueda tomó demasiado tiempo
-        if search_time > 10:  # Más de 10 segundos
-            print(f"[WARNING] ADVERTENCIA: Búsqueda lenta ({search_time:.2f}s)")
-            print("   Posible problema de conectividad con la BD remota")
-            print(f"[WARNING] Token: {token[:20]}...")
-            print(f"[WARNING] Current time: {datetime.utcnow()}")
-        elif search_time > 30:  # Más de 30 segundos - timeout crítico
-            print(f"[ERROR] ERROR: Búsqueda muy lenta ({search_time:.2f}s) - Timeout")
-            print(f"[ERROR] Token: {token[:20]}...")
-            print(f"[ERROR] Current time: {datetime.utcnow()}")
+        if search_time > 30:  # Más de 30 segundos - timeout crítico
             flash('La conexión está tardando demasiado. Inténtalo de nuevo en unos minutos.', 'warning')
             return redirect(url_for('auth.login'))
 
         if not reset_token:
-            print(f"[ERROR] Token no encontrado en BD: {token[:20]}...")
-            print(f"[ERROR] Token length: {len(token)}")
-            print(f"[ERROR] Token characters: {token[:10]}...{token[-10:]}")
-
             # Verificar si existe pero está usado (consulta optimizada)
             used_token = PasswordResetToken.query.filter_by(token=token).first()
             if used_token:
-                print(f"[WARNING] Token encontrado pero usado: {used_token.used}")
-                print(f"[WARNING] Token details: ID={used_token.id}, Email={used_token.email}, Used={used_token.used}")
-                print(f"[WARNING] Created: {used_token.created_at}, Expires: {used_token.expires_at}")
                 if used_token.used:
-                    print(f"[ERROR] Token ya fue utilizado - posible problema de concurrencia")
                     flash('Este enlace de restablecimiento ya ha sido utilizado.', 'danger')
                 else:
-                    print(f"[ERROR] Token encontrado pero no usado - posible problema de consulta")
                     flash('Error interno del sistema. Inténtalo de nuevo.', 'danger')
             else:
-                print("[ERROR] Token no existe en la base de datos")
-                # Verificar si hay tokens similares
-                similar_tokens = PasswordResetToken.query.filter(
-                    PasswordResetToken.token.like(f"{token[:10]}%")
-                ).all()
-                if similar_tokens:
-                    print(f"[WARNING] Tokens similares encontrados: {len(similar_tokens)}")
-                    for t in similar_tokens[:3]:  # Mostrar solo los primeros 3
-                        print(f"[WARNING]   Similar token: {t.token[:20]}... (ID: {t.id})")
-
-            flash('El enlace de restablecimiento no es válido o ha expirado.', 'danger')
+                flash('El enlace de restablecimiento no es válido o ha expirado.', 'danger')
             return redirect(url_for('auth.login'))
-
-        print(f"[OK] Token encontrado - ID: {reset_token.id}, Email: {reset_token.email}, Used: {reset_token.used}")
-        print(f"[TIME] Created: {reset_token.created_at}")
-        print(f"[TIME] Expires: {reset_token.expires_at}")
-        print(f"[TIME] Current: {datetime.utcnow()}")
 
         # Verificar expiración con más detalle
         is_expired = reset_token.is_expired()
-        print(f"[SEARCH] Método is_expired(): {is_expired}")
 
         if is_expired:
-            print(f"[ERROR] Token expirado")
-            print(f"[ERROR] Token details: ID={reset_token.id}, Email={reset_token.email}")
-            print(f"[ERROR] Created: {reset_token.created_at}, Expires: {reset_token.expires_at}")
-            print(f"[ERROR] Current time: {datetime.utcnow()}")
-            print(f"[ERROR] Time difference: {(datetime.utcnow() - reset_token.expires_at).total_seconds()} seconds")
             flash('El enlace de restablecimiento ha expirado. Solicita uno nuevo.', 'danger')
             return redirect(url_for('auth.forgot_password'))
 
         total_time = time.time() - start_time
-        print(f"[OK] Token válido, mostrando formulario (tiempo total: {total_time:.2f}s)")
 
     except Exception as db_error:
         error_time = time.time() - start_time
-        print(f"[ERROR] ERROR de base de datos después de {error_time:.2f}s: {db_error}")
-        print(f"[SEARCH] Tipo de error: {type(db_error).__name__}")
 
         # Intentar rollback si es necesario
         try:
@@ -738,24 +628,12 @@ def reset_password(token):
         flash('Error interno del servidor. La conexión está tardando demasiado. Inténtalo de nuevo.', 'danger')
         return redirect(url_for('auth.login'))
 
-    print(f"[OK] Token encontrado - ID: {reset_token.id}, Email: {reset_token.email}, Used: {reset_token.used}")
-    print(f"[TIME] Created: {reset_token.created_at}")
-    print(f"[TIME] Expires: {reset_token.expires_at}")
-    print(f"[TIME] Current: {datetime.utcnow()}")
-
     # Verificar expiración con más detalle
     is_expired = reset_token.is_expired()
-    print(f"[SEARCH] Método is_expired(): {is_expired}")
 
     if is_expired:
-        print(f"[ERROR] Token expirado")
-        print(f"   Expires at: {reset_token.expires_at}")
-        print(f"   Current time: {datetime.utcnow()}")
-        print(f"   Difference: {(datetime.utcnow() - reset_token.expires_at).total_seconds()} seconds")
         flash('El enlace de restablecimiento ha expirado. Solicita uno nuevo.', 'danger')
         return redirect(url_for('auth.forgot_password'))
-
-    print("[OK] Token válido, mostrando formulario")
 
     if request.method == 'POST':
         password = request.form.get('password')
@@ -808,14 +686,12 @@ def reset_password(token):
             reset_token.used = True
 
             db.session.commit()
-            print(f"[OK] Contraseña actualizada exitosamente para {reset_token.email}")
 
             flash('Tu contraseña ha sido restablecida exitosamente. Ya puedes iniciar sesión.', 'success')
             return redirect(url_for('auth.login'))
 
         except Exception as e:
             db.session.rollback()
-            print(f"[ERROR] Error al restablecer contraseña: {e}")
             flash('Error al restablecer la contraseña. Inténtalo de nuevo.', 'danger')
             return redirect(url_for('auth.reset_password', token=token))
 

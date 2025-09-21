@@ -360,6 +360,7 @@ class PasswordResetToken(db.Model):
 class Notificacion(db.Model):
     __tablename__ = 'notificacion'
     id = db.Column(db.Integer, primary_key=True)
+    motivo = db.Column(db.String(100), nullable=True)  # Nuevo campo para el motivo/asunto de la notificación
     mensaje = db.Column(db.Text, nullable=False)
     remitente_id = db.Column(db.Integer, nullable=False)
     rol_remitente = db.Column(db.String(50), nullable=False)

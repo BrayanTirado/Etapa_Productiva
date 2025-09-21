@@ -17,7 +17,7 @@
     <div class="mb-4">
         <label class="block text-sm font-semibold text-gray-700 mb-1">Motivo del mensaje</label>
         <div class="p-3 border rounded-md bg-gray-50 text-gray-800">
-            {{ notificacion.mensaje.split(']')[0].replace('[','') }}
+            {{ notificacion.motivo or 'Sin motivo especificado' }}
         </div>
     </div>
 
@@ -25,7 +25,7 @@
     <div class="mb-4">
         <label class="block text-sm font-semibold text-gray-700 mb-1">Mensaje</label>
         <div class="p-3 border rounded-md bg-gray-50 text-gray-800">
-            {{ notificacion.mensaje.split(']')[1] if ']' in notificacion.mensaje else notificacion.mensaje }}
+            {{ notificacion.mensaje }}
         </div>
     </div>
 

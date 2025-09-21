@@ -67,9 +67,7 @@ def create_app():
     with app.app_context():
         try:
             db.create_all()
-            print("Conexión a la base de datos exitosa y tablas creadas.")
         except Exception as e:
-            print(f"Error al conectar con la base de datos: {e}")
             raise
 
         # Email se maneja exclusivamente con Gmail API
@@ -81,7 +79,6 @@ def create_app():
     proxy_fix_enabled = os.environ.get('PROXY_FIX_ENABLED', 'true').lower() == 'true'
 
     if proxy_fix_enabled:
-        print("[PROXY] Configurando ProxyFix para producción...")
         app.wsgi_app = ProxyFix(
             app.wsgi_app,
             x_for=1,      # Número de proxies para X-Forwarded-For
@@ -90,9 +87,6 @@ def create_app():
             x_port=1,     # Número de proxies para X-Forwarded-Port
             x_prefix=1    # Número de proxies para X-Forwarded-Prefix
         )
-        print("[PROXY] ProxyFix configurado correctamente")
-    else:
-        print("[PROXY] ProxyFix deshabilitado (modo desarrollo)")
 
     return app
 
