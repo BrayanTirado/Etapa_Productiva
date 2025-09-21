@@ -239,6 +239,15 @@ class Evidencia(db.Model):
     tipo = db.Column(db.String(50), nullable=False)
     nota = db.Column(db.String(255), nullable=True)
 
+    # Nuevos campos para control de tiempo
+    primera_subida_word = db.Column(db.Date, nullable=True)  # Fecha de primera subida de Word
+    primera_subida_excel_15 = db.Column(db.Date, nullable=True)  # Fecha de primera subida de Excel (sesión 15 días)
+    primera_subida_excel_3 = db.Column(db.Date, nullable=True)  # Fecha de primera subida de Excel (sesión 3 meses)
+    primera_subida_pdf = db.Column(db.Date, nullable=True)  # Fecha de primera subida de PDF
+
+    # Campo para indicar la sesión específica de Excel
+    sesion_excel = db.Column(db.String(20), nullable=True)  # '15_dias' o '3_meses'
+
     aprendiz_id_aprendiz = db.Column(db.Integer, db.ForeignKey('aprendiz.id_aprendiz'), nullable=False)
     aprendiz_rel = db.relationship('Aprendiz', back_populates='evidencias', lazy=True)
 
@@ -304,24 +313,46 @@ class TokenInstructor(db.Model):
 class PasswordResetToken(db.Model):
     __tablename__ = 'password_reset_token'
     id = db.Column(db.Integer, primary_key=True)
-    token = db.Column(db.String(100), unique=True, nullable=False)
-    email = db.Column(db.String(100), nullable=False)
-    user_type = db.Column(db.String(20), nullable=False)  # 'aprendiz', 'instructor', 'coordinador', 'administrador'
-    user_id = db.Column(db.Integer, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    expires_at = db.Column(db.DateTime, nullable=False)
-    used = db.Column(db.Boolean, default=False)
+    token = db.Column(db.String(100), unique=True, nullable=False, index=True)  # Agregado índice
+    email = db.Column(db.String(100), nullable=False, index=True)  # Agregado índice
+    user_type = db.Column(db.String(20), nullable=False)
+    user_id = db.Column(db.Integer, nullable=False, index=True)  # Agregado índice
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)  # Agregado índice
+    expires_at = db.Column(db.DateTime, nullable=False, index=True)  # Agregado índice
+    used = db.Column(db.Boolean, default=False, index=True)  # Agregado índice
 
     def is_expired(self):
-        # Asegurar comparación sin zona horaria
-        current_time = datetime.utcnow()
-        expires_time = self.expires_at
+        """Verificar si el token ha expirado con manejo optimizado de zona horaria"""
+        try:
+            # Obtener tiempo actual en UTC
+            current_time = datetime.utcnow()
+            print(f"[DEBUG] Verificando expiración del token:")
+            print(f"[DEBUG]   Current time (UTC): {current_time}")
+            print(f"[DEBUG]   Token expires_at: {self.expires_at}")
+            print(f"[DEBUG]   Token expires_at type: {type(self.expires_at)}")
 
-        # Si expires_at tiene zona horaria, removerla para comparación consistente
-        if hasattr(expires_time, 'replace') and hasattr(expires_time, 'tzinfo') and expires_time.tzinfo is not None:
-            expires_time = expires_time.replace(tzinfo=None)
+            # Asegurar que expires_at no tenga zona horaria para comparación consistente
+            expires_time = self.expires_at
+            if hasattr(expires_time, 'replace') and hasattr(expires_time, 'tzinfo') and expires_time.tzinfo is not None:
+                expires_time = expires_time.replace(tzinfo=None)
+                print(f"[DEBUG]   Converted expires_time (no timezone): {expires_time}")
+            else:
+                # Si no tiene zona horaria, asumir que ya está en UTC
+                print(f"[DEBUG]   expires_time already without timezone: {expires_time}")
 
-        return current_time.replace(tzinfo=None) > expires_time
+            # Comparación directa
+            is_expired = current_time.replace(tzinfo=None) > expires_time
+            print(f"[DEBUG]   Is expired: {is_expired}")
+            print(f"[DEBUG]   Time difference: {(current_time.replace(tzinfo=None) - expires_time).total_seconds()} seconds")
+
+            return is_expired
+
+        except Exception as e:
+            # En caso de error, considerar el token como expirado por seguridad
+            print(f"[ERROR] Error verificando expiración del token: {e}")
+            import traceback
+            print(f"[ERROR] Traceback: {traceback.format_exc()}")
+            return True
 
 # -------------------------
 # TABLA NOTIFICACION

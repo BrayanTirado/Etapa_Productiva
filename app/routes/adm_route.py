@@ -102,7 +102,7 @@ def dashboard():
         aprendices=aprendices,
         coordinadores=coordinadores,
         instructores=instructores,
-        admin_nombre=f"{current_user.nombre} {current_user.apellido}",  # 👈 agregado para saludo
+        admin_nombre=f"{current_user.nombre} {current_user.apellido}",  # [POINTING] agregado para saludo
     )
 
 # -------------------------------
@@ -180,7 +180,7 @@ def enviar_mensaje():
             flash("Debes seleccionar un rol para enviar el mensaje.", "danger")
             return redirect(url_for('adm_bp.dashboard'))
 
-        # ✅ Caso 1: mensaje a un usuario específico
+        # [OK] Caso 1: mensaje a un usuario específico
         if destinatario_id:
             destinatario_id = int(destinatario_id)
 
@@ -204,7 +204,7 @@ def enviar_mensaje():
                     destinatario_id=destinatario_id,
                     rol_destinatario=rol_destinatario
                 )
-                # ✅ Mensaje más descriptivo con nombre y rol
+                # [OK] Mensaje más descriptivo con nombre y rol
                 flash(
                     f"Notificación enviada con éxito a {nombre_completo} ({rol_destinatario}).",
                     "success"
@@ -212,11 +212,11 @@ def enviar_mensaje():
             else:
                 flash("El destinatario no existe o no pertenece a ese rol.", "danger")
 
-        # ✅ Caso 2: mensaje general al rol completo
+        # [OK] Caso 2: mensaje general al rol completo
         else:
             enviar_notificacion(
                 mensaje=f"[{motivo}] {mensaje}",
-                destinatario_id=None,  # 👈 general
+                destinatario_id=None,  # [POINTING] general
                 rol_destinatario=rol_destinatario
             )
             flash(f"Notificación general enviada a todos los {rol_destinatario.lower()}s.", "success")

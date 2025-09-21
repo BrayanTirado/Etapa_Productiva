@@ -26,7 +26,7 @@ def crear_notificacion():
     )
     db.session.add(noti)
     db.session.commit()
-    flash("Notificación enviada correctamente ✅", "success")
+    flash("Notificación enviada correctamente [OK]", "success")
     return redirect(request.referrer)
 
 # Listar notificaciones del usuario

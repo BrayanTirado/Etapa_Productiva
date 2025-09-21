@@ -166,7 +166,7 @@ def dashboard():
     # Obtener filtro de sede
     sede_filter = request.args.get('sede_filter')
 
-    # ✅ Filtrar instructores y aprendices por sede del coordinador o por filtro
+    # [OK] Filtrar instructores y aprendices por sede del coordinador o por filtro
     instructores = []
     aprendices = []
     if sede_filter:
@@ -178,7 +178,7 @@ def dashboard():
         instructores = Instructor.query.filter_by(sede_id=sede_creada.id_sede).all()
         aprendices = Aprendiz.query.filter_by(sede_id=sede_creada.id_sede).all()
 
-    # ✅ Administradores siempre van completos
+    # [OK] Administradores siempre van completos
     administradores = Administrador.query.all()
 
     # Obtener todas las sedes para el filtro
@@ -220,17 +220,17 @@ def generar_token():
         token_str = secrets.token_urlsafe(8)
         fecha_expiracion = datetime.utcnow() + timedelta(days=dias_validos)
 
-        # ✅ Verificar que el coordinador tenga una sede asignada
+        # [OK] Verificar que el coordinador tenga una sede asignada
         if not current_user.sede_id:
             flash("Error: Debes crear una sede primero antes de generar tokens para instructores.", "error")
             return redirect(url_for('coordinador_bp.dashboard'))
 
-        # ✅ Incluir la sede_id del coordinador al generar el token
+        # [OK] Incluir la sede_id del coordinador al generar el token
         token = TokenInstructor(
             token=token_str,
             fecha_expiracion=fecha_expiracion,
             coordinador_id=current_user.id_coordinador,
-            sede_id=current_user.sede_id   # 🔑 hereda la sede del coordinador
+            sede_id=current_user.sede_id   # [KEY] hereda la sede del coordinador
         )
 
         db.session.add(token)
@@ -380,7 +380,7 @@ def enviar_mensaje():
             flash("Debes seleccionar un rol para enviar el mensaje.", "danger")
             return redirect(url_for('coordinador_bp.dashboard'))
 
-        # ✅ Caso 1: mensaje a un usuario específico
+        # [OK] Caso 1: mensaje a un usuario específico
         if destinatario_id:
             destinatario_id = int(destinatario_id)
 
@@ -413,11 +413,11 @@ def enviar_mensaje():
             else:
                 flash("El destinatario no existe o no pertenece a tu sede.", "danger")
 
-        # ✅ Caso 2: mensaje general al rol completo
+        # [OK] Caso 2: mensaje general al rol completo
         else:
             enviar_notificacion(
                 mensaje=f"[{motivo}] {mensaje}",
-                destinatario_id=None,  # 👈 general
+                destinatario_id=None,  # [POINTING] general
                 rol_destinatario=rol_destinatario
             )
             flash(f"Notificación general enviada a todos los {rol_destinatario.lower()}s.", "success")

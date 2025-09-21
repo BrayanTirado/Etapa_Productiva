@@ -4,10 +4,77 @@ from app.models.users import Evidencia, Aprendiz, Instructor
 from app import db
 import os
 from werkzeug.utils import secure_filename
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from uuid import uuid4
+from sqlalchemy import text
 
 bp = Blueprint('evidencia_bp', __name__, url_prefix='/evidencia')
+
+# --- VERIFICAR RESTRICCIÓN ANTES DE SUBIR ---
+@bp.route('/verificar_restriccion', methods=['POST'])
+@login_required
+def verificar_restriccion():
+    """Verifica si hay restricción de tiempo para un tipo de archivo específico."""
+    if not isinstance(current_user, Aprendiz):
+        return {'error': 'Acceso denegado'}, 403
+
+    tipo = request.form.get('tipo')
+    sesion_excel = request.form.get('sesion_excel')
+
+    if not tipo:
+        return {'error': 'Tipo no especificado'}, 400
+
+    # Verificar restricciones temporales
+    print(f"DEBUG: Verificando restricción para tipo={tipo}, sesion_excel={sesion_excel}")
+    puede_subir, mensaje_error, fecha_proxima = puede_subir_archivo(
+        current_user.id_aprendiz, tipo, sesion_excel
+    )
+    print(f"DEBUG: Resultado - puede_subir={puede_subir}, mensaje={mensaje_error}, fecha_proxima={fecha_proxima}")
+
+    return {
+        'restringido': not puede_subir,
+        'mensaje': mensaje_error,
+        'fecha_proxima': fecha_proxima
+    }
+
+# --- MIGRACIÓN PARA AGREGAR CAMPO SESION_EXCEL ---
+@bp.route('/migrar_sesion_excel')
+@login_required
+def migrar_sesion_excel():
+    """Migra las evidencias existentes para asignar el campo sesion_excel correctamente."""
+    if not isinstance(current_user, Aprendiz):
+        flash('Acceso denegado.', 'danger')
+        return redirect(url_for('auth.dashboard'))
+
+    try:
+        # Buscar evidencias Excel que no tienen sesion_excel asignado
+        evidencias_sin_sesion = Evidencia.query.filter_by(
+            tipo='Excel',
+            sesion_excel=None
+        ).all()
+
+        actualizadas = 0
+        for evidencia in evidencias_sin_sesion:
+            # Si tiene primera_subida_excel_15, asignar '15_dias'
+            if evidencia.primera_subida_excel_15:
+                evidencia.sesion_excel = '15_dias'
+                actualizadas += 1
+            # Si tiene primera_subida_excel_3, asignar '3_meses'
+            elif evidencia.primera_subida_excel_3:
+                evidencia.sesion_excel = '3_meses'
+                actualizadas += 1
+
+        if actualizadas > 0:
+            db.session.commit()
+            flash(f'Migración completada. Se actualizaron {actualizadas} evidencias Excel.', 'success')
+        else:
+            flash('No se encontraron evidencias Excel para migrar.', 'info')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error en la migración: {str(e)}', 'danger')
+
+    return redirect(url_for('evidencia_bp.listar_evidencias'))
 
 # Carpeta donde se guardarán los archivos (misma lógica que tenías)
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -28,6 +95,101 @@ def allowed_file(filename: str, tipo: str) -> bool:
         return False
     ext = filename.rsplit('.', 1)[1].lower()
     return ext in EXTENSIONES_PERMITIDAS.get(tipo, set())
+
+def puede_subir_archivo(aprendiz_id: int, tipo: str, sesion_excel: str = None) -> tuple[bool, str, str]:
+    """
+    Verifica si un aprendiz puede subir un archivo según las restricciones temporales.
+    Retorna (puede_subir, mensaje_error, fecha_proxima)
+    """
+    from app.models.users import Evidencia
+
+    hoy = date.today()
+
+    # Buscar la primera subida del tipo de archivo
+    if tipo == 'word':
+        primera_subida = db.session.query(Evidencia.primera_subida_word)\
+            .filter_by(aprendiz_id_aprendiz=aprendiz_id)\
+            .first()
+        if primera_subida and primera_subida[0]:
+            dias_desde_primera = (hoy - primera_subida[0]).days
+            if dias_desde_primera < 90:  # 3 meses
+                dias_restantes = 90 - dias_desde_primera
+                fecha_proxima = primera_subida[0] + timedelta(days=90)
+                return False, f"No puedes subir otro archivo Word. Debes esperar {dias_restantes} días más.", fecha_proxima.strftime('%d/%m/%Y')
+
+    elif tipo == 'excel':
+        print(f"DEBUG: Verificando restricción Excel para sesión: {sesion_excel}")
+
+        if sesion_excel == '15_dias':
+            print(f"DEBUG: Aplicando lógica de 15 días")
+            # Buscar la primera subida de Excel 15 días
+            primera_subida = db.session.query(Evidencia.primera_subida_excel_15)\
+                .filter_by(aprendiz_id_aprendiz=aprendiz_id)\
+                .first()
+            print(f"DEBUG: Primera subida Excel 15 días encontrada: {primera_subida}")
+
+            # Si no hay registro de primera subida, buscar la evidencia más antigua de Excel 15 días
+            if not primera_subida or not primera_subida[0]:
+                evidencia_mas_antigua = db.session.query(db.func.min(Evidencia.fecha_subida))\
+                    .filter_by(aprendiz_id_aprendiz=aprendiz_id, tipo='Excel', sesion_excel='15_dias')\
+                    .filter(Evidencia.fecha_subida.isnot(None))\
+                    .first()
+                print(f"DEBUG: Evidencia más antigua Excel 15 días: {evidencia_mas_antigua}")
+                if evidencia_mas_antigua and evidencia_mas_antigua[0]:
+                    primera_subida = (evidencia_mas_antigua[0],)
+                    print(f"DEBUG: Usando fecha de evidencia más antigua: {primera_subida[0]}")
+
+            if primera_subida and primera_subida[0]:
+                dias_desde_primera = (hoy - primera_subida[0]).days
+                print(f"DEBUG: Días desde primera subida Excel 15 días: {dias_desde_primera}")
+                if dias_desde_primera < 15:
+                    dias_restantes = 15 - dias_desde_primera
+                    fecha_proxima = primera_subida[0] + timedelta(days=15)
+                    return False, f"No puedes subir otro archivo Excel (sesión 15 días). Debes esperar {dias_restantes} días más.", fecha_proxima.strftime('%d/%m/%Y')
+        elif sesion_excel == '3_meses':
+            print(f"DEBUG: Aplicando lógica de 3 meses")
+            # Buscar la primera subida de Excel 3 meses
+            primera_subida = db.session.query(Evidencia.primera_subida_excel_3)\
+                .filter_by(aprendiz_id_aprendiz=aprendiz_id)\
+                .first()
+            print(f"DEBUG: Primera subida Excel 3 meses encontrada: {primera_subida}")
+
+            # Si no hay registro de primera subida, buscar la evidencia más antigua de Excel 3 meses
+            if not primera_subida or not primera_subida[0]:
+                evidencia_mas_antigua = db.session.query(db.func.min(Evidencia.fecha_subida))\
+                    .filter_by(aprendiz_id_aprendiz=aprendiz_id, tipo='Excel', sesion_excel='3_meses')\
+                    .filter(Evidencia.fecha_subida.isnot(None))\
+                    .first()
+                print(f"DEBUG: Evidencia más antigua Excel 3 meses: {evidencia_mas_antigua}")
+                if evidencia_mas_antigua and evidencia_mas_antigua[0]:
+                    primera_subida = (evidencia_mas_antigua[0],)
+                    print(f"DEBUG: Usando fecha de evidencia más antigua: {primera_subida[0]}")
+
+            if primera_subida and primera_subida[0]:
+                dias_desde_primera = (hoy - primera_subida[0]).days
+                print(f"DEBUG: Días desde primera subida Excel 3 meses: {dias_desde_primera}")
+                if dias_desde_primera < 90:  # 3 meses
+                    dias_restantes = 90 - dias_desde_primera
+                    fecha_proxima = primera_subida[0] + timedelta(days=90)
+                    return False, f"No puedes subir otro archivo Excel (sesión 3 meses). Debes esperar {dias_restantes} días más.", fecha_proxima.strftime('%d/%m/%Y')
+            else:
+                print(f"DEBUG: No se encontró primera subida para Excel 3 meses, permitiendo subida")
+        else:
+            print(f"DEBUG: Sesión Excel no reconocida: {sesion_excel}, permitiendo subida")
+
+    elif tipo == 'pdf':
+        primera_subida = db.session.query(Evidencia.primera_subida_pdf)\
+            .filter_by(aprendiz_id_aprendiz=aprendiz_id)\
+            .first()
+        if primera_subida and primera_subida[0]:
+            dias_desde_primera = (hoy - primera_subida[0]).days
+            if dias_desde_primera < 90:  # 3 meses
+                dias_restantes = 90 - dias_desde_primera
+                fecha_proxima = primera_subida[0] + timedelta(days=90)
+                return False, f"No puedes subir otro archivo PDF. Debes esperar {dias_restantes} días más.", fecha_proxima.strftime('%d/%m/%Y')
+
+    print(f"DEBUG: No se aplicó ninguna restricción para tipo={tipo}, sesion_excel={sesion_excel}, permitiendo subida")
+    return True, "", ""
 
 # --- LISTAR EVIDENCIAS SEGÚN ROL ---
 @bp.route('/')
@@ -53,15 +215,26 @@ def listar_evidencias():
     aprendiz = Aprendiz.query.get_or_404(aprendiz_id)
 
     evidencias_word = Evidencia.query.filter_by(aprendiz_id_aprendiz=aprendiz.id_aprendiz, tipo='Word').all()
-    evidencias_excel = Evidencia.query.filter_by(aprendiz_id_aprendiz=aprendiz.id_aprendiz, tipo='Excel').all()
+    evidencias_excel_15 = Evidencia.query.filter_by(aprendiz_id_aprendiz=aprendiz.id_aprendiz, tipo='Excel', sesion_excel='15_dias').all()
+    evidencias_excel_3 = Evidencia.query.filter_by(aprendiz_id_aprendiz=aprendiz.id_aprendiz, tipo='Excel', sesion_excel='3_meses').all()
     evidencias_pdf = Evidencia.query.filter_by(aprendiz_id_aprendiz=aprendiz.id_aprendiz, tipo='Pdf').all()
 
+    # Debug: imprimir información sobre las evidencias Excel
+    print(f"DEBUG: Total evidencias Excel encontradas: {len(evidencias_excel_15) + len(evidencias_excel_3)}")
+    print(f"DEBUG: Evidencias Excel 15 días: {len(evidencias_excel_15)}")
+    for ev in evidencias_excel_15:
+        print(f"  - ID: {ev.id_evidencia}, Sesión: {ev.sesion_excel}, Archivo: {ev.nombre_archivo}")
+    print(f"DEBUG: Evidencias Excel 3 meses: {len(evidencias_excel_3)}")
+    for ev in evidencias_excel_3:
+        print(f"  - ID: {ev.id_evidencia}, Sesión: {ev.sesion_excel}, Archivo: {ev.nombre_archivo}")
+
     return render_template('evidencia/listar_evidencia.html',
-                           aprendiz=aprendiz,
-                           evidencias_word=evidencias_word,
-                           evidencias_excel=evidencias_excel,
-                           evidencias_pdf=evidencias_pdf,
-                           now=datetime.now())
+                            aprendiz=aprendiz,
+                            evidencias_word=evidencias_word,
+                            evidencias_excel_15=evidencias_excel_15,
+                            evidencias_excel_3=evidencias_excel_3,
+                            evidencias_pdf=evidencias_pdf,
+                            now=datetime.now())
 
 # --- SERVIR ARCHIVO PARA DESCARGA ---
 @bp.route('/archivo/<int:id>')
@@ -134,6 +307,21 @@ def upload_evidencia(tipo):
 
     # Si es GET, mostrar el formulario (antes bloqueaba si no había "hueco"; ahora mostramos)
     if request.method == 'GET':
+        # Verificar restricciones temporales para mostrar modal si es necesario
+        if tipo == 'excel':
+            sesion_excel = request.args.get('sesion_excel', '15_dias')
+            puede_subir, mensaje_error, fecha_proxima = puede_subir_archivo(current_user.id_aprendiz, tipo, sesion_excel)
+        else:
+            puede_subir, mensaje_error, fecha_proxima = puede_subir_archivo(current_user.id_aprendiz, tipo)
+
+        if not puede_subir:
+            # Mostrar modal de restricción inmediatamente
+            return render_template('evidencia/choose_type.html',
+                                  error_restriccion=True,
+                                  mensaje_error=mensaje_error,
+                                  fecha_proxima=fecha_proxima,
+                                  now=datetime.now())
+
         return render_template('evidencia/nueva_evidencia.html', tipo=tipo.capitalize(), now=datetime.now())
 
     # --- POST: procesar subida ---
@@ -153,6 +341,24 @@ def upload_evidencia(tipo):
         }.get(tipo)
         flash(f'Archivo inválido. Solo se permiten {allowed_text}.', 'danger')
         return redirect(request.url)
+
+    # Verificar restricciones temporales
+    if tipo == 'excel':
+        # Para Excel necesitamos saber qué sesión es
+        sesion_excel = request.form.get('sesion_excel', '15_dias')
+        print(f"DEBUG: Form data - sesion_excel: {sesion_excel}")  # Debug adicional
+        print(f"DEBUG: All form data: {dict(request.form)}")  # Debug adicional
+        puede_subir, mensaje_error, fecha_proxima = puede_subir_archivo(current_user.id_aprendiz, tipo, sesion_excel)
+    else:
+        puede_subir, mensaje_error, fecha_proxima = puede_subir_archivo(current_user.id_aprendiz, tipo)
+
+    if not puede_subir:
+        # En lugar de redirigir, mostrar modal informativo
+        return render_template('evidencia/choose_type.html',
+                             error_restriccion=True,
+                             mensaje_error=mensaje_error,
+                             fecha_proxima=fecha_proxima,
+                             now=datetime.now())
 
     # Verificar límite de 17 evidencias subidas (solo las que ya tienen fecha/url)
     evidencias_subidas = Evidencia.query.filter_by(aprendiz_id_aprendiz=current_user.id_aprendiz).filter(
@@ -202,8 +408,70 @@ def upload_evidencia(tipo):
         )
         db.session.add(evidencia)
 
+    # Actualizar campos de control de tiempo si es la primera subida
+    hoy = date.today()
+    print(f"DEBUG: Actualizando campos de control de tiempo para tipo={tipo}, hoy={hoy}")
+
+    if tipo == 'word' and (not evidencia.primera_subida_word or evidencia.primera_subida_word > hoy):
+        evidencia.primera_subida_word = hoy
+        print(f"DEBUG: Actualizando primera_subida_word a {hoy}")
+    elif tipo == 'excel':
+        sesion_excel = request.form.get('sesion_excel', '15_dias')
+        print(f"DEBUG: Sesión Excel seleccionada: {sesion_excel}")  # Debug
+
+        # Guardar la sesión específica en el campo sesion_excel
+        evidencia.sesion_excel = sesion_excel
+        print(f"DEBUG: Asignando sesion_excel = {evidencia.sesion_excel}")  # Debug
+
+        # Verificar y actualizar los campos de primera subida
+        print(f"DEBUG: Estado actual - primera_subida_excel_15: {evidencia.primera_subida_excel_15}, primera_subida_excel_3: {evidencia.primera_subida_excel_3}")
+
+        if sesion_excel == '15_dias' and (not evidencia.primera_subida_excel_15 or evidencia.primera_subida_excel_15 > hoy):
+            evidencia.primera_subida_excel_15 = hoy
+            print(f"DEBUG: Actualizando primera_subida_excel_15 a {hoy}")
+        elif sesion_excel == '3_meses' and (not evidencia.primera_subida_excel_3 or evidencia.primera_subida_excel_3 > hoy):
+            evidencia.primera_subida_excel_3 = hoy
+            print(f"DEBUG: Actualizando primera_subida_excel_3 a {hoy}")
+
+        print(f"DEBUG: Estado después de actualización - primera_subida_excel_15: {evidencia.primera_subida_excel_15}, primera_subida_excel_3: {evidencia.primera_subida_excel_3}")
+    elif tipo == 'pdf' and (not evidencia.primera_subida_pdf or evidencia.primera_subida_pdf > hoy):
+        evidencia.primera_subida_pdf = hoy
+        print(f"DEBUG: Actualizando primera_subida_pdf a {hoy}")
+
     db.session.commit()
-    flash('Evidencia subida con éxito ✅', 'modal')
+
+    # Crear notificación automática para el instructor
+    from app.models.users import Notificacion
+    try:
+        # Obtener el instructor del aprendiz
+        instructor = current_user.instructor
+        if instructor:
+            # Determinar el tipo de archivo para el mensaje
+            tipo_archivo = tipo.capitalize()
+            if tipo == 'excel':
+                sesion_excel = request.form.get('sesion_excel', '15_dias')
+                tipo_archivo = f"Excel ({'15 días' if sesion_excel == '15_dias' else '3 meses'})"
+
+            # Crear notificación con motivo y mensaje separados
+            motivo = "Subida de Evidencia"
+            mensaje = f"El aprendiz {current_user.nombre} {current_user.apellido} ha subido una nueva evidencia en formato {tipo_archivo}. Archivo: {evidencia.nombre_archivo} [ID:{evidencia.id_evidencia}]"
+
+            notificacion = Notificacion(
+                mensaje=f"[{motivo}] {mensaje}",
+                remitente_id=current_user.id_aprendiz,
+                rol_remitente="Aprendiz",
+                destinatario_id=instructor.id_instructor,
+                rol_destinatario="Instructor",
+                visto=False
+            )
+            db.session.add(notificacion)
+            db.session.commit()
+    except Exception as e:
+        # Si hay error en la notificación, no bloquear la subida de evidencia
+        print(f"Error al crear notificación: {e}")
+        db.session.rollback()
+
+    flash('Evidencia subida con éxito [OK]', 'modal')
     return redirect(url_for('evidencia_bp.listar_evidencias'))
 
 # --- EDITAR EVIDENCIA ---
@@ -258,7 +526,7 @@ def editar_evidencia(id):
             evidencia.formato = ext
 
         db.session.commit()
-        flash('Evidencia actualizada correctamente ✅', 'success')
+        flash('Evidencia actualizada correctamente [OK]', 'success')
         return redirect(url_for('evidencia_bp.listar_evidencias'))
 
     return render_template('evidencia/editar_evidencia.html', evidencia=evidencia, now=datetime.now())
@@ -281,7 +549,7 @@ def eliminar_evidencia(id):
 
     db.session.delete(evidencia)
     db.session.commit()
-    flash('Evidencia eliminada correctamente ✅', 'success')
+    flash('Evidencia eliminada correctamente [OK]', 'success')
     return redirect(url_for('evidencia_bp.listar_evidencias'))
 
 # --- LISTAR EVIDENCIAS DE UN APRENDIZ (INSTRUCTOR) ---
@@ -295,12 +563,14 @@ def evidencias_aprendiz(id_aprendiz):
     aprendiz = Aprendiz.query.get_or_404(id_aprendiz)
 
     evidencias_word = Evidencia.query.filter_by(aprendiz_id_aprendiz=aprendiz.id_aprendiz, tipo='Word').all()
-    evidencias_excel = Evidencia.query.filter_by(aprendiz_id_aprendiz=aprendiz.id_aprendiz, tipo='Excel').all()
+    evidencias_excel_15 = Evidencia.query.filter_by(aprendiz_id_aprendiz=aprendiz.id_aprendiz, tipo='Excel', sesion_excel='15_dias').all()
+    evidencias_excel_3 = Evidencia.query.filter_by(aprendiz_id_aprendiz=aprendiz.id_aprendiz, tipo='Excel', sesion_excel='3_meses').all()
     evidencias_pdf = Evidencia.query.filter_by(aprendiz_id_aprendiz=aprendiz.id_aprendiz, tipo='Pdf').all()
 
     return render_template('evidencia/listar_evidencia.html',
-                           aprendiz=aprendiz,
-                           evidencias_word=evidencias_word,
-                           evidencias_excel=evidencias_excel,
-                           evidencias_pdf=evidencias_pdf,
-                           now=datetime.now())
+                            aprendiz=aprendiz,
+                            evidencias_word=evidencias_word,
+                            evidencias_excel_15=evidencias_excel_15,
+                            evidencias_excel_3=evidencias_excel_3,
+                            evidencias_pdf=evidencias_pdf,
+                            now=datetime.now())

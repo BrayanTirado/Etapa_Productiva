@@ -20,23 +20,146 @@
             {% endif %}
         {% endwith %}
 
+        <!-- Modal de restricción de tiempo -->
+        {% if error_restriccion %}
+        <div id="restriccionModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div class="bg-white rounded-lg shadow-lg p-6 max-w-md text-center">
+                <h2 class="text-xl font-semibold mb-4 text-red-600">⏰ Restricción de Tiempo</h2>
+                <p class="mb-4 text-gray-700">{{ mensaje_error }}</p>
+                <p class="mb-4 text-sm text-gray-600">
+                    <strong>Podrás volver a subir el {{ fecha_proxima }}</strong>
+                </p>
+                <button onclick="closeRestriccionModal()"
+                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
+                    Entendido
+                </button>
+            </div>
+        </div>
+        {% endif %}
+
         <div class="flex flex-col space-y-4">
-            <a href="{{ url_for('evidencia_bp.upload_evidencia', tipo='word') }}" class="bg-blue-500 text-white px-6 py-4 rounded-lg hover:bg-blue-600 transition text-lg font-medium">
+            <button onclick="verificarRestriccion('word')" class="bg-blue-500 text-white px-6 py-4 rounded-lg hover:bg-blue-600 transition text-lg font-medium">
                 Subir Documento Word (.doc / .docx)
-            </a>
-            <a href="{{ url_for('evidencia_bp.upload_evidencia', tipo='excel') }}" class="bg-green-500 text-white px-6 py-4 rounded-lg hover:bg-green-600 transition text-lg font-medium">
-                Subir Documento Excel (.xls / .xlsx)
-            </a>
+            </button>
+
+            <!-- Sesión Excel 15 días -->
+            <div class="bg-green-500 text-white px-6 py-4 rounded-lg hover:bg-green-600 transition text-lg font-medium">
+                <div class="text-center mb-2 font-bold">Sesión Excel - 15 días</div>
+                <button onclick="verificarRestriccion('excel', '15_dias')" class="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
+                    Subir Excel (15 días)
+                </button>
+            </div>
+
+            <!-- Sesión Excel 3 meses -->
+            <div class="bg-green-700 text-white px-6 py-4 rounded-lg hover:bg-green-800 transition text-lg font-medium">
+                <div class="text-center mb-2 font-bold">Sesión Excel - 3 meses</div>
+                <button onclick="verificarRestriccion('excel', '3_meses')" class="w-full bg-green-800 text-white px-4 py-2 rounded hover:bg-green-900 transition" data-sesion="3_meses">
+                    Subir Excel (3 meses)
+                </button>
+            </div>
+
             <a href="{{ url_for('evidencia_bp.upload_evidencia', tipo='pdf') }}" class="bg-red-500 text-white px-6 py-4 rounded-lg hover:bg-red-600 transition text-lg font-medium">
                 Subir Documento PDF (.pdf)
             </a>
         </div>
 
         <div class="mt-8">
-            <a href="{{ url_for('auth.dashboard') }}" class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition">
+            <a href="{{ url_for('aprendiz_bp.dashboard_aprendiz', aprendiz_id=current_user.id_aprendiz) if current_user.__class__.__name__ == 'Aprendiz' else url_for('auth.dashboard') }}" class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition">
                 Volver al Menú Principal
             </a>
         </div>
     </div>
+
+    <script>
+        // Función para cerrar el modal de restricción
+        function closeRestriccionModal() {
+            const modal = document.getElementById('restriccionModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Función para verificar restricción antes de permitir subir
+        function verificarRestriccion(tipo, sesion_excel = null) {
+            console.log('Verificando restricción para:', tipo, sesion_excel);
+
+            // Crear datos para enviar
+            const data = new FormData();
+            data.append('tipo', tipo);
+            if (sesion_excel) {
+                data.append('sesion_excel', sesion_excel);
+            }
+
+            // Hacer petición AJAX para verificar restricción
+            fetch('/evidencia/verificar_restriccion', {
+                method: 'POST',
+                body: data
+            })
+            .then(response => {
+                console.log('Respuesta del servidor:', response);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Datos de respuesta:', data);
+                if (data.restringido) {
+                    console.log('Restricción detectada, mostrando modal');
+                    // Mostrar modal con información de restricción
+                    mostrarModalRestriccion(data.mensaje, data.fecha_proxima, tipo, sesion_excel);
+                } else {
+                    console.log('No hay restricción, redirigiendo');
+                    // No hay restricción, redirigir al formulario de subida
+                    if (tipo === 'word') {
+                        window.location.href = '/evidencia/upload/word';
+                    } else if (tipo === 'excel') {
+                        window.location.href = '/evidencia/upload/excel?sesion_excel=' + (sesion_excel || '15_dias');
+                    } else if (tipo === 'pdf') {
+                        window.location.href = '/evidencia/upload/pdf';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error en verificación:', error);
+                // En caso de error, permitir el acceso normal
+                if (tipo === 'word') {
+                    window.location.href = '/evidencia/upload/word';
+                } else if (tipo === 'excel') {
+                    window.location.href = '/evidencia/upload/excel?sesion_excel=' + (sesion_excel || '15_dias');
+                } else if (tipo === 'pdf') {
+                    window.location.href = '/evidencia/upload/pdf';
+                }
+            });
+        }
+
+        // Función para mostrar modal de restricción
+        function mostrarModalRestriccion(mensaje, fecha_proxima, tipo, sesion_excel) {
+            console.log('Mostrando modal de restricción:', {mensaje, fecha_proxima, tipo, sesion_excel});
+
+            // Actualizar contenido del modal
+            const modal = document.getElementById('restriccionModal');
+            const mensajeEl = modal.querySelector('.modal-mensaje');
+            const fechaEl = modal.querySelector('.modal-fecha');
+
+            if (mensajeEl) {
+                mensajeEl.textContent = mensaje;
+                console.log('Mensaje actualizado:', mensaje);
+            }
+            if (fechaEl) {
+                fechaEl.textContent = `Podrás volver a subir el ${fecha_proxima}`;
+                console.log('Fecha actualizada:', fecha_proxima);
+            }
+
+            // Mostrar modal
+            modal.style.display = 'flex';
+            console.log('Modal mostrado');
+        }
+
+        // Mostrar modal de restricción automáticamente si existe
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('restriccionModal');
+            if (modal && modal.style.display !== 'none') {
+                // El modal ya está visible por el CSS, no necesitamos hacer nada
+            }
+        });
+    </script>
 </body>
 </html>

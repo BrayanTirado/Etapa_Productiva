@@ -29,6 +29,32 @@
         </div>
     </div>
 
+    <!-- Botón de descarga/ver si es notificación de subida de evidencia -->
+    {% if 'Subida de Evidencia' in notificacion.mensaje and 'Archivo:' in notificacion.mensaje and '[ID:' in notificacion.mensaje %}
+    <div class="mb-4">
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Archivo Adjunto</label>
+        <div class="p-3 border rounded-md bg-blue-50">
+            {% set archivo_match = notificacion.mensaje.split('Archivo: ')[1].split(' [ID:')[0] if 'Archivo: ' in notificacion.mensaje and '[ID:' in notificacion.mensaje else '' %}
+            {% set evidencia_id_match = notificacion.mensaje.split('[ID:')[1].split(']')[0] if '[ID:' in notificacion.mensaje else '' %}
+            {% set tipo_archivo_match = notificacion.mensaje.split('formato ')[1].split('.')[0] if 'formato ' in notificacion.mensaje else '' %}
+            {% if archivo_match and evidencia_id_match %}
+                {% if tipo_archivo_match.lower() == 'pdf' %}
+                    <a href="{{ url_for('evidencia_bp.view_file', id=evidencia_id_match) }}"
+                       class="inline-flex items-center bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
+                       target="_blank">
+                        👁️ Ver {{ archivo_match }}
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('evidencia_bp.serve_file', id=evidencia_id_match) }}"
+                       class="inline-flex items-center bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition">
+                        📥 Descargar {{ archivo_match }}
+                    </a>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Fecha -->
     <p class="text-sm text-gray-500 mb-6">
         {{ fecha_local.strftime('%d/%m/%Y %H:%M') }}
@@ -44,7 +70,16 @@
                   {{ url_for('instructor_bp.responder_notificacion', noti_id=notificacion.id) }}
               {% elif current_user.__class__.__name__ == 'Aprendiz' %}
                   {{ url_for('aprendiz_bp.responder_notificacion', noti_id=notificacion.id) }}
-              {% endif %}">
+              {% endif %}"
+      data-redirect-url="{% if current_user.__class__.__name__ == 'Administrador' %}
+                            {{ url_for('adm_bp.notificaciones') }}
+                        {% elif current_user.__class__.__name__ == 'Coordinador' %}
+                            {{ url_for('coordinador_bp.notificaciones') }}
+                        {% elif current_user.__class__.__name__ == 'Instructor' %}
+                            {{ url_for('instructor_bp.notificaciones') }}
+                        {% elif current_user.__class__.__name__ == 'Aprendiz' %}
+                            {{ url_for('aprendiz_bp.notificaciones') }}
+                        {% endif %}">
 
         <div class="mb-4">
             <label for="respuesta" class="block text-sm font-semibold text-gray-700 mb-1">Responder mensaje</label>
@@ -102,17 +137,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('modalSuccess');
     const closeBtn = document.getElementById('closeModal');
 
-    // Definir URL de redirección según el rol
-    let redirectUrl = "";
-    {% if current_user.__class__.__name__ == 'Administrador' %}
-        redirectUrl = "{{ url_for('adm_bp.notificaciones') }}";
-    {% elif current_user.__class__.__name__ == 'Coordinador' %}
-        redirectUrl = "{{ url_for('coordinador_bp.notificaciones') }}";
-    {% elif current_user.__class__.__name__ == 'Instructor' %}
-        redirectUrl = "{{ url_for('instructor_bp.notificaciones') }}";
-    {% elif current_user.__class__.__name__ == 'Aprendiz' %}
-        redirectUrl = "{{ url_for('aprendiz_bp.notificaciones') }}";
-    {% endif %}
+    // Obtener URL de redirección desde el atributo data
+    const redirectUrl = form.dataset.redirectUrl;
 
     form.addEventListener('submit', function(e) {
         e.preventDefault();

@@ -149,7 +149,7 @@ def registro():
             celular=celular,
             password=password_hash,
             instructor_id=instructor.id_instructor,
-            coordinador_id=instructor.coordinador_id,  # ✅ opcional pero útil
+            coordinador_id=instructor.coordinador_id,  # [OK] opcional pero útil
             sede_id=sede_id_final
         )
 
@@ -307,11 +307,12 @@ def editar_aprendiz(id):
 
     aprendiz = Aprendiz.query.get_or_404(id)
     if request.method == 'POST':
+
         nombre = request.form.get('nombre').strip()
         apellido = request.form.get('apellido').strip()
         tipo_documento = request.form.get('tipo_documento').strip()
         documento = request.form.get('documento').strip()
-        correo = request.form.get('correo').strip().lower()
+        correo = request.form.get('email').strip().lower()
         celular = request.form.get('celular').strip()
         password = request.form.get('password')
 
@@ -401,7 +402,7 @@ def enviar_mensaje():
         flash("Debes seleccionar un destinatario y escribir un mensaje.", "error")
         return redirect(url_for('aprendiz_bp.dashboard_aprendiz'))
 
-    # ✅ Caso 1: mensaje a usuario específico
+    # [OK] Caso 1: mensaje a usuario específico
     if destinatario_id:
         destinatario_id = int(destinatario_id)
 
@@ -441,7 +442,7 @@ def enviar_mensaje():
         else:
             flash("El destinatario no existe o no pertenece a ese rol.", "error")
 
-    # ✅ Caso 2: mensaje general al rol completo
+    # [OK] Caso 2: mensaje general al rol completo
     else:
         enviar_notificacion(
             mensaje=f"[{motivo}] {mensaje}" if motivo else mensaje,

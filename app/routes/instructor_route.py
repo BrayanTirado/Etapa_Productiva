@@ -5,7 +5,7 @@ from app import db
 from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
-from datetime import datetime, date 
+from datetime import datetime, date, timedelta
 
 bp = Blueprint('instructor_bp', __name__, url_prefix='/instructor')
 
@@ -37,6 +37,38 @@ def enviar_notificacion(mensaje, destinatario_id=None, rol_destinatario=None):
     db.session.add(noti)
     db.session.commit()
 
+# -------------------------------
+# Función para obtener nombre del remitente
+# -------------------------------
+def obtener_remitente(noti):
+    """
+    Devuelve el nombre simple del remitente (sin prefijos como 'De: ').
+    Si no se encuentra el remitente, devuelve 'Sistema'.
+    """
+    role = (noti.rol_remitente or "").strip()
+
+    if role == "Coordinador":
+        remitente = Coordinador.query.filter_by(id_coordinador=noti.remitente_id).first()
+        if remitente:
+            return f"{remitente.nombre} {remitente.apellido}"
+    elif role == "Instructor":
+        remitente = Instructor.query.filter_by(id_instructor=noti.remitente_id).first()
+        if remitente:
+            return f"{remitente.nombre_instructor} {remitente.apellido_instructor}"
+    elif role == "Aprendiz":
+        remitente = Aprendiz.query.filter_by(id_aprendiz=noti.remitente_id).first()
+        if remitente:
+            return f"{remitente.nombre} {remitente.apellido}"
+    elif role == "Administrador":
+        # Intentamos traer el nombre completo del administrador (si existe)
+        remitente = Administrador.query.filter_by(id_admin=noti.remitente_id).first()
+        if remitente:
+            # ajusta los atributos si tu modelo administrador usa otros nombres
+            return f"{getattr(remitente, 'nombre', 'Administrador')} {getattr(remitente, 'apellido', '')}".strip()
+
+    # Si no hay remitente encontrado o rol desconocido -> "Sistema"
+    return "Sistema"
+
 
 # -------------------------------
 # Dashboard del instructor
@@ -48,35 +80,35 @@ def dashboard_instructor():
         flash("Acceso denegado", "error")
         return redirect(url_for('auth.dashboard'))
 
-    sede_id = current_user.sede_id  # ✅ sede del instructor
+    sede_id = current_user.sede_id  # [OK] sede del instructor
 
-    # ✅ Filtrar aprendices asignados SOLO en la misma sede
+    # [OK] Filtrar aprendices asignados SOLO en la misma sede
     documento = request.args.get('documento')
     query = Aprendiz.query.filter_by(instructor_id=current_user.id_instructor, sede_id=sede_id)
     if documento:
         query = query.filter(Aprendiz.documento.like(f"%{documento}%"))
     aprendices_asignados = query.all()
 
-    # ✅ Coordinadores SOLO de la misma sede
+    # [OK] Coordinadores SOLO de la misma sede
     coordinadores = Coordinador.query.filter_by(sede_id=sede_id).all()
 
-    # ✅ Administradores (estos pueden ser globales, los dejo sin sede, pero si quieres, también filtras por sede_id)
+    # [OK] Administradores (estos pueden ser globales, los dejo sin sede, pero si quieres, también filtras por sede_id)
     administradores = Administrador.query.all()
 
-    # ✅ Notificaciones no leídas SOLO del instructor actual
+    # [OK] Notificaciones no leídas SOLO del instructor actual
     notificaciones_no_leidas = Notificacion.query.filter(
         Notificacion.rol_destinatario == "Instructor",
         Notificacion.visto == False,
         Notificacion.destinatario_id == current_user.id_instructor
     ).count()
 
-    # ✅ Aprendices que finalizan para armar eventos (SOLO de la misma sede)
+    # [OK] Aprendices que finalizan para armar eventos (SOLO de la misma sede)
     aprendices_finalizan = (
         db.session.query(Aprendiz, Contrato, Programa)
         .join(Contrato, Aprendiz.contrato_id == Contrato.id_contrato)
         .join(Programa, Aprendiz.programa_id == Programa.id_programa)
         .filter(Contrato.fecha_fin.isnot(None))
-        .filter(Aprendiz.sede_id == sede_id)  # 🔑 Filtrar por sede del instructor
+        .filter(Aprendiz.sede_id == sede_id)  # [KEY] Filtrar por sede del instructor
         .all()
     )
 
@@ -129,7 +161,7 @@ def nuevo_instructor():
             flash('La sede seleccionada no existe en el sistema.', 'danger')
             return redirect(url_for('instructor_bp.nuevo_instructor'))
 
-        # ✅ Validar token
+        # [OK] Validar token
         token = TokenInstructor.query.filter_by(token=token_input).first()
         if not token or token.fecha_expiracion < datetime.utcnow() or not token.activo:
             flash('Token inválido, expirado o inactivo.', 'danger')
@@ -139,7 +171,7 @@ def nuevo_instructor():
             flash('El token no tiene un coordinador o sede válidos asignados.', 'danger')
             return redirect(url_for('instructor_bp.nuevo_instructor'))
 
-        # ✅ Validar duplicados globales (todos los tipos de usuario)
+        # [OK] Validar duplicados globales (todos los tipos de usuario)
         from app.models.users import Administrador, Coordinador, Aprendiz
 
         # Verificar documento en todos los modelos
@@ -170,10 +202,10 @@ def nuevo_instructor():
             flash('Ya existe un usuario con ese número de celular.', 'danger')
             return redirect(url_for('instructor_bp.nuevo_instructor'))
 
-        # ✅ Crear instructor con la sede_id heredada del token
+        # [OK] Crear instructor con la sede_id heredada del token
         hashed_password = generate_password_hash(password)
 
-        # 🔎 Debug 1: valores que vienen del token
+        # [SEARCH] Debug 1: valores que vienen del token
         print("DEBUG TOKEN:",
               "id_token:", token.id_token,
               "coordinador_id:", token.coordinador_id,
@@ -194,7 +226,7 @@ def nuevo_instructor():
             sede_id=sede_id_final
         )
 
-        # 🔎 Debug 2: antes del commit
+        # [SEARCH] Debug 2: antes del commit
         print("DEBUG NUEVO INSTRUCTOR (antes de commit):",
               "nombre:", nuevo.nombre_instructor,
               "coordinador_id:", nuevo.coordinador_id,
@@ -204,7 +236,7 @@ def nuevo_instructor():
             db.session.add(nuevo)
             db.session.commit()
 
-            # 🔎 Debug 3: después del commit
+            # [SEARCH] Debug 3: después del commit
             print("DEBUG INSTRUCTOR GUARDADO:",
                   "id_instructor:", nuevo.id_instructor,
                   "coordinador_id:", nuevo.coordinador_id,
@@ -346,6 +378,10 @@ def notificaciones():
     notificaciones = pagination.items
     total_paginas = pagination.pages
 
+    # Asignar nombre legible del remitente
+    for noti in notificaciones:
+        noti.remitente_nombre = obtener_remitente(noti)
+
     return render_template(
         'notificacion/listar.html',
         notificaciones=notificaciones,
@@ -365,8 +401,8 @@ def ver_notificacion(noti_id):
         noti.visto = True
         db.session.commit()
 
-    # Obtener nombre del remitente (puedes usar tu función obtener_remitente si la tienes)
-    remitente_nombre = f"{noti.remitente_id}"  # ajusta según tu función
+    # Obtener nombre del remitente
+    remitente_nombre = obtener_remitente(noti)
     
     # Calcular fecha_local (hora local)
     fecha_local = noti.fecha_creacion - timedelta(hours=5)  # ajustar según tu zona horaria

@@ -88,7 +88,7 @@ def nuevo_programa():
                 current_user.programa = programa
 
             db.session.commit()
-            flash("Programa registrado correctamente ✅", "success")
+            flash("Programa registrado correctamente [OK]", "success")
             return redirect(url_for('programa_bp.listar_programas', aprendiz_id=getattr(current_user, 'id_aprendiz', None)))
 
         except Exception as e:
@@ -107,7 +107,7 @@ def editar_programa(id):
     jornada_ops = enum_choices(Programa, 'jornada')
 
     if not (isinstance(current_user, Aprendiz) and current_user.programa == programa):
-        flash("No tienes permisos para editar este programa ❌", "danger")
+        flash("No tienes permisos para editar este programa [ERROR]", "danger")
         aprendiz_id = getattr(programa.aprendices_rel[0], 'id_aprendiz', None) if programa.aprendices_rel else None
         return redirect(url_for('programa_bp.listar_programas', aprendiz_id=aprendiz_id))
 
@@ -134,7 +134,7 @@ def editar_programa(id):
             programa.ficha = ficha
 
             db.session.commit()
-            flash("Programa actualizado correctamente ✅", "success")
+            flash("Programa actualizado correctamente [OK]", "success")
             return redirect(url_for('programa_bp.listar_programas', aprendiz_id=getattr(current_user, 'id_aprendiz', None)))
         except Exception as e:
             db.session.rollback()
@@ -150,14 +150,14 @@ def eliminar_programa(id):
     programa = Programa.query.get_or_404(id)
 
     if not (isinstance(current_user, Aprendiz) and current_user.programa == programa):
-        flash("No tienes permisos para eliminar este programa ❌", "danger")
+        flash("No tienes permisos para eliminar este programa [ERROR]", "danger")
         aprendiz_id = getattr(programa.aprendices_rel[0], 'id_aprendiz', None) if programa.aprendices_rel else None
         return redirect(url_for('programa_bp.listar_programas', aprendiz_id=aprendiz_id))
 
     try:
         db.session.delete(programa)
         db.session.commit()
-        flash("Programa eliminado correctamente ✅", "success")
+        flash("Programa eliminado correctamente [OK]", "success")
     except Exception as e:
         db.session.rollback()
         flash(f"Error al eliminar programa: {e}", "danger")

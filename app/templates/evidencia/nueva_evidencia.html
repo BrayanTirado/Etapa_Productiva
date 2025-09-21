@@ -14,7 +14,7 @@
             {% if messages %}
                 {% for category, message in messages %}
                     {% if category != 'modal' %}
-                        <div class="mb-4 p-3 rounded 
+                        <div class="mb-4 p-3 rounded
                             {% if category == 'success' %}bg-green-100 text-green-800
                             {% elif category == 'danger' %}bg-red-100 text-red-800
                             {% elif category == 'warning' %}bg-yellow-100 text-yellow-800
@@ -27,31 +27,36 @@
         {% endwith %}
 
         <!-- Formulario de subida -->
-        <form action="{{ url_for('evidencia_bp.upload_evidencia', tipo=tipo|lower) }}" 
+        <form action="{{ url_for('evidencia_bp.upload_evidencia', tipo=tipo|lower) }}"
               method="POST" enctype="multipart/form-data">
+
+            <!-- Campo oculto para sesión Excel -->
+            {% if tipo|lower == 'excel' %}
+                <input type="hidden" name="sesion_excel" value="{{ request.args.get('sesion_excel', request.form.get('sesion_excel', '15_dias')) }}">
+            {% endif %}
 
             <!-- Subir archivo -->
             <div class="mb-4">
                 <label for="archivo" class="block font-medium mb-1">Selecciona tu archivo ({{ tipo|capitalize }}):</label>
-                <input type="file" name="archivo" id="archivo" 
-                       class="border rounded p-2 w-full" 
+                <input type="file" name="archivo" id="archivo"
+                       class="border rounded p-2 w-full"
                        required accept=".doc,.docx,.xls,.xlsx,.pdf">
             </div>
 
             <!-- Nota -->
             <div class="mb-4">
                 <label for="nota" class="block font-medium mb-1">Nota (opcional):</label>
-                <textarea name="nota" id="nota" rows="3" 
+                <textarea name="nota" id="nota" rows="3"
                           class="border rounded p-2 w-full"></textarea>
             </div>
 
             <!-- Botones -->
             <div class="flex justify-between">
-                <a href="{{ url_for('evidencia_bp.listar_evidencias') }}" 
+                <a href="{{ url_for('evidencia_bp.listar_evidencias') }}"
                    class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
                     ← Cancelar
                 </a>
-                <button type="submit" 
+                <button type="submit"
                         class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
                     Subir Evidencia
                 </button>
@@ -64,7 +69,7 @@
         <div class="bg-white rounded-lg shadow-lg p-6 max-w-sm text-center">
             <h2 class="text-xl font-semibold mb-4">Acción exitosa</h2>
             <p id="modalMessage" class="mb-4 text-gray-700"></p>
-            <button onclick="closeModal()" 
+            <button onclick="closeModal()"
                     class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
                 OK
             </button>
@@ -79,21 +84,19 @@
         function closeModal() {
             document.getElementById("successModal").classList.add("hidden");
         }
-    </script>
 
-    <!-- Script para mostrar modal con flash -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <script>
-          {% for category, message in messages %}
-            {% if category == 'modal' %}
-              document.addEventListener("DOMContentLoaded", function() {
-                showModal({{ message|tojson }});
-              });
-            {% endif %}
-          {% endfor %}
-        </script>
-      {% endif %}
-    {% endwith %}
+        // Script para mostrar modal con flash
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              {% if category == 'modal' %}
+                document.addEventListener("DOMContentLoaded", function() {
+                  showModal("{{ message }}");
+                });
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+    </script>
 </body>
 </html>

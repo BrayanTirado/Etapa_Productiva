@@ -109,11 +109,11 @@ def nueva_empresa():
                     db.session.add(aprendiz_db)
 
             db.session.commit()
-            flash('Empresa y contrato registrados con éxito ✅', 'success')
+            flash('Empresa y contrato registrados con éxito [OK]', 'success')
             return redirect(url_for('empresa_bp.listar_empresas', aprendiz_id=current_user.id_aprendiz))
         except SQLAlchemyError as e:
             db.session.rollback()
-            flash(f'Ocurrió un error al guardar la empresa o el contrato ❌ {e}', 'danger')
+            flash(f'Ocurrió un error al guardar la empresa o el contrato [ERROR] {e}', 'danger')
 
     return render_template('empresa/nueva_empresa.html', now=datetime.now())
 
@@ -127,7 +127,7 @@ def editar_empresa(id):
 
     # Validar permisos: solo el aprendiz dueño puede editar
     if not (hasattr(current_user, 'id_aprendiz') and current_user.id_aprendiz == empresa.aprendiz_id_aprendiz):
-        flash('No tienes permisos para editar esta empresa ❌', 'danger')
+        flash('No tienes permisos para editar esta empresa [ERROR]', 'danger')
         return redirect(url_for('empresa_bp.listar_empresas', aprendiz_id=empresa.aprendiz_id_aprendiz))
 
     if request.method == 'POST':
@@ -182,11 +182,11 @@ def editar_empresa(id):
                 contrato.tipo_contrato = request.form.get('tipo_contrato')
 
             db.session.commit()
-            flash('Empresa y contrato actualizados correctamente ✏️', 'success')
+            flash('Empresa y contrato actualizados correctamente [EDIT]', 'success')
             return redirect(url_for('empresa_bp.listar_empresas', aprendiz_id=empresa.aprendiz_id_aprendiz))
         except SQLAlchemyError as e:
             db.session.rollback()
-            flash(f'Ocurrió un error al actualizar la empresa o contrato ❌ {e}', 'danger')
+            flash(f'Ocurrió un error al actualizar la empresa o contrato [ERROR] {e}', 'danger')
 
     return render_template('empresa/editar_empresa.html', empresa=empresa, contrato=contrato, now=datetime.now())
 
@@ -199,15 +199,15 @@ def eliminar_empresa(id):
 
     # Validar permisos: solo el aprendiz dueño puede eliminar
     if not (hasattr(current_user, 'id_aprendiz') and current_user.id_aprendiz == empresa.aprendiz_id_aprendiz):
-        flash('No tienes permisos para eliminar esta empresa ❌', 'danger')
+        flash('No tienes permisos para eliminar esta empresa [ERROR]', 'danger')
         return redirect(url_for('empresa_bp.listar_empresas', aprendiz_id=empresa.aprendiz_id_aprendiz))
 
     try:
         db.session.delete(empresa)
         db.session.commit()
-        flash('Empresa eliminada con éxito 🗑️', 'success')
+        flash('Empresa eliminada con éxito [DELETE]', 'success')
     except SQLAlchemyError as e:
         db.session.rollback()
-        flash(f'Ocurrió un error al eliminar la empresa ❌ {e}', 'danger')
+        flash(f'Ocurrió un error al eliminar la empresa [ERROR] {e}', 'danger')
 
     return redirect(url_for('empresa_bp.listar_empresas', aprendiz_id=empresa.aprendiz_id_aprendiz))

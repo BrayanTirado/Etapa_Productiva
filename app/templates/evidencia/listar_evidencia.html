@@ -12,15 +12,30 @@
         <!-- Botón nueva evidencia (solo Aprendiz) -->
         {% if current_user.__class__.__name__ == 'Aprendiz' %}
         <div class="mb-6">
-            <a href="{{ url_for('evidencia_bp.choose_type') }}" 
+            <a href="{{ url_for('evidencia_bp.choose_type') }}"
                class="bg-green-600 text-white px-5 py-2 rounded-lg shadow-md hover:bg-green-700 transition">
                 + Nueva Evidencia
             </a>
         </div>
         {% endif %}
 
+        <!-- Modal para mensajes flash -->
+        <div id="flashModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50">
+            <div class="bg-white rounded-lg shadow-lg p-6 max-w-sm text-center">
+                <h2 class="text-xl font-semibold mb-4">Notificación</h2>
+                <p id="flashModalMessage" class="mb-4 text-gray-700"></p>
+                <button onclick="closeFlashModal()"
+                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
+                    Aceptar
+                </button>
+            </div>
+        </div>
+
         <!-- Archivos Word -->
-        <h2 class="text-xl font-semibold text-gray-700 mb-2">📄 Archivos Word</h2>
+        <div class="flex justify-between items-center mb-2">
+            <h2 class="text-xl font-semibold text-gray-700">📄 Archivos Word</h2>
+            <span class="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">Actas</span>
+        </div>
         <div class="overflow-x-auto mb-6">
             <table class="w-full table-fixed border border-gray-300 rounded-lg shadow-sm bg-white">
                 <thead class="bg-blue-100 text-gray-800 font-medium">
@@ -49,16 +64,16 @@
                         </td>
                         <td class="px-4 py-2 border text-center">
                             <div class="flex justify-center gap-2 flex-nowrap">
-                                <a href="{{ url_for('evidencia_bp.serve_file', id=evidencia.id_evidencia) }}" 
-                                   class="bg-green-500 text-white px-3 py-1 rounded-md shadow hover:bg-green-600 transition">
-                                   Descargar
+                                <a href="{{ url_for('evidencia_bp.serve_file', id=evidencia.id_evidencia) }}"
+                                   class="bg-green-500 text-white px-3 py-1 rounded-md shadow hover:bg-green-600 transition text-sm">
+                                    📥 Descargar
                                 </a>
                                 {% if current_user.__class__.__name__ == 'Aprendiz' %}
-                                <a href="{{ url_for('evidencia_bp.editar_evidencia', id=evidencia.id_evidencia) }}" 
-                                   class="bg-blue-500 text-white px-3 py-1 rounded-md shadow hover:bg-blue-600 transition">Editar</a>
-                                <a href="{{ url_for('evidencia_bp.eliminar_evidencia', id=evidencia.id_evidencia) }}" 
-                                   class="bg-red-500 text-white px-3 py-1 rounded-md shadow hover:bg-red-600 transition"
-                                   onclick="return confirm('¿Seguro que deseas eliminar esta evidencia?');">Eliminar</a>
+                                <a href="{{ url_for('evidencia_bp.editar_evidencia', id=evidencia.id_evidencia) }}"
+                                   class="bg-blue-500 text-white px-3 py-1 rounded-md shadow hover:bg-blue-600 transition text-sm">✏️ Editar</a>
+                                <a href="{{ url_for('evidencia_bp.eliminar_evidencia', id=evidencia.id_evidencia) }}"
+                                   class="bg-red-500 text-white px-3 py-1 rounded-md shadow hover:bg-red-600 transition text-sm"
+                                   onclick="return confirm('¿Seguro que deseas eliminar esta evidencia?');">🗑️ Eliminar</a>
                                 {% endif %}
                             </div>
                         </td>
@@ -72,8 +87,11 @@
             </table>
         </div>
 
-        <!-- Archivos Excel -->
-        <h2 class="text-xl font-semibold text-gray-700 mb-2">📊 Archivos Excel</h2>
+        <!-- Archivos Excel - Sesión 15 días -->
+        <div class="flex justify-between items-center mb-2">
+            <h2 class="text-xl font-semibold text-gray-700">📊 Archivos Excel (15 días)</h2>
+            <span class="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">Informes</span>
+        </div>
         <div class="overflow-x-auto mb-6">
             <table class="w-full table-fixed border border-gray-300 rounded-lg shadow-sm bg-white">
                 <thead class="bg-green-100 text-gray-800 font-medium">
@@ -87,7 +105,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for evidencia in evidencias_excel %}
+                    {% for evidencia in evidencias_excel_15 %}
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-2 border text-center">{{ evidencia.id_evidencia }}</td>
                         <td class="px-4 py-2 border font-medium text-gray-800 truncate whitespace-nowrap">
@@ -97,28 +115,84 @@
                         <td class="px-4 py-2 border whitespace-normal break-words">{{ evidencia.nota or '---' }}</td>
                         <td class="px-4 py-2 border text-center whitespace-nowrap">
                             <span class="bg-green-200 text-green-800 px-2 py-1 rounded-full text-xs font-semibold">
-                                Excel
+                                Excel 15d
                             </span>
                         </td>
                         <td class="px-4 py-2 border text-center">
                             <div class="flex justify-center gap-2 flex-nowrap">
-                                <a href="{{ url_for('evidencia_bp.serve_file', id=evidencia.id_evidencia) }}" 
-                                   class="bg-green-500 text-white px-3 py-1 rounded-md shadow hover:bg-green-600 transition">
-                                   Descargar
+                                <a href="{{ url_for('evidencia_bp.serve_file', id=evidencia.id_evidencia) }}"
+                                   class="bg-green-500 text-white px-3 py-1 rounded-md shadow hover:bg-green-600 transition text-sm">
+                                    📥 Descargar
                                 </a>
                                 {% if current_user.__class__.__name__ == 'Aprendiz' %}
-                                <a href="{{ url_for('evidencia_bp.editar_evidencia', id=evidencia.id_evidencia) }}" 
-                                   class="bg-blue-500 text-white px-3 py-1 rounded-md shadow hover:bg-blue-600 transition">Editar</a>
-                                <a href="{{ url_for('evidencia_bp.eliminar_evidencia', id=evidencia.id_evidencia) }}" 
-                                   class="bg-red-500 text-white px-3 py-1 rounded-md shadow hover:bg-red-600 transition"
-                                   onclick="return confirm('¿Seguro que deseas eliminar esta evidencia?');">Eliminar</a>
+                                <a href="{{ url_for('evidencia_bp.editar_evidencia', id=evidencia.id_evidencia) }}"
+                                   class="bg-blue-500 text-white px-3 py-1 rounded-md shadow hover:bg-blue-600 transition text-sm">✏️ Editar</a>
+                                <a href="{{ url_for('evidencia_bp.eliminar_evidencia', id=evidencia.id_evidencia) }}"
+                                   class="bg-red-500 text-white px-3 py-1 rounded-md shadow hover:bg-red-600 transition text-sm"
+                                   onclick="return confirm('¿Seguro que deseas eliminar esta evidencia?');">🗑️ Eliminar</a>
                                 {% endif %}
                             </div>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="6" class="text-center py-4 text-gray-500">No hay evidencias Excel registradas.</td>
+                        <td colspan="6" class="text-center py-4 text-gray-500">No hay evidencias Excel (15 días) registradas.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Archivos Excel - Sesión 3 meses -->
+        <div class="flex justify-between items-center mb-2">
+            <h2 class="text-xl font-semibold text-gray-700">📊 Archivos Excel (3 meses)</h2>
+            <span class="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">Informes</span>
+        </div>
+        <div class="overflow-x-auto mb-6">
+            <table class="w-full table-fixed border border-gray-300 rounded-lg shadow-sm bg-white">
+                <thead class="bg-green-200 text-gray-800 font-medium">
+                    <tr>
+                        <th class="w-1/12 px-4 py-3 border">#</th>
+                        <th class="w-4/12 px-4 py-3 border">Archivo</th>
+                        <th class="w-2/12 px-4 py-3 border">Fecha</th>
+                        <th class="w-3/12 px-4 py-3 border">Nota</th>
+                        <th class="w-1/12 px-4 py-3 border">Tipo</th>
+                        <th class="w-3/12 px-4 py-3 border">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for evidencia in evidencias_excel_3 %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-2 border text-center">{{ evidencia.id_evidencia }}</td>
+                        <td class="px-4 py-2 border font-medium text-gray-800 truncate whitespace-nowrap">
+                            📄 {{ evidencia.nombre_archivo.rsplit('.', 1)[0] }}
+                        </td>
+                        <td class="px-4 py-2 border text-center truncate whitespace-nowrap">{{ evidencia.fecha_subida }}</td>
+                        <td class="px-4 py-2 border whitespace-normal break-words">{{ evidencia.nota or '---' }}</td>
+                        <td class="px-4 py-2 border text-center whitespace-nowrap">
+                            <span class="bg-green-300 text-green-900 px-2 py-1 rounded-full text-xs font-semibold">
+                                Excel 3m
+                            </span>
+                        </td>
+                        <td class="px-4 py-2 border text-center">
+                            <div class="flex justify-center gap-2 flex-nowrap">
+                                <a href="{{ url_for('evidencia_bp.serve_file', id=evidencia.id_evidencia) }}"
+                                   class="bg-green-600 text-white px-3 py-1 rounded-md shadow hover:bg-green-700 transition text-sm">
+                                    📥 Descargar
+                                </a>
+                                {% if current_user.__class__.__name__ == 'Aprendiz' %}
+                                <a href="{{ url_for('evidencia_bp.editar_evidencia', id=evidencia.id_evidencia) }}"
+                                   class="bg-blue-500 text-white px-3 py-1 rounded-md shadow hover:bg-blue-600 transition text-sm">✏️ Editar</a>
+                                <a href="{{ url_for('evidencia_bp.eliminar_evidencia', id=evidencia.id_evidencia) }}"
+                                   class="bg-red-500 text-white px-3 py-1 rounded-md shadow hover:bg-red-600 transition text-sm"
+                                   onclick="return confirm('¿Seguro que deseas eliminar esta evidencia?');">🗑️ Eliminar</a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-gray-500">No hay evidencias Excel (3 meses) registradas.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -126,7 +200,10 @@
         </div>
 
         <!-- Archivos PDF -->
-        <h2 class="text-xl font-semibold text-gray-700 mb-2">📕 Archivos PDF Firmados</h2>
+        <div class="flex justify-between items-center mb-2">
+            <h2 class="text-xl font-semibold text-gray-700">📕 Archivos PDF Firmados</h2>
+            <span class="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">Documentos</span>
+        </div>
         <div class="overflow-x-auto mb-6">
             <table class="w-full table-fixed border border-gray-300 rounded-lg shadow-sm bg-white">
                 <thead class="bg-red-100 text-gray-800 font-medium">
@@ -155,21 +232,21 @@
                         </td>
                         <td class="px-4 py-2 border text-center">
                             <div class="flex justify-center gap-2 flex-nowrap">
-                                <a href="{{ url_for('evidencia_bp.view_file', id=evidencia.id_evidencia) }}" 
-                                   class="bg-blue-500 text-white px-3 py-1 rounded-md shadow hover:bg-blue-600 transition"
+                                <a href="{{ url_for('evidencia_bp.view_file', id=evidencia.id_evidencia) }}"
+                                   class="bg-blue-500 text-white px-3 py-1 rounded-md shadow hover:bg-blue-600 transition text-sm"
                                    target="_blank">
-                                   Ver
+                                    👁️ Ver
                                 </a>
-                                <a href="{{ url_for('evidencia_bp.serve_file', id=evidencia.id_evidencia) }}" 
-                                   class="bg-green-500 text-white px-3 py-1 rounded-md shadow hover:bg-green-600 transition">
-                                   Descargar
+                                <a href="{{ url_for('evidencia_bp.serve_file', id=evidencia.id_evidencia) }}"
+                                   class="bg-green-500 text-white px-3 py-1 rounded-md shadow hover:bg-green-600 transition text-sm">
+                                    📥 Descargar
                                 </a>
                                 {% if current_user.__class__.__name__ == 'Aprendiz' %}
-                                <a href="{{ url_for('evidencia_bp.editar_evidencia', id=evidencia.id_evidencia) }}" 
-                                   class="bg-yellow-500 text-white px-3 py-1 rounded-md shadow hover:bg-yellow-600 transition">Editar</a>
-                                <a href="{{ url_for('evidencia_bp.eliminar_evidencia', id=evidencia.id_evidencia) }}" 
-                                   class="bg-red-500 text-white px-3 py-1 rounded-md shadow hover:bg-red-600 transition"
-                                   onclick="return confirm('¿Seguro que deseas eliminar esta evidencia?');">Eliminar</a>
+                                <a href="{{ url_for('evidencia_bp.editar_evidencia', id=evidencia.id_evidencia) }}"
+                                   class="bg-yellow-500 text-white px-3 py-1 rounded-md shadow hover:bg-yellow-600 transition text-sm">✏️ Editar</a>
+                                <a href="{{ url_for('evidencia_bp.eliminar_evidencia', id=evidencia.id_evidencia) }}"
+                                   class="bg-red-500 text-white px-3 py-1 rounded-md shadow hover:bg-red-600 transition text-sm"
+                                   onclick="return confirm('¿Seguro que deseas eliminar esta evidencia?');">🗑️ Eliminar</a>
                                 {% endif %}
                             </div>
                         </td>
@@ -199,5 +276,39 @@
         </div>
 
     </div>
+
+    <script>
+        // Función para mostrar el modal de flash messages
+        function showFlashModal(message) {
+            const modal = document.getElementById('flashModal');
+            const messageElement = document.getElementById('flashModalMessage');
+            messageElement.textContent = message;
+            modal.classList.remove('hidden');
+        }
+
+        // Función para cerrar el modal de flash messages
+        function closeFlashModal() {
+            const modal = document.getElementById('flashModal');
+            modal.classList.add('hidden');
+        }
+
+        // Mostrar modal si hay mensaje flash
+        document.addEventListener('DOMContentLoaded', function() {
+            // Buscar mensajes flash en elementos ocultos
+            const flashMessages = document.querySelectorAll('[data-flash-message]');
+            flashMessages.forEach(function(element) {
+                showFlashModal(element.textContent);
+            });
+        });
+    </script>
+
+    <!-- Elementos ocultos para mensajes flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div data-flash-message style="display: none;">{{ message | safe }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 </body>
 </html>
