@@ -467,9 +467,9 @@ def send_reset_email(email, reset_url):
     try:
         import socket
         socket.create_connection(("8.8.8.8", 53), timeout=5)
-        print(f"[EMAIL] ✓ Conectividad a internet: OK")
+        print(f"[EMAIL] [OK] Conectividad a internet: OK")
     except:
-        print(f"[EMAIL] ✗ Conectividad a internet: FALLANDO")
+        print(f"[EMAIL] [ERROR] Conectividad a internet: FALLANDO")
         print(f"[EMAIL] Esto impedirá el envío de emails")
         return False
 
@@ -492,7 +492,7 @@ def send_reset_email(email, reset_url):
 
     # Verificar que tengamos las credenciales necesarias
     if not mail_username or not mail_password:
-        print(f"[EMAIL] ❌ ERROR CRÍTICO: Credenciales de email faltantes")
+        print(f"[EMAIL] [ERROR] ERROR CRÍTICO: Credenciales de email faltantes")
         print(f"[EMAIL] MAIL_USERNAME: {'Presente' if mail_username else 'Ausente'}")
         print(f"[EMAIL] MAIL_PASSWORD: {'Presente' if mail_password else 'Ausente'}")
         return False
@@ -506,12 +506,12 @@ def send_reset_email(email, reset_url):
         result = sock.connect_ex((mail_server, mail_port))
         sock.close()
         if result == 0:
-            print(f"[EMAIL] ✓ Puerto {mail_port} accesible")
+            print(f"[EMAIL] [OK] Puerto {mail_port} accesible")
         else:
-            print(f"[EMAIL] ✗ Puerto {mail_port} bloqueado o inaccesible")
+            print(f"[EMAIL] [ERROR] Puerto {mail_port} bloqueado o inaccesible")
             return False
     except Exception as e:
-        print(f"[EMAIL] ✗ Error verificando puerto {mail_port}: {e}")
+        print(f"[EMAIL] [ERROR] Error verificando puerto {mail_port}: {e}")
         return False
 
     try:
@@ -539,7 +539,7 @@ Sistema SENA
             """.strip()
         )
 
-        print(f"[EMAIL] ✓ Mensaje creado correctamente")
+        print(f"[EMAIL] [OK] Mensaje creado correctamente")
         print(f"[EMAIL] ===== ENVIANDO EMAIL =====")
 
         # Intentar enviar con Flask-Mail primero
@@ -548,10 +548,10 @@ Sistema SENA
             try:
                 print(f"[EMAIL] Intentando con Flask-Mail...")
                 mail.send(msg)
-                print(f"[EMAIL] ✓ Email enviado exitosamente con Flask-Mail")
+                print(f"[EMAIL] [OK] Email enviado exitosamente con Flask-Mail")
                 success = True
             except Exception as e:
-                print(f"[EMAIL] ✗ Flask-Mail falló: {e}")
+                print(f"[EMAIL] [ERROR] Flask-Mail falló: {e}")
                 print(f"[EMAIL] Intentando fallback con smtplib...")
 
                 # Fallback: enviar directamente con smtplib
@@ -597,11 +597,11 @@ Sistema SENA
                     server.sendmail(mail_default_sender, email, message.as_string())
 
                     server.quit()
-                    print(f"[EMAIL] ✓ Email enviado exitosamente con smtplib (fallback)")
+                    print(f"[EMAIL] [OK] Email enviado exitosamente con smtplib (fallback)")
                     success = True
 
                 except Exception as fallback_error:
-                    print(f"[EMAIL] ✗ Fallback también falló: {fallback_error}")
+                    print(f"[EMAIL] [ERROR] Fallback también falló: {fallback_error}")
                     success = False
         else:
             print(f"[EMAIL] Flask-Mail no disponible, usando solo smtplib")
@@ -610,35 +610,35 @@ Sistema SENA
 
         if success:
             print(f"[EMAIL] ===== ÉXITO =====")
-            print(f"[EMAIL] ✓ Email enviado exitosamente a {email}")
+            print(f"[EMAIL] [OK] Email enviado exitosamente a {email}")
             return True
         else:
             print(f"[EMAIL] ===== FALLO =====")
-            print(f"[EMAIL] ✗ No se pudo enviar el email a {email}")
+            print(f"[EMAIL] [ERROR] No se pudo enviar el email a {email}")
             return False
 
     except Exception as e:
         print(f"[EMAIL] ===== ERROR INESPERADO =====")
-        print(f"[EMAIL] ✗ Error al enviar email a {email}: {e}")
+        print(f"[EMAIL] [ERROR] Error al enviar email a {email}: {e}")
         print(f"[EMAIL] Tipo de error: {type(e).__name__}")
 
         # Diagnosticar el error específico
         error_str = str(e).lower()
         if "smtp" in error_str:
-            print(f"[EMAIL] 🔍 Diagnóstico: Problema de conexión SMTP")
-            print(f"[EMAIL] 💡 Solución: Verificar conectividad a internet y puerto {mail_port}")
+            print(f"[EMAIL] [DIAG] Diagnóstico: Problema de conexión SMTP")
+            print(f"[EMAIL] [INFO] Solución: Verificar conectividad a internet y puerto {mail_port}")
         elif "authentication" in error_str or "auth" in error_str:
-            print(f"[EMAIL] 🔍 Diagnóstico: Problema de autenticación")
-            print(f"[EMAIL] 💡 Solución: Verificar MAIL_USERNAME y MAIL_PASSWORD")
-            print(f"[EMAIL] 💡 Para Gmail: Usar contraseña de aplicación")
+            print(f"[EMAIL] [DIAG] Diagnóstico: Problema de autenticación")
+            print(f"[EMAIL] [INFO] Solución: Verificar MAIL_USERNAME y MAIL_PASSWORD")
+            print(f"[EMAIL] [INFO] Para Gmail: Usar contraseña de aplicación")
         elif "connection" in error_str or "connect" in error_str:
-            print(f"[EMAIL] 🔍 Diagnóstico: Problema de conexión")
-            print(f"[EMAIL] 💡 Solución: Verificar conectividad a internet del servidor")
+            print(f"[EMAIL] [DIAG] Diagnóstico: Problema de conexión")
+            print(f"[EMAIL] [INFO] Solución: Verificar conectividad a internet del servidor")
         elif "timeout" in error_str:
-            print(f"[EMAIL] 🔍 Diagnóstico: Timeout en conexión")
-            print(f"[EMAIL] 💡 Solución: Verificar velocidad de conexión y firewall")
+            print(f"[EMAIL] [DIAG] Diagnóstico: Timeout en conexión")
+            print(f"[EMAIL] [INFO] Solución: Verificar velocidad de conexión y firewall")
         else:
-            print(f"[EMAIL] 🔍 Diagnóstico: Error desconocido")
+            print(f"[EMAIL] [DIAG] Diagnóstico: Error desconocido")
 
         import traceback
         print(f"[EMAIL] ===== TRACEBACK COMPLETO =====")
