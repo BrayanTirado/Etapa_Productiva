@@ -9,6 +9,7 @@ from sqlalchemy import or_
 from datetime import datetime, date, timedelta
 import secrets
 import re
+import os
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -342,14 +343,22 @@ def test_email_connection():
     print("PRUEBA DE CONEXIÓN SMTP")
     print("=" * 60)
 
-    mail_config = current_app.config
+    # Función auxiliar para obtener configuración con fallback
+    def get_mail_config(key, default=None):
+        value = current_app.config.get(key)
+        if value is None:
+            # Intentar cargar desde .env si no está en config
+            from dotenv import load_dotenv
+            load_dotenv()
+            value = os.environ.get(key, default)
+        return value
 
-    server = mail_config.get('MAIL_SERVER')
-    port = mail_config.get('MAIL_PORT', 587)
-    username = mail_config.get('MAIL_USERNAME')
-    password = mail_config.get('MAIL_PASSWORD')
-    use_tls = mail_config.get('MAIL_USE_TLS', True)
-    use_ssl = mail_config.get('MAIL_USE_SSL', False)
+    server = get_mail_config('MAIL_SERVER', 'smtp.gmail.com')
+    port = get_mail_config('MAIL_PORT', 587)
+    username = get_mail_config('MAIL_USERNAME')
+    password = get_mail_config('MAIL_PASSWORD')
+    use_tls = get_mail_config('MAIL_USE_TLS', True)
+    use_ssl = get_mail_config('MAIL_USE_SSL', False)
 
     print(f"Servidor: {server}")
     print(f"Puerto: {port}")
@@ -432,22 +441,45 @@ def send_reset_email(email, reset_url):
     print(f"[EMAIL] Iniciando envío de email a {email}")
     print(f"[EMAIL] URL de restablecimiento: {reset_url}")
 
-    # Verificar configuración de email
+    # Verificar configuración de email con fallback robusto
     from flask import current_app
     mail_config = current_app.config
 
+    # Función auxiliar para obtener configuración con fallback
+    def get_mail_config(key, default=None):
+        value = mail_config.get(key)
+        if value is None:
+            # Intentar cargar desde .env si no está en config
+            from dotenv import load_dotenv
+            load_dotenv()
+            value = os.environ.get(key, default)
+        return value
+
+    # Obtener configuración con fallback
+    mail_server = get_mail_config('MAIL_SERVER', 'smtp.gmail.com')
+    mail_port = get_mail_config('MAIL_PORT', 587)
+    mail_username = get_mail_config('MAIL_USERNAME')
+    mail_password = get_mail_config('MAIL_PASSWORD')
+    mail_default_sender = get_mail_config('MAIL_DEFAULT_SENDER', mail_username)
+    mail_use_tls = get_mail_config('MAIL_USE_TLS', True)
+    mail_use_ssl = get_mail_config('MAIL_USE_SSL', False)
+
     print(f"[EMAIL] Configuración de mail:")
-    print(f"[EMAIL]   MAIL_SERVER: {mail_config.get('MAIL_SERVER')}")
-    print(f"[EMAIL]   MAIL_PORT: {mail_config.get('MAIL_PORT')}")
-    print(f"[EMAIL]   MAIL_USE_TLS: {mail_config.get('MAIL_USE_TLS')}")
-    print(f"[EMAIL]   MAIL_USE_SSL: {mail_config.get('MAIL_USE_SSL')}")
-    print(f"[EMAIL]   MAIL_USERNAME: {mail_config.get('MAIL_USERNAME')}")
-    print(f"[EMAIL]   MAIL_DEFAULT_SENDER: {mail_config.get('MAIL_DEFAULT_SENDER')}")
+    print(f"[EMAIL]   MAIL_SERVER: {mail_server}")
+    print(f"[EMAIL]   MAIL_PORT: {mail_port}")
+    print(f"[EMAIL]   MAIL_USE_TLS: {mail_use_tls}")
+    print(f"[EMAIL]   MAIL_USE_SSL: {mail_use_ssl}")
+    print(f"[EMAIL]   MAIL_USERNAME: {mail_username}")
+    print(f"[EMAIL]   MAIL_DEFAULT_SENDER: {mail_default_sender}")
 
     try:
-        msg = Message(
+        # Crear mensaje usando configuración obtenida
+        from flask_mail import Message as MailMessage
+
+        msg = MailMessage(
             subject='Recuperación de contraseña - SENA',
             recipients=[email],
+            sender=mail_default_sender,
             body=f"""
 Hola,
 
@@ -467,7 +499,43 @@ Sistema SENA
         print(f"[EMAIL] Mensaje creado correctamente")
         print(f"[EMAIL] Enviando email...")
 
-        mail.send(msg)
+        # Enviar usando configuración directa si es necesario
+        if hasattr(mail, 'send'):
+            mail.send(msg)
+        else:
+            # Fallback: enviar directamente con smtplib
+            import smtplib
+            from email.mime.text import MIMEText
+            from email.mime.multipart import MIMEMultipart
+
+            message = MIMEMultipart()
+            message['From'] = mail_default_sender
+            message['To'] = email
+            message['Subject'] = 'Recuperación de contraseña - SENA'
+
+            body = f"""
+Hola,
+
+Has solicitado restablecer tu contraseña. Haz clic en el siguiente enlace para continuar:
+
+{reset_url}
+
+Este enlace expirará en 1 hora.
+
+Si no solicitaste este cambio, ignora este mensaje.
+
+Atentamente,
+Sistema SENA
+            """.strip()
+
+            message.attach(MIMEText(body, 'plain'))
+
+            server = smtplib.SMTP(mail_server, mail_port)
+            if mail_use_tls:
+                server.starttls()
+            server.login(mail_username, mail_password)
+            server.sendmail(mail_default_sender, email, message.as_string())
+            server.quit()
 
         print(f"[EMAIL] [OK] Email enviado exitosamente a {email}")
         return True
@@ -519,9 +587,26 @@ def test_email():
     print("PROBANDO ENVÍO DE EMAIL DE PRUEBA")
     print("="*40)
 
+    # Verificar configuración de email con fallback
     test_email_address = current_app.config.get('MAIL_DEFAULT_SENDER')
+
+    # Si no está en config, intentar obtener de variables de entorno directamente
     if not test_email_address:
-        flash('[ERROR] No se puede enviar email de prueba: MAIL_DEFAULT_SENDER no configurado.', 'danger')
+        from dotenv import load_dotenv
+        load_dotenv()  # Cargar .env si no se cargó
+        test_email_address = os.environ.get('MAIL_DEFAULT_SENDER')
+
+    # Si aún no está disponible, usar MAIL_USERNAME como fallback
+    if not test_email_address:
+        test_email_address = current_app.config.get('MAIL_USERNAME') or os.environ.get('MAIL_USERNAME')
+
+    if not test_email_address:
+        print("[ERROR] Variables de email no disponibles:")
+        print(f"  current_app.config.get('MAIL_DEFAULT_SENDER'): {current_app.config.get('MAIL_DEFAULT_SENDER')}")
+        print(f"  os.environ.get('MAIL_DEFAULT_SENDER'): {os.environ.get('MAIL_DEFAULT_SENDER')}")
+        print(f"  current_app.config.get('MAIL_USERNAME'): {current_app.config.get('MAIL_USERNAME')}")
+        print(f"  os.environ.get('MAIL_USERNAME'): {os.environ.get('MAIL_USERNAME')}")
+        flash('[ERROR] No se puede enviar email de prueba: Configuración de email no disponible.', 'danger')
         return redirect(url_for('auth.login'))
 
     test_url = url_for('auth.login', _external=True)
