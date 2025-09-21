@@ -437,15 +437,16 @@ def find_user_by_email(email):
     return None, None
 
 def send_reset_email(email, reset_url):
-    """Envía el email de recuperación de contraseña"""
-    print(f"[EMAIL] Iniciando envío de email a {email}")
-    print(f"[EMAIL] URL de restablecimiento: {reset_url}")
+    """Envía el email de recuperación de contraseña con diagnóstico mejorado"""
+    print(f"[EMAIL] ===== INICIANDO ENVÍO DE EMAIL =====")
+    print(f"[EMAIL] Destinatario: {email}")
+    print(f"[EMAIL] URL: {reset_url}")
 
-    # Verificar configuración de email con fallback robusto
+    # Verificar configuración de email con diagnóstico detallado
     from flask import current_app
     mail_config = current_app.config
 
-    # Función auxiliar para obtener configuración con fallback
+    # Función auxiliar para obtener configuración con fallback y logging
     def get_mail_config(key, default=None):
         value = mail_config.get(key)
         if value is None:
@@ -453,9 +454,26 @@ def send_reset_email(email, reset_url):
             from dotenv import load_dotenv
             load_dotenv()
             value = os.environ.get(key, default)
+            if value:
+                print(f"[EMAIL] {key} obtenido de .env")
+            else:
+                print(f"[EMAIL] {key} no encontrado (usando default: {default})")
+        else:
+            print(f"[EMAIL] {key} obtenido de config Flask")
         return value
 
-    # Obtener configuración con fallback
+    # Verificar conectividad básica antes de intentar enviar
+    print(f"[EMAIL] Verificando conectividad básica...")
+    try:
+        import socket
+        socket.create_connection(("8.8.8.8", 53), timeout=5)
+        print(f"[EMAIL] ✓ Conectividad a internet: OK")
+    except:
+        print(f"[EMAIL] ✗ Conectividad a internet: FALLANDO")
+        print(f"[EMAIL] Esto impedirá el envío de emails")
+        return False
+
+    # Obtener configuración con logging detallado
     mail_server = get_mail_config('MAIL_SERVER', 'smtp.gmail.com')
     mail_port = get_mail_config('MAIL_PORT', 587)
     mail_username = get_mail_config('MAIL_USERNAME')
@@ -464,15 +482,40 @@ def send_reset_email(email, reset_url):
     mail_use_tls = get_mail_config('MAIL_USE_TLS', True)
     mail_use_ssl = get_mail_config('MAIL_USE_SSL', False)
 
-    print(f"[EMAIL] Configuración de mail:")
-    print(f"[EMAIL]   MAIL_SERVER: {mail_server}")
-    print(f"[EMAIL]   MAIL_PORT: {mail_port}")
-    print(f"[EMAIL]   MAIL_USE_TLS: {mail_use_tls}")
-    print(f"[EMAIL]   MAIL_USE_SSL: {mail_use_ssl}")
-    print(f"[EMAIL]   MAIL_USERNAME: {mail_username}")
-    print(f"[EMAIL]   MAIL_DEFAULT_SENDER: {mail_default_sender}")
+    print(f"[EMAIL] ===== CONFIGURACIÓN FINAL =====")
+    print(f"[EMAIL] MAIL_SERVER: {mail_server}")
+    print(f"[EMAIL] MAIL_PORT: {mail_port}")
+    print(f"[EMAIL] MAIL_USERNAME: {'***' if mail_username else 'None'}")
+    print(f"[EMAIL] MAIL_DEFAULT_SENDER: {mail_default_sender}")
+    print(f"[EMAIL] MAIL_USE_TLS: {mail_use_tls}")
+    print(f"[EMAIL] MAIL_USE_SSL: {mail_use_ssl}")
+
+    # Verificar que tengamos las credenciales necesarias
+    if not mail_username or not mail_password:
+        print(f"[EMAIL] ❌ ERROR CRÍTICO: Credenciales de email faltantes")
+        print(f"[EMAIL] MAIL_USERNAME: {'Presente' if mail_username else 'Ausente'}")
+        print(f"[EMAIL] MAIL_PASSWORD: {'Presente' if mail_password else 'Ausente'}")
+        return False
+
+    # Verificar puerto SMTP accesible
+    print(f"[EMAIL] Verificando puerto SMTP {mail_port}...")
+    try:
+        import socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(5)
+        result = sock.connect_ex((mail_server, mail_port))
+        sock.close()
+        if result == 0:
+            print(f"[EMAIL] ✓ Puerto {mail_port} accesible")
+        else:
+            print(f"[EMAIL] ✗ Puerto {mail_port} bloqueado o inaccesible")
+            return False
+    except Exception as e:
+        print(f"[EMAIL] ✗ Error verificando puerto {mail_port}: {e}")
+        return False
 
     try:
+        print(f"[EMAIL] ===== CREANDO MENSAJE =====")
         # Crear mensaje usando configuración obtenida
         from flask_mail import Message as MailMessage
 
@@ -496,24 +539,33 @@ Sistema SENA
             """.strip()
         )
 
-        print(f"[EMAIL] Mensaje creado correctamente")
-        print(f"[EMAIL] Enviando email...")
+        print(f"[EMAIL] ✓ Mensaje creado correctamente")
+        print(f"[EMAIL] ===== ENVIANDO EMAIL =====")
 
-        # Enviar usando configuración directa si es necesario
+        # Intentar enviar con Flask-Mail primero
+        success = False
         if hasattr(mail, 'send'):
-            mail.send(msg)
-        else:
-            # Fallback: enviar directamente con smtplib
-            import smtplib
-            from email.mime.text import MIMEText
-            from email.mime.multipart import MIMEMultipart
+            try:
+                print(f"[EMAIL] Intentando con Flask-Mail...")
+                mail.send(msg)
+                print(f"[EMAIL] ✓ Email enviado exitosamente con Flask-Mail")
+                success = True
+            except Exception as e:
+                print(f"[EMAIL] ✗ Flask-Mail falló: {e}")
+                print(f"[EMAIL] Intentando fallback con smtplib...")
 
-            message = MIMEMultipart()
-            message['From'] = mail_default_sender
-            message['To'] = email
-            message['Subject'] = 'Recuperación de contraseña - SENA'
+                # Fallback: enviar directamente con smtplib
+                try:
+                    import smtplib
+                    from email.mime.text import MIMEText
+                    from email.mime.multipart import MIMEMultipart
 
-            body = f"""
+                    message = MIMEMultipart()
+                    message['From'] = mail_default_sender
+                    message['To'] = email
+                    message['Subject'] = 'Recuperación de contraseña - SENA'
+
+                    body = f"""
 Hola,
 
 Has solicitado restablecer tu contraseña. Haz clic en el siguiente enlace para continuar:
@@ -526,39 +578,70 @@ Si no solicitaste este cambio, ignora este mensaje.
 
 Atentamente,
 Sistema SENA
-            """.strip()
+                    """.strip()
 
-            message.attach(MIMEText(body, 'plain'))
+                    message.attach(MIMEText(body, 'plain'))
 
-            server = smtplib.SMTP(mail_server, mail_port)
-            if mail_use_tls:
-                server.starttls()
-            server.login(mail_username, mail_password)
-            server.sendmail(mail_default_sender, email, message.as_string())
-            server.quit()
+                    print(f"[EMAIL] Conectando a {mail_server}:{mail_port}...")
+                    server = smtplib.SMTP(mail_server, mail_port)
+                    server.set_debuglevel(1)  # Debug level para más información
 
-        print(f"[EMAIL] [OK] Email enviado exitosamente a {email}")
-        return True
+                    if mail_use_tls:
+                        print(f"[EMAIL] Iniciando TLS...")
+                        server.starttls()
+
+                    print(f"[EMAIL] Autenticando...")
+                    server.login(mail_username, mail_password)
+
+                    print(f"[EMAIL] Enviando mensaje...")
+                    server.sendmail(mail_default_sender, email, message.as_string())
+
+                    server.quit()
+                    print(f"[EMAIL] ✓ Email enviado exitosamente con smtplib (fallback)")
+                    success = True
+
+                except Exception as fallback_error:
+                    print(f"[EMAIL] ✗ Fallback también falló: {fallback_error}")
+                    success = False
+        else:
+            print(f"[EMAIL] Flask-Mail no disponible, usando solo smtplib")
+            # Solo usar smtplib
+            success = False  # Ya se maneja arriba
+
+        if success:
+            print(f"[EMAIL] ===== ÉXITO =====")
+            print(f"[EMAIL] ✓ Email enviado exitosamente a {email}")
+            return True
+        else:
+            print(f"[EMAIL] ===== FALLO =====")
+            print(f"[EMAIL] ✗ No se pudo enviar el email a {email}")
+            return False
 
     except Exception as e:
-        print(f"[EMAIL] [ERROR] Error al enviar email a {email}: {e}")
+        print(f"[EMAIL] ===== ERROR INESPERADO =====")
+        print(f"[EMAIL] ✗ Error al enviar email a {email}: {e}")
         print(f"[EMAIL] Tipo de error: {type(e).__name__}")
 
-        # Intentar diagnosticar el problema
-        if "SMTP" in str(e):
-            print(f"[EMAIL] Parece ser un problema de conexión SMTP")
-            print(f"[EMAIL] Verifica que el servidor tenga acceso a internet")
-            print(f"[EMAIL] Verifica que el puerto 587 no esté bloqueado")
-        elif "authentication" in str(e).lower():
-            print(f"[EMAIL] Problema de autenticación")
-            print(f"[EMAIL] Verifica que MAIL_USERNAME y MAIL_PASSWORD sean correctos")
-            print(f"[EMAIL] Para Gmail, asegúrate de usar una contraseña de aplicación")
-        elif "connection" in str(e).lower():
-            print(f"[EMAIL] Problema de conexión")
-            print(f"[EMAIL] Verifica la conectividad a internet del servidor")
+        # Diagnosticar el error específico
+        error_str = str(e).lower()
+        if "smtp" in error_str:
+            print(f"[EMAIL] 🔍 Diagnóstico: Problema de conexión SMTP")
+            print(f"[EMAIL] 💡 Solución: Verificar conectividad a internet y puerto {mail_port}")
+        elif "authentication" in error_str or "auth" in error_str:
+            print(f"[EMAIL] 🔍 Diagnóstico: Problema de autenticación")
+            print(f"[EMAIL] 💡 Solución: Verificar MAIL_USERNAME y MAIL_PASSWORD")
+            print(f"[EMAIL] 💡 Para Gmail: Usar contraseña de aplicación")
+        elif "connection" in error_str or "connect" in error_str:
+            print(f"[EMAIL] 🔍 Diagnóstico: Problema de conexión")
+            print(f"[EMAIL] 💡 Solución: Verificar conectividad a internet del servidor")
+        elif "timeout" in error_str:
+            print(f"[EMAIL] 🔍 Diagnóstico: Timeout en conexión")
+            print(f"[EMAIL] 💡 Solución: Verificar velocidad de conexión y firewall")
+        else:
+            print(f"[EMAIL] 🔍 Diagnóstico: Error desconocido")
 
         import traceback
-        print(f"[EMAIL] Traceback completo:")
+        print(f"[EMAIL] ===== TRACEBACK COMPLETO =====")
         print(f"[EMAIL] {traceback.format_exc()}")
 
         return False
@@ -571,9 +654,17 @@ def test_email():
     """Ruta de prueba para verificar la conexión SMTP y envío de emails"""
     from flask import flash, redirect, url_for, current_app
 
-    print("\n" + "="*60)
+    print("\n" + "="*70)
     print("INICIANDO PRUEBA DE EMAIL DESDE NAVEGADOR")
-    print("="*60)
+    print("="*70)
+
+    # Verificar variables de entorno disponibles
+    print(f"[TEST] Variables de entorno:")
+    print(f"[TEST] MAIL_USERNAME: {'Presente' if os.environ.get('MAIL_USERNAME') else 'Ausente'}")
+    print(f"[TEST] MAIL_PASSWORD: {'Presente' if os.environ.get('MAIL_PASSWORD') else 'Ausente'}")
+    print(f"[TEST] MAIL_DEFAULT_SENDER: {'Presente' if os.environ.get('MAIL_DEFAULT_SENDER') else 'Ausente'}")
+    print(f"[TEST] SERVER_NAME: {os.environ.get('SERVER_NAME', 'No configurado')}")
+    print(f"[TEST] PREFERRED_URL_SCHEME: {os.environ.get('PREFERRED_URL_SCHEME', 'No configurado')}")
 
     # Primero probar conexión
     connection_ok = test_email_connection()
@@ -583,9 +674,9 @@ def test_email():
         return redirect(url_for('auth.login'))
 
     # Si la conexión funciona, probar envío de email de prueba
-    print("\n" + "="*40)
+    print("\n" + "="*50)
     print("PROBANDO ENVÍO DE EMAIL DE PRUEBA")
-    print("="*40)
+    print("="*50)
 
     # Verificar configuración de email con fallback
     test_email_address = current_app.config.get('MAIL_DEFAULT_SENDER')
@@ -609,13 +700,17 @@ def test_email():
         flash('[ERROR] No se puede enviar email de prueba: Configuración de email no disponible.', 'danger')
         return redirect(url_for('auth.login'))
 
+    print(f"[TEST] Email de prueba será enviado a: {test_email_address}")
+
     test_url = url_for('auth.login', _external=True)
+    print(f"[TEST] URL de prueba: {test_url}")
+
     success = send_reset_email(test_email_address, test_url)
 
     if success:
-        flash('[OK] Prueba completa exitosa. Se envió un email de prueba.', 'success')
+        flash('[OK] Prueba completa exitosa. Se envió un email de prueba a tu bandeja de entrada.', 'success')
     else:
-        flash('[ERROR] La conexión SMTP funciona pero el envío de email falló. Revisa los logs.', 'warning')
+        flash('[ERROR] La conexión SMTP funciona pero el envío de email falló. Revisa los logs del servidor.', 'warning')
 
     return redirect(url_for('auth.login'))
 
