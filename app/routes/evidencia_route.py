@@ -412,9 +412,17 @@ def upload_evidencia(tipo):
     hoy = date.today()
     print(f"DEBUG: Actualizando campos de control de tiempo para tipo={tipo}, hoy={hoy}")
 
-    if tipo == 'word' and (not evidencia.primera_subida_word or evidencia.primera_subida_word > hoy):
-        evidencia.primera_subida_word = hoy
-        print(f"DEBUG: Actualizando primera_subida_word a {hoy}")
+    if tipo == 'word':
+        # Buscar primera_subida_word existente
+        existing_word = db.session.query(Evidencia.primera_subida_word)\
+            .filter_by(aprendiz_id_aprendiz=current_user.id_aprendiz)\
+            .filter(Evidencia.primera_subida_word.isnot(None))\
+            .first()
+        if existing_word:
+            evidencia.primera_subida_word = existing_word[0]
+        else:
+            evidencia.primera_subida_word = hoy
+        print(f"DEBUG: primera_subida_word establecido a {evidencia.primera_subida_word}")
     elif tipo == 'excel':
         sesion_excel = request.form.get('sesion_excel', '15_dias')
         print(f"DEBUG: Sesión Excel seleccionada: {sesion_excel}")  # Debug
@@ -423,20 +431,39 @@ def upload_evidencia(tipo):
         evidencia.sesion_excel = sesion_excel
         print(f"DEBUG: Asignando sesion_excel = {evidencia.sesion_excel}")  # Debug
 
-        # Verificar y actualizar los campos de primera subida
-        print(f"DEBUG: Estado actual - primera_subida_excel_15: {evidencia.primera_subida_excel_15}, primera_subida_excel_3: {evidencia.primera_subida_excel_3}")
-
-        if sesion_excel == '15_dias' and (not evidencia.primera_subida_excel_15 or evidencia.primera_subida_excel_15 > hoy):
-            evidencia.primera_subida_excel_15 = hoy
-            print(f"DEBUG: Actualizando primera_subida_excel_15 a {hoy}")
-        elif sesion_excel == '3_meses' and (not evidencia.primera_subida_excel_3 or evidencia.primera_subida_excel_3 > hoy):
-            evidencia.primera_subida_excel_3 = hoy
-            print(f"DEBUG: Actualizando primera_subida_excel_3 a {hoy}")
-
-        print(f"DEBUG: Estado después de actualización - primera_subida_excel_15: {evidencia.primera_subida_excel_15}, primera_subida_excel_3: {evidencia.primera_subida_excel_3}")
-    elif tipo == 'pdf' and (not evidencia.primera_subida_pdf or evidencia.primera_subida_pdf > hoy):
-        evidencia.primera_subida_pdf = hoy
-        print(f"DEBUG: Actualizando primera_subida_pdf a {hoy}")
+        if sesion_excel == '15_dias':
+            # Buscar primera_subida_excel_15 existente
+            existing_15 = db.session.query(Evidencia.primera_subida_excel_15)\
+                .filter_by(aprendiz_id_aprendiz=current_user.id_aprendiz)\
+                .filter(Evidencia.primera_subida_excel_15.isnot(None))\
+                .first()
+            if existing_15:
+                evidencia.primera_subida_excel_15 = existing_15[0]
+            else:
+                evidencia.primera_subida_excel_15 = hoy
+            print(f"DEBUG: primera_subida_excel_15 establecido a {evidencia.primera_subida_excel_15}")
+        elif sesion_excel == '3_meses':
+            # Buscar primera_subida_excel_3 existente
+            existing_3 = db.session.query(Evidencia.primera_subida_excel_3)\
+                .filter_by(aprendiz_id_aprendiz=current_user.id_aprendiz)\
+                .filter(Evidencia.primera_subida_excel_3.isnot(None))\
+                .first()
+            if existing_3:
+                evidencia.primera_subida_excel_3 = existing_3[0]
+            else:
+                evidencia.primera_subida_excel_3 = hoy
+            print(f"DEBUG: primera_subida_excel_3 establecido a {evidencia.primera_subida_excel_3}")
+    elif tipo == 'pdf':
+        # Buscar primera_subida_pdf existente
+        existing_pdf = db.session.query(Evidencia.primera_subida_pdf)\
+            .filter_by(aprendiz_id_aprendiz=current_user.id_aprendiz)\
+            .filter(Evidencia.primera_subida_pdf.isnot(None))\
+            .first()
+        if existing_pdf:
+            evidencia.primera_subida_pdf = existing_pdf[0]
+        else:
+            evidencia.primera_subida_pdf = hoy
+        print(f"DEBUG: primera_subida_pdf establecido a {evidencia.primera_subida_pdf}")
 
     db.session.commit()
 

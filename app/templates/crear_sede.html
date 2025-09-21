@@ -29,7 +29,7 @@
     {% endwith %}
 
     <!-- Formulario de creación/edición -->
-    <form method="POST" action="{{ url_for('crear_sede_bp.crear_sede') }}" class="space-y-6">
+    <form method="POST" action="{{ url_for('coordinador_bp.crear_sede') }}" class="space-y-6">
         {% if modo != 'editar' %}
         <div>
             <label class="block text-gray-700 font-semibold text-lg mb-2">Token de administrador:</label>

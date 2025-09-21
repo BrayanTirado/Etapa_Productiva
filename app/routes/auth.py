@@ -383,10 +383,14 @@ Sistema SENA
             """.strip()
         )
         mail.send(msg)
-        print(f"Email de recuperación enviado a {email}")
+        print(f"[EMAIL] Email de recuperación enviado exitosamente a {email}")
+        return True
     except Exception as e:
-        print(f"Error al enviar email: {e}")
-        raise
+        print(f"[EMAIL] Error al enviar email a {email}: {e}")
+        print(f"[EMAIL] Tipo de error: {type(e).__name__}")
+        import traceback
+        print(f"[EMAIL] Traceback: {traceback.format_exc()}")
+        return False
 
 # --- RUTAS PARA RECUPERACIÓN DE CONTRASEÑA ---
 
@@ -472,10 +476,16 @@ def forgot_password():
             reset_url = url_for('auth.reset_password', token=token, _external=True)
             print(f"[LINK] URL generada: {reset_url}")
 
-            # Enviar email (simulado)
-            send_reset_email(email, reset_url)
+            # Enviar email
+            email_sent = send_reset_email(email, reset_url)
 
-            flash('Si tu correo electrónico está registrado, recibirás un enlace para restablecer tu contraseña.', 'info')
+            if email_sent:
+                print(f"[SUCCESS] Proceso de recuperación completado exitosamente para {email}")
+                flash('Si tu correo electrónico está registrado, recibirás un enlace para restablecer tu contraseña.', 'info')
+            else:
+                print(f"[WARNING] Email no pudo enviarse, pero token guardado para {email}")
+                flash('Hemos procesado tu solicitud, pero puede haber un problema temporal con el envío de emails. Contacta al administrador si no recibes el mensaje.', 'warning')
+
             return redirect(url_for('auth.login'))
 
         except Exception as e:
