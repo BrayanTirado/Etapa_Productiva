@@ -1,220 +1,293 @@
 #!/usr/bin/env python3
 """
-Script de diagnóstico específico para problemas de email en producción
-Ejecuta este script en tu servidor de producción para identificar el problema exacto
+Script de diagnóstico para problemas de envío de email en producción
+Ejecutar en el servidor de producción para identificar la causa del problema
 """
 
 import os
 import sys
+import smtplib
+import socket
+import logging
 from dotenv import load_dotenv
 
-def diagnose_production_email():
-    """Diagnóstico completo de problemas de email en producción"""
+# Configurar logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('email_diagnosis.log'),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
 
-    print("=" * 80)
-    print("DIAGNOSTICO DE EMAIL EN PRODUCCION")
-    print("=" * 80)
+def load_environment():
+    """Carga las variables de entorno"""
+    print("=" * 60)
+    print("CARGANDO VARIABLES DE ENTORNO")
+    print("=" * 60)
 
-    # 1. Verificar entorno
-    print(f"Python version: {sys.version}")
-    print(f"Current directory: {os.getcwd()}")
-    print(f"Script location: {os.path.dirname(os.path.abspath(__file__))}")
-
-    # 2. Verificar archivo .env
-    env_path = os.path.join(os.getcwd(), '.env')
-    print(f"\nArchivo .env existe: {os.path.exists(env_path)}")
-    if os.path.exists(env_path):
-        print(f"Ruta: {env_path}")
-        print(f"Tamano: {os.path.getsize(env_path)} bytes")
-        print(f"Permisos: {oct(os.stat(env_path).st_mode)[-3:]}")
-
-        # Mostrar contenido (sin contraseñas)
-        print("\nContenido del .env:")
-        try:
-            with open(env_path, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-                for i, line in enumerate(lines, 1):
-                    line = line.strip()
-                    if line and not line.startswith('#'):
-                        if 'PASSWORD' in line.upper():
-                            key = line.split('=')[0]
-                            print(f"  {i:2d}. {key}=***OCULTO***")
-                        else:
-                            print(f"  {i:2d}. {line}")
-        except Exception as e:
-            print(f"  Error leyendo .env: {e}")
+    # Cargar .env si existe
+    if os.path.exists('.env'):
+        load_dotenv()
+        print("[OK] Archivo .env encontrado y cargado")
     else:
-        print("[ERROR] CRITICO: Archivo .env NO encontrado")
-        print("   Solucion: Copia el .env desde desarrollo al servidor")
+        print("[WARNING] Archivo .env no encontrado")
 
-    # 3. Cargar variables de entorno
-    print("\n[INFO] Cargando variables de entorno...")
-    load_dotenv()
-    print("[OK] load_dotenv() ejecutado")
+    # Verificar variables críticas
+    required_vars = ['MAIL_USERNAME', 'MAIL_PASSWORD', 'MAIL_DEFAULT_SENDER']
+    missing_vars = []
 
-    # 4. Verificar variables críticas
-    print("\n[INFO] Variables de entorno criticas:")
-    critical_vars = ['MAIL_USERNAME', 'MAIL_PASSWORD', 'MAIL_DEFAULT_SENDER']
-    all_present = True
-
-    for var in critical_vars:
+    for var in required_vars:
         value = os.environ.get(var)
-        status = "[OK] Presente" if value else "[ERROR] Ausente"
-        if value and 'PASSWORD' not in var.upper():
-            print(f"  {var}: {status} ({value})")
+        if value:
+            print(f"[OK] {var}: {'***' if 'PASSWORD' in var else value}")
         else:
-            print(f"  {var}: {status}")
-        if not value:
-            all_present = False
+            print(f"[ERROR] {var}: NO CONFIGURADO")
+            missing_vars.append(var)
 
-    # 5. Verificar otras variables importantes
-    print("\n[INFO] Otras variables importantes:")
-    other_vars = ['SERVER_NAME', 'PREFERRED_URL_SCHEME', 'PROXY_FIX_ENABLED']
-    for var in other_vars:
-        value = os.environ.get(var, 'No definido')
-        print(f"  {var}: {value}")
+    if missing_vars:
+        print(f"\n[CRITICAL] Variables faltantes: {', '.join(missing_vars)}")
+        return False
 
-    # 6. Probar conectividad básica
-    print("\n[TEST] Probando conectividad:")
+    print("[OK] Todas las variables requeridas están configuradas")
+    return True
+
+def test_internet_connectivity():
+    """Prueba la conectividad a internet"""
+    print("\n" + "=" * 60)
+    print("PRUEBA DE CONECTIVIDAD A INTERNET")
+    print("=" * 60)
+
     try:
-        import socket
-        socket.create_connection(("8.8.8.8", 53), timeout=5)
-        print("  [OK] Conectividad a internet: OK")
+        # Probar conexión a Google DNS
+        socket.create_connection(("8.8.8.8", 53), timeout=10)
+        print("[OK] Conectividad a internet: OK")
+        return True
     except Exception as e:
-        print(f"  [ERROR] Conectividad a internet: FALLANDO - {e}")
-        print("    Esto impedira completamente el envio de emails")
+        print(f"[ERROR] Sin conectividad a internet: {e}")
+        return False
 
-    # 7. Probar puerto SMTP
-    print("\n[TEST] Probando puerto SMTP (587):")
+def test_smtp_port_accessibility(server, port):
+    """Verifica si el puerto SMTP es accesible"""
+    print(f"\nVerificando acceso al puerto {port} en {server}...")
+
     try:
-        import socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(5)
-        result = sock.connect_ex(('smtp.gmail.com', 587))
+        sock.settimeout(10)
+        result = sock.connect_ex((server, port))
         sock.close()
+
         if result == 0:
-            print("  [OK] Puerto 587 accesible")
+            print(f"[OK] Puerto {port} accesible")
+            return True
         else:
-            print("  [ERROR] Puerto 587 bloqueado o inaccesible")
-            print("    El firewall puede estar bloqueando SMTP")
+            print(f"[ERROR] Puerto {port} bloqueado o inaccesible")
+            return False
     except Exception as e:
-        print(f"  [ERROR] Error probando puerto 587: {e}")
+        print(f"[ERROR] Error verificando puerto {port}: {e}")
+        return False
 
-    # 8. Probar autenticación SMTP
-    print("\n[TEST] Probando autenticacion SMTP:")
-    mail_username = os.environ.get('MAIL_USERNAME')
-    mail_password = os.environ.get('MAIL_PASSWORD')
+def test_smtp_connection():
+    """Prueba la conexión SMTP completa"""
+    print("\n" + "=" * 60)
+    print("PRUEBA DE CONEXIÓN SMTP")
+    print("=" * 60)
 
-    if mail_username and mail_password:
-        try:
-            import smtplib
-            print("  Conectando a smtp.gmail.com:587...")
-            server = smtplib.SMTP('smtp.gmail.com', 587)
-            server.set_debuglevel(0)  # Sin debug para no saturar logs
+    server = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+    port = int(os.environ.get('MAIL_PORT', 587))
+    username = os.environ.get('MAIL_USERNAME')
+    password = os.environ.get('MAIL_PASSWORD')
+    use_tls = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
+    use_ssl = os.environ.get('MAIL_USE_SSL', 'false').lower() == 'true'
 
-            print("  Iniciando TLS...")
-            server.starttls()
+    print(f"Servidor: {server}")
+    print(f"Puerto: {port}")
+    print(f"Usuario: {username}")
+    print(f"Usar TLS: {use_tls}")
+    print(f"Usar SSL: {use_ssl}")
 
-            print("  Autenticando...")
-            server.login(mail_username, mail_password)
+    # Verificar puerto accesible
+    if not test_smtp_port_accessibility(server, port):
+        return False
 
-            print("  [OK] Autenticacion SMTP exitosa")
-            server.quit()
+    try:
+        print("\nIntentando conectar al servidor SMTP...")
 
-        except smtplib.SMTPAuthenticationError as e:
-            print(f"  [ERROR] Error de autenticacion: {e}")
-            print("    Verifica que MAIL_USERNAME y MAIL_PASSWORD sean correctos")
-            print("    Para Gmail: Usa contrasena de aplicacion, no la contrasena normal")
-        except smtplib.SMTPConnectError as e:
-            print(f"  [ERROR] Error de conexion: {e}")
-            print("    Verifica conectividad a internet")
-        except Exception as e:
-            print(f"  [ERROR] Error inesperado: {e}")
-    else:
-        print("  [ERROR] No se puede probar autenticacion: credenciales faltantes")
+        if use_ssl:
+            smtp = smtplib.SMTP_SSL(server, port, timeout=30)
+        else:
+            smtp = smtplib.SMTP(server, port, timeout=30)
 
-    # 9. Simular envío de email
-    print("\n[TEST] Probando envio de email:")
-    if all_present and mail_username and mail_password:
-        try:
-            import smtplib
-            from email.mime.text import MIMEText
-            from email.mime.multipart import MIMEMultipart
+        print("[OK] Conexión inicial exitosa")
 
-            # Crear mensaje de prueba
-            message = MIMEMultipart()
-            message['From'] = mail_username
-            message['To'] = mail_username  # Enviar a sí mismo
-            message['Subject'] = 'Prueba de email - Diagnostico produccion'
+        # Habilitar debug para más información
+        smtp.set_debuglevel(1)
 
-            body = """
-Este es un email de prueba enviado desde el diagnostico de produccion.
+        if use_tls:
+            print("Iniciando TLS...")
+            smtp.starttls()
+            print("[OK] TLS iniciado correctamente")
 
-Si recibes este email, significa que:
-- La configuracion SMTP es correcta
-- Las credenciales son validas
-- El servidor puede enviar emails
+        if username and password:
+            print("Autenticando...")
+            smtp.login(username, password)
+            print("[OK] Autenticación exitosa")
 
-Si no lo recibes, el problema esta en:
-- Configuracion del servidor
-- Firewall bloqueando SMTP
-- Credenciales incorrectas
-- Problemas de red
-            """.strip()
+        smtp.quit()
+        print("[OK] Conexión cerrada correctamente")
+        print("[SUCCESS] PRUEBA DE CONEXIÓN SMTP EXITOSA")
+        return True
 
-            message.attach(MIMEText(body, 'plain'))
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"[ERROR] Error de autenticación: {e}")
+        print("Solución: Verificar que MAIL_PASSWORD sea una contraseña de aplicación de Gmail")
+        print("Crear contraseña de aplicación en: https://myaccount.google.com/apppasswords")
+    except smtplib.SMTPConnectError as e:
+        print(f"[ERROR] Error de conexión: {e}")
+        print("Solución: Verificar conectividad a internet y configuración del firewall")
+    except smtplib.SMTPException as e:
+        print(f"[ERROR] Error SMTP: {e}")
+    except Exception as e:
+        print(f"[ERROR] Error inesperado: {e}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
 
-            print("  Enviando email de prueba...")
-            server = smtplib.SMTP('smtp.gmail.com', 587)
-            server.starttls()
-            server.login(mail_username, mail_password)
-            server.sendmail(mail_username, mail_username, message.as_string())
-            server.quit()
+    print("[FAILED] PRUEBA DE CONEXIÓN SMTP FALLIDA")
+    return False
 
-            print("  [OK] Email de prueba enviado exitosamente")
-            print(f"  [OK] Revisa la bandeja de entrada de {mail_username}")
+def test_email_sending():
+    """Prueba el envío real de un email"""
+    print("\n" + "=" * 60)
+    print("PRUEBA DE ENVÍO DE EMAIL")
+    print("=" * 60)
 
-        except Exception as e:
-            print(f"  [ERROR] Error enviando email de prueba: {e}")
-    else:
-        print("  [ERROR] No se puede enviar email de prueba: configuracion incompleta")
+    server = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+    port = int(os.environ.get('MAIL_PORT', 587))
+    username = os.environ.get('MAIL_USERNAME')
+    password = os.environ.get('MAIL_PASSWORD')
+    sender = os.environ.get('MAIL_DEFAULT_SENDER', username)
+    use_tls = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
+    use_ssl = os.environ.get('MAIL_USE_SSL', 'false').lower() == 'true'
 
-    # 10. Resumen y recomendaciones
-    print("\n" + "=" * 80)
-    print("RESUMEN Y RECOMENDACIONES")
-    print("=" * 80)
+    # Email de prueba (enviar a sí mismo)
+    test_recipient = sender
+    test_subject = "Prueba de Email - Diagnóstico de Producción"
+    test_body = """
+    Este es un email de prueba enviado desde el script de diagnóstico.
 
-    issues = []
+    Si recibes este email, significa que:
+    - La configuración SMTP es correcta
+    - Las credenciales son válidas
+    - El servidor puede enviar emails
 
-    if not os.path.exists(env_path):
-        issues.append("Archivo .env faltante")
-    if not all_present:
-        issues.append("Variables de entorno faltantes")
-    if not mail_username or not mail_password:
-        issues.append("Credenciales SMTP faltantes")
+    Fecha de envío: {datetime}
+    Servidor: {server}:{port}
+    Usuario: {username}
+    """.format(
+        datetime=os.popen('date /t').read().strip() if os.name == 'nt' else os.popen('date').read().strip(),
+        server=server,
+        port=port,
+        username=username
+    )
 
-    if issues:
-        print("[ERROR] PROBLEMAS ENCONTRADOS:")
-        for issue in issues:
-            print(f"   - {issue}")
+    try:
+        print(f"Enviando email de prueba a: {test_recipient}")
 
-        print("\n[INFO] RECOMENDACIONES:")
-        print("   1. Copia el archivo .env completo desde desarrollo")
-        print("   2. Verifica que todas las variables esten definidas")
-        print("   3. Para Gmail, usa contrasena de aplicacion")
-        print("   4. Verifica que el servidor tenga acceso a internet")
-        print("   5. Verifica que el puerto 587 no este bloqueado por firewall")
-    else:
-        print("[OK] CONFIGURACION BASICA CORRECTA")
-        print("\n[INFO] SI AUN HAY PROBLEMAS:")
-        print("   - Verifica que la aplicacion Flask se inicie correctamente")
-        print("   - Revisa los logs de la aplicacion en produccion")
-        print("   - Verifica que Flask-Mail este inicializado")
-        print("   - Considera problemas de contexto de aplicacion")
+        if use_ssl:
+            smtp = smtplib.SMTP_SSL(server, port, timeout=30)
+        else:
+            smtp = smtplib.SMTP(server, port, timeout=30)
 
-    print("\n[INFO] COMANDO PARA EJECUTAR EN PRODUCCION:")
-    print("   python diagnose_production_email.py")
-    print("=" * 80)
+        smtp.set_debuglevel(1)
+
+        if use_tls:
+            smtp.starttls()
+
+        smtp.login(username, password)
+
+        # Crear mensaje con codificación UTF-8
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+
+        message = MIMEMultipart()
+        message['From'] = sender
+        message['To'] = test_recipient
+        message['Subject'] = test_subject
+
+        # Adjuntar el cuerpo como texto plano con codificación UTF-8
+        message.attach(MIMEText(test_body, 'plain', 'utf-8'))
+
+        smtp.sendmail(sender, test_recipient, message.as_string())
+        smtp.quit()
+
+        print("[SUCCESS] Email de prueba enviado exitosamente")
+        print(f"[INFO] Revisa la bandeja de entrada de {test_recipient}")
+        return True
+
+    except Exception as e:
+        print(f"[ERROR] Error enviando email de prueba: {e}")
+        return False
+
+def check_gmail_security():
+    """Verifica configuraciones de seguridad de Gmail"""
+    print("\n" + "=" * 60)
+    print("VERIFICACIÓN DE SEGURIDAD GMAIL")
+    print("=" * 60)
+
+    username = os.environ.get('MAIL_USERNAME', '')
+
+    if not username.endswith('@gmail.com'):
+        print("[INFO] No es una cuenta Gmail, omitiendo verificación específica")
+        return
+
+    print("[GMAIL] Recordatorios importantes:")
+    print("1. Verificar que la autenticación de 2 factores esté ACTIVADA")
+    print("2. MAIL_PASSWORD debe ser una 'contraseña de aplicación', no la contraseña normal")
+    print("3. Crear contraseña de aplicación en: https://myaccount.google.com/apppasswords")
+    print("4. Verificar que no haya restricciones de seguridad activas")
+    print("5. Revisar si Gmail está bloqueando el acceso desde 'aplicaciones menos seguras'")
+    print("6. Verificar el historial de actividad reciente en la cuenta Gmail")
+
+def main():
+    """Función principal del diagnóstico"""
+    print("SCRIPT DE DIAGNÓSTICO DE EMAIL EN PRODUCCIÓN")
+    print("Ejecutado en:", os.popen('date').read().strip())
+    print("Servidor:", os.popen('hostname').read().strip())
+
+    # Paso 1: Cargar entorno
+    if not load_environment():
+        print("\n[CRITICAL] Variables de entorno no configuradas correctamente")
+        sys.exit(1)
+
+    # Paso 2: Conectividad a internet
+    if not test_internet_connectivity():
+        print("\n[CRITICAL] Sin conectividad a internet")
+        sys.exit(1)
+
+    # Paso 3: Conexión SMTP
+    if not test_smtp_connection():
+        print("\n[CRITICAL] Conexión SMTP fallida")
+        sys.exit(1)
+
+    # Paso 4: Envío de email de prueba
+    if not test_email_sending():
+        print("\n[CRITICAL] Envío de email fallido")
+        sys.exit(1)
+
+    # Paso 5: Verificaciones específicas de Gmail
+    check_gmail_security()
+
+    print("\n" + "=" * 60)
+    print("DIAGNÓSTICO COMPLETADO EXITOSAMENTE")
+    print("=" * 60)
+    print("[SUCCESS] Todas las pruebas pasaron correctamente")
+    print("[INFO] Si el problema persiste, revisar:")
+    print("1. Logs del servidor web (Nginx/Apache)")
+    print("2. Configuración del firewall")
+    print("3. Restricciones del proveedor de hosting")
+    print("4. Configuración DNS y SPF")
 
 if __name__ == "__main__":
-    diagnose_production_email()
+    main()
