@@ -361,42 +361,22 @@ def find_user_by_email(email):
 
     return None, None
 
-def send_reset_email_gmail_api(email, reset_url):
-    """Envía email usando Gmail API (único método soportado)"""
-    import logging
-    import pickle
-    import base64
-    from email.mime.text import MIMEText
-    from google.oauth2.credentials import Credentials
-    from googleapiclient.discovery import build
-    from google.auth.transport.requests import Request
+def send_reset_email(email, reset_url):
+    """Envía el email de recuperación de contraseña usando SMTP"""
+    from flask import current_app
+    from flask_mail import Message, Mail
 
-    logger = logging.getLogger(__name__)
-
-    print(f"[GMAIL_API] Enviando email a {email}")
+    print(f"[EMAIL] Enviando email a {email}")
 
     try:
-        # Cargar credenciales
-        creds = None
-        if os.path.exists('token.pickle'):
-            with open('token.pickle', 'rb') as token:
-                creds = pickle.load(token)
+        # Crear instancia de Mail si no existe
+        mail = Mail(current_app)
 
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-                # Guardar credenciales actualizadas
-                with open('token.pickle', 'wb') as token:
-                    pickle.dump(creds, token)
-            else:
-                print(f"[GMAIL_API] ERROR: Credenciales no válidas")
-                return False
-
-        # Crear servicio Gmail
-        service = build('gmail', 'v1', credentials=creds)
-
-        # Crear mensaje
-        message = MIMEText(f"""
+        msg = Message(
+            subject='Recuperación de contraseña - SENA',
+            recipients=[email],
+            sender=current_app.config.get('MAIL_DEFAULT_SENDER'),
+            body=f"""
 Hola,
 
 Has solicitado restablecer tu contraseña. Haz clic en el siguiente enlace para continuar:
@@ -409,38 +389,16 @@ Si no solicitaste este cambio, ignora este mensaje.
 
 Atentamente,
 Sistema SENA
-        """.strip())
+            """.strip()
+        )
 
-        message['to'] = email
-        message['subject'] = 'Recuperación de contraseña - SENA'
-
-        # Codificar mensaje
-        raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
-        body = {'raw': raw}
-
-        # Enviar mensaje
-        sent_message = service.users().messages().send(userId='me', body=body).execute()
-
-        print(f"[GMAIL_API] SUCCESS: Email enviado. ID: {sent_message['id']}")
-        logger.info(f"Email enviado a {email} usando Gmail API")
+        mail.send(msg)
+        print(f"[EMAIL] SUCCESS: Email enviado a {email}")
         return True
 
     except Exception as e:
-        print(f"[GMAIL_API] ERROR: {e}")
-        logger.error(f"Error Gmail API para {email}: {e}")
+        print(f"[EMAIL] ERROR: {e}")
         return False
-
-def send_reset_email(email, reset_url):
-    """Envía el email de recuperación de contraseña usando Gmail API"""
-    import logging
-    logging.basicConfig(level=logging.DEBUG)
-    logger = logging.getLogger(__name__)
-
-    print(f"[EMAIL] Enviando email a {email}")
-    logger.info(f"Enviando email de recuperación a {email}")
-
-    # Solo usar Gmail API - sin fallbacks
-    return send_reset_email_gmail_api(email, reset_url)
 
 # --- RUTAS PARA RECUPERACIÓN DE CONTRASEÑA ---
 
