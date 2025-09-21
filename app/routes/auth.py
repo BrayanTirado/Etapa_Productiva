@@ -366,37 +366,37 @@ def test_email_connection():
         else:
             smtp = smtplib.SMTP(server, port)
 
-        print("✅ Conexión inicial exitosa")
+        print("[OK] Conexión inicial exitosa")
 
         if use_tls:
             smtp.starttls()
-            print("✅ TLS iniciado correctamente")
+            print("[OK] TLS iniciado correctamente")
 
         if username and password:
             smtp.login(username, password)
-            print("✅ Autenticación exitosa")
+            print("[OK] Autenticación exitosa")
 
         smtp.quit()
-        print("✅ Conexión cerrada correctamente")
-        print("✅ PRUEBA DE CONEXIÓN SMTP EXITOSA")
+        print("[OK] Conexión cerrada correctamente")
+        print("[OK] PRUEBA DE CONEXIÓN SMTP EXITOSA")
         return True
 
     except smtplib.SMTPAuthenticationError as e:
-        print(f"❌ Error de autenticación: {e}")
+        print(f"[ERROR] Error de autenticación: {e}")
         print("   Verifica que el usuario y contraseña sean correctos")
         print("   Para Gmail, usa una contraseña de aplicación")
     except smtplib.SMTPConnectError as e:
-        print(f"❌ Error de conexión: {e}")
+        print(f"[ERROR] Error de conexión: {e}")
         print("   Verifica que el servidor tenga acceso a internet")
         print(f"   Verifica que el puerto {port} no esté bloqueado")
     except smtplib.SMTPException as e:
-        print(f"❌ Error SMTP: {e}")
+        print(f"[ERROR] Error SMTP: {e}")
     except Exception as e:
-        print(f"❌ Error inesperado: {e}")
+        print(f"[ERROR] Error inesperado: {e}")
         import traceback
         print(f"Traceback: {traceback.format_exc()}")
 
-    print("❌ PRUEBA DE CONEXIÓN SMTP FALLIDA")
+    print("[ERROR] PRUEBA DE CONEXIÓN SMTP FALLIDA")
     return False
 
 def generate_reset_token():
@@ -469,11 +469,11 @@ Sistema SENA
 
         mail.send(msg)
 
-        print(f"[EMAIL] ✅ Email enviado exitosamente a {email}")
+        print(f"[EMAIL] [OK] Email enviado exitosamente a {email}")
         return True
 
     except Exception as e:
-        print(f"[EMAIL] ❌ Error al enviar email a {email}: {e}")
+        print(f"[EMAIL] [ERROR] Error al enviar email a {email}: {e}")
         print(f"[EMAIL] Tipo de error: {type(e).__name__}")
 
         # Intentar diagnosticar el problema
@@ -511,7 +511,7 @@ def test_email():
     connection_ok = test_email_connection()
 
     if not connection_ok:
-        flash('❌ Prueba de conexión SMTP fallida. Revisa los logs para más detalles.', 'danger')
+        flash('[ERROR] Prueba de conexión SMTP fallida. Revisa los logs para más detalles.', 'danger')
         return redirect(url_for('auth.login'))
 
     # Si la conexión funciona, probar envío de email de prueba
@@ -521,16 +521,16 @@ def test_email():
 
     test_email_address = current_app.config.get('MAIL_DEFAULT_SENDER')
     if not test_email_address:
-        flash('❌ No se puede enviar email de prueba: MAIL_DEFAULT_SENDER no configurado.', 'danger')
+        flash('[ERROR] No se puede enviar email de prueba: MAIL_DEFAULT_SENDER no configurado.', 'danger')
         return redirect(url_for('auth.login'))
 
     test_url = url_for('auth.login', _external=True)
     success = send_reset_email(test_email_address, test_url)
 
     if success:
-        flash('✅ Prueba completa exitosa. Se envió un email de prueba.', 'success')
+        flash('[OK] Prueba completa exitosa. Se envió un email de prueba.', 'success')
     else:
-        flash('❌ La conexión SMTP funciona pero el envío de email falló. Revisa los logs.', 'warning')
+        flash('[ERROR] La conexión SMTP funciona pero el envío de email falló. Revisa los logs.', 'warning')
 
     return redirect(url_for('auth.login'))
 

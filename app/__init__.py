@@ -21,20 +21,20 @@ def check_email_config():
     mail_password = os.environ.get('MAIL_PASSWORD')
     mail_default_sender = os.environ.get('MAIL_DEFAULT_SENDER')
 
-    print(f"MAIL_USERNAME: {'✓ Configurado' if mail_username else '✗ No configurado'}")
-    print(f"MAIL_PASSWORD: {'✓ Configurado' if mail_password else '✗ No configurado'}")
-    print(f"MAIL_DEFAULT_SENDER: {'✓ Configurado' if mail_default_sender else '✗ No configurado'}")
+    print(f"MAIL_USERNAME: {'[OK] Configurado' if mail_username else '[ERROR] No configurado'}")
+    print(f"MAIL_PASSWORD: {'[OK] Configurado' if mail_password else '[ERROR] No configurado'}")
+    print(f"MAIL_DEFAULT_SENDER: {'[OK] Configurado' if mail_default_sender else '[ERROR] No configurado'}")
 
     if not all([mail_username, mail_password, mail_default_sender]):
-        print("\n⚠️  ADVERTENCIA: Variables de entorno de email no configuradas")
+        print("\n[WARNING] ADVERTENCIA: Variables de entorno de email no configuradas")
         print("   El envío de emails no funcionará correctamente")
         print("   Asegúrate de configurar MAIL_USERNAME, MAIL_PASSWORD y MAIL_DEFAULT_SENDER")
     else:
-        print(f"\n✓ Configuración básica OK - Usuario: {mail_username}")
+        print(f"\n[OK] Configuración básica OK - Usuario: {mail_username}")
 
     # Verificar configuración de Gmail
     if mail_username and mail_username.endswith('@gmail.com'):
-        print("\n📧 Detectado Gmail - Recordatorios importantes:")
+        print("\n[GMAIL] Detectado Gmail - Recordatorios importantes:")
         print("   • Asegúrate de tener activada la autenticación de 2 factores")
         print("   • MAIL_PASSWORD debe ser una 'contraseña de aplicación', no tu contraseña normal")
         print("   • Crea una contraseña de aplicación en: https://myaccount.google.com/apppasswords")
@@ -45,24 +45,16 @@ def check_email_config():
     preferred_scheme = os.environ.get('PREFERRED_URL_SCHEME', 'https')
 
     if not server_name:
-        print("\n⚠️  ADVERTENCIA: SERVER_NAME no configurado")
+        print("\n[WARNING] ADVERTENCIA: SERVER_NAME no configurado")
         print("   Esto puede causar problemas con los enlaces de restablecimiento de contraseña en producción")
         print("   Configura SERVER_NAME en tu archivo .env con tu dominio real")
         print("   Ejemplo: SERVER_NAME=tu-dominio.com")
     else:
-        print(f"\n✓ SERVER_NAME configurado: {server_name}")
+        print(f"\n[OK] SERVER_NAME configurado: {server_name}")
 
-    print(f"✓ PREFERRED_URL_SCHEME: {preferred_scheme}")
+    print(f"[OK] PREFERRED_URL_SCHEME: {preferred_scheme}")
 
-    # Probar conexión SMTP si estamos en modo de desarrollo o si se solicita
-    test_smtp = os.environ.get('TEST_SMTP_ON_STARTUP', 'false').lower() == 'true'
-    if test_smtp:
-        print("\n🔧 Probando conexión SMTP...")
-        try:
-            from app.routes.auth import test_email_connection
-            test_email_connection()
-        except Exception as e:
-            print(f"❌ Error al probar conexión SMTP: {e}")
+    # Nota: La prueba SMTP se ejecutará después de crear el contexto de la aplicación
 
     print("=" * 50)
     print()
@@ -129,6 +121,16 @@ def create_app():
         except Exception as e:
             print(f"Error al conectar con la base de datos: {e}")
             raise
+
+        # Probar conexión SMTP si se solicita (dentro del contexto de la aplicación)
+        test_smtp = os.environ.get('TEST_SMTP_ON_STARTUP', 'false').lower() == 'true'
+        if test_smtp:
+            print("\n[TEST] Probando conexión SMTP...")
+            try:
+                from app.routes.auth import test_email_connection
+                test_email_connection()
+            except Exception as e:
+                print(f"[ERROR] Error al probar conexión SMTP: {e}")
 
     return app
 
