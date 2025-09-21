@@ -2,6 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_mail import Mail
+from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 import sys
 
@@ -131,6 +132,25 @@ def create_app():
                 test_email_connection()
             except Exception as e:
                 print(f"[ERROR] Error al probar conexión SMTP: {e}")
+
+    # --- Configuración para proxy reverso (PRODUCCIÓN) ---
+    # Esto es necesario cuando Flask está detrás de un proxy reverso (Nginx, Apache, etc.)
+    # Permite que Flask genere URLs externas correctamente en producción
+    proxy_fix_enabled = os.environ.get('PROXY_FIX_ENABLED', 'true').lower() == 'true'
+
+    if proxy_fix_enabled:
+        print("[PROXY] Configurando ProxyFix para producción...")
+        app.wsgi_app = ProxyFix(
+            app.wsgi_app,
+            x_for=1,      # Número de proxies para X-Forwarded-For
+            x_proto=1,    # Número de proxies para X-Forwarded-Proto
+            x_host=1,     # Número de proxies para X-Forwarded-Host
+            x_port=1,     # Número de proxies para X-Forwarded-Port
+            x_prefix=1    # Número de proxies para X-Forwarded-Prefix
+        )
+        print("[PROXY] ProxyFix configurado correctamente")
+    else:
+        print("[PROXY] ProxyFix deshabilitado (modo desarrollo)")
 
     return app
 
