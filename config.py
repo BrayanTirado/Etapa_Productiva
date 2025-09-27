@@ -5,11 +5,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    # Base de datos principal (MySQL remoto con mysqlconnector)
-    SQLALCHEMY_DATABASE_URI = (
-        f"mysql+mysqlconnector://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
-        f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
-    )
+    # Base de datos principal (MySQL remoto)
+    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://brayan:brayanc@isladigital.xyz:3311/bd_brayan'
 
     # Fallback a SQLite local si hay problemas de conectividad
     # Descomenta la siguiente línea si la BD remota está lenta:
