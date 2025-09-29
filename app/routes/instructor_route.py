@@ -245,7 +245,8 @@ def nuevo_instructor():
             # Notificación al coordinador
             from app.models.users import Notificacion
             noti = Notificacion(
-                mensaje=f"Se ha registrado un nuevo Instructor: {nuevo.nombre_instructor} {nuevo.apellido_instructor}",
+                motivo="Se ha registrado un nuevo Instructor",
+                mensaje=f"{nuevo.nombre_instructor} {nuevo.apellido_instructor}",
                 remitente_id=None,
                 rol_remitente="Sistema",
                 destinatario_id=token.coordinador_id,
@@ -256,7 +257,7 @@ def nuevo_instructor():
             db.session.commit()
 
             flash('Instructor registrado con éxito.', 'success')
-            return redirect(url_for('auth.login'))
+            return render_template('instructor.html', sedes=sedes)
         except Exception as e:
             db.session.rollback()
             flash(f'Error al crear el instructor: {str(e)}', 'danger')

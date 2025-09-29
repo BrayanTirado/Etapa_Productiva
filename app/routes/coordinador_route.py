@@ -110,7 +110,8 @@ def registro():
 
             # Notificación a administradores
             noti = Notificacion(
-                mensaje=f"Se ha registrado un nuevo Coordinador: {coordinador.nombre} {coordinador.apellido}",
+                motivo="Se ha registrado un nuevo Coordinador",
+                mensaje=f"{coordinador.nombre} {coordinador.apellido}",
                 remitente_id=None,
                 rol_remitente="Sistema",
                 destinatario_id=None,
@@ -329,11 +330,17 @@ def asignar_aprendiz():
                 db.session.add(aprendiz)
 
                 # Notificación al instructor
-                enviar_notificacion(
-                    mensaje=f"[Se te ha asignado un nuevo aprendiz] {aprendiz.nombre} {aprendiz.apellido}",
+                from app.models.users import Notificacion
+                noti = Notificacion(
+                    motivo="Se te ha asignado un nuevo aprendiz",
+                    mensaje=f"{aprendiz.nombre} {aprendiz.apellido}",
+                    remitente_id=current_user.id_coordinador,
+                    rol_remitente="Coordinador",
                     destinatario_id=instructor.id_instructor,
-                    rol_destinatario="Instructor"
+                    rol_destinatario="Instructor",
+                    visto=False
                 )
+                db.session.add(noti)
 
         db.session.commit()
         flash("Aprendices asignados correctamente", "success")
