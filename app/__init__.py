@@ -4,7 +4,6 @@ from flask_login import LoginManager
 from flask_mail import Mail
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
-import sys
 
 # --- Extensiones globales ---
 db = SQLAlchemy()
