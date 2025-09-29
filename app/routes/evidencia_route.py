@@ -174,9 +174,9 @@ def puede_subir_archivo(aprendiz_id: int, tipo: str, sesion_excel: str = None) -
             if primera_subida and primera_subida[0]:
                 dias_desde_primera = (hoy - primera_subida[0]).days
                 print(f"DEBUG: Días desde primera subida Excel 3 meses: {dias_desde_primera}")
-                if dias_desde_primera < 90:  # 3 meses
-                    dias_restantes = 90 - dias_desde_primera
-                    fecha_proxima = primera_subida[0] + timedelta(days=90)
+                if dias_desde_primera < 15:
+                    dias_restantes = 15 - dias_desde_primera
+                    fecha_proxima = primera_subida[0] + timedelta(days=15)
                     return False, f"No puedes subir otro archivo Excel (sesión 3 meses). Debes esperar {dias_restantes} días más.", fecha_proxima.strftime('%d/%m/%Y')
             else:
                 print(f"DEBUG: No se encontró primera subida para Excel 3 meses, permitiendo subida")

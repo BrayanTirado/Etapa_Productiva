@@ -10,10 +10,6 @@
             {% if mode == 'edit' %}Editar Perfil de Aprendiz{% else %}Perfil del Aprendiz{% endif %}
         </h2>
 
-        <div class="flex justify-center mb-6">
-            <img src="{{ url_for('static', filename='img/logo-sena.png') }}" alt="SENA" class="h-20">
-        </div>
-
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 <div class="mb-4">

@@ -212,13 +212,13 @@
                         <select name="destinatario_id" id="destinatario_id">
                             <option value="">Todos</option>
                             {% for a in aprendices %}
-                            <option class="aprendiz" value="{{ a.id_aprendiz }}">Aprendiz: {{ a.nombre }} {{ a.apellido }} - {{ a.ficha }}</option>
+                            <option class="aprendiz" value="{{ a.id_aprendiz }}">{{ a.nombre }} {{ a.apellido }} - {{ a.ficha }}</option>
                             {% endfor %}
                             {% for c in coordinadores %}
-                            <option class="coordinador" value="{{ c.id_coordinador }}">Coordinador: {{ c.nombre }} {{ c.apellido }}</option>
+                            <option class="coordinador" value="{{ c.id_coordinador }}">{{ c.nombre }} {{ c.apellido }}</option>
                             {% endfor %}
                             {% for adm in administradores %}
-                            <option class="administrador" value="{{ adm.id_admin }}">Administrador: {{ adm.nombre }} {{ adm.apellido }}</option>
+                            <option class="administrador" value="{{ adm.id_admin }}">{{ adm.nombre }} {{ adm.apellido }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -254,6 +254,13 @@
             </div>
         </div>
     </div>
+// Flash messages en modal
+{% set flash_js %}
+{% for category, message in get_flashed_messages(with_categories=true) %}
+abrirModal("{{ category|capitalize }}", "{{ message|safe }}");
+{% endfor %}
+{% endset %}
+
 </footer>
 <script>
 // Calendario
@@ -279,7 +286,7 @@ for (let i = añoActual - 50; i <= añoActual + 50; i++) {
 }
 anioSelect.value = añoActual;
 
-const eventos = {{ eventos|tojson }};
+const eventos = JSON.parse('{{ eventos|tojson|safe }}');
 
 function generarCalendario(mes) {
     calendario.innerHTML = "";
@@ -369,13 +376,9 @@ generarCalendario(mesActual);
 window.addEventListener("click", (event) => { if (event.target === modal) cerrarModal(); });
 
 // Flash messages en modal
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    {% for category, message in messages %}
-      abrirModal("{{ category|capitalize }}", "{{ message|safe }}");
-    {% endfor %}
-  {% endif %}
-{% endwith %}
+{% for category, message in get_flashed_messages(with_categories=true) %}
+abrirModal("{{ category|capitalize }}", "{{ message|safe }}");
+{% endfor %}
 
 // Filtrar destinatarios por rol
 const rolSelect = document.getElementById('rol_destinatario');

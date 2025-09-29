@@ -317,7 +317,7 @@ def asignar_aprendiz():
 
                 # Notificación al instructor
                 enviar_notificacion(
-                    mensaje=f"Se te ha asignado un nuevo aprendiz: {aprendiz.nombre} {aprendiz.apellido}",
+                    mensaje=f"Te ha sido asignado un nuevo aprendiz: {aprendiz.nombre}",
                     destinatario_id=instructor.id_instructor,
                     rol_destinatario="Instructor"
                 )

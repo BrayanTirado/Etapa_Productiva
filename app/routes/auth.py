@@ -9,6 +9,7 @@ from datetime import datetime, date, timedelta
 import secrets
 import re
 import os
+import threading
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -491,14 +492,13 @@ def forgot_password():
             # Generar URL de restablecimiento
             reset_url = url_for('auth.reset_password', token=token, _external=True)
 
-            # Enviar email
-            email_sent = send_reset_email(email, reset_url)
+            # Enviar email en background para optimizar respuesta
+            def send_email_async():
+                send_reset_email(email, reset_url)
 
-            if email_sent:
-                flash('Si tu correo electrónico está registrado, recibirás un enlace para restablecer tu contraseña.', 'info')
-            else:
-                flash('Hemos procesado tu solicitud, pero puede haber un problema temporal con el envío de emails. Contacta al administrador si no recibes el mensaje.', 'warning')
+            threading.Thread(target=send_email_async).start()
 
+            flash('Si tu correo electrónico está registrado, recibirás un enlace para restablecer tu contraseña.', 'info')
             return redirect(url_for('auth.login'))
 
         except Exception as e:
