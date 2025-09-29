@@ -25,6 +25,18 @@ def create_app():
     login_manager.login_view = 'auth.login'
     mail.init_app(app)
 
+    # Configuración de sesiones para múltiples workers
+    try:
+        from flask_session import Session
+        import redis
+        app.config['SESSION_TYPE'] = 'redis'
+        app.config['SESSION_REDIS'] = redis.from_url(os.environ.get('REDIS_URL', 'redis://localhost:6379'))
+        sess = Session()
+        sess.init_app(app)
+    except ImportError:
+        # Fallback para desarrollo sin Redis
+        app.config['SESSION_TYPE'] = 'null'  # Sesiones del servidor, no compartidas
+
     # --- Importa modelos aquí para evitar import circular ---
     from app.models.users import Aprendiz, Instructor, Coordinador, Administrador, Sede, Empresa, Contrato, Programa, Seguimiento, Evidencia, Notificacion, PasswordResetToken
 
