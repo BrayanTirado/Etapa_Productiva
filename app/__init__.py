@@ -4,7 +4,6 @@ from flask_login import LoginManager
 from flask_mail import Mail
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
-import sys
 
 # --- Extensiones globales ---
 db = SQLAlchemy()
@@ -17,7 +16,7 @@ def create_app():
     app = Flask(__name__)
 
     # Configuración de seguridad y base de datos
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(24))
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or os.urandom(24).hex()
     app.config.from_object('config.Config')
 
     # Inicializa extensiones
@@ -27,7 +26,20 @@ def create_app():
     mail.init_app(app)
 
     # --- Importa modelos aquí para evitar import circular ---
-    from app.models.users import Aprendiz, Instructor, Coordinador, Administrador, Sede, Empresa, Contrato, Programa, Seguimiento, Evidencia, Notificacion, PasswordResetToken
+    from app.models.users import (
+        Aprendiz,
+        Instructor,
+        Coordinador,
+        Administrador,
+        Sede,
+        Empresa,
+        Contrato,
+        Programa,
+        Seguimiento,
+        Evidencia,
+        Notificacion,
+        PasswordResetToken,
+    )
 
     # --- Importa Blueprints ---
     from app.routes.index_route import bp as index_bp
@@ -74,8 +86,6 @@ def create_app():
         # No se requieren pruebas SMTP
 
     # --- Configuración para proxy reverso (PRODUCCIÓN) ---
-    # Esto es necesario cuando Flask está detrás de un proxy reverso (Nginx, Apache, etc.)
-    # Permite que Flask genere URLs externas correctamente en producción
     proxy_fix_enabled = os.environ.get('PROXY_FIX_ENABLED', 'true').lower() == 'true'
 
     if proxy_fix_enabled:
@@ -89,6 +99,7 @@ def create_app():
         )
 
     return app
+
 
 # --- Función para cargar usuarios según su rol ---
 @login_manager.user_loader
@@ -110,4 +121,3 @@ def load_user(user_id):
     elif role == "administrador":
         return Administrador.query.get(id)
     return None
-
