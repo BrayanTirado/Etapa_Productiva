@@ -25,20 +25,15 @@ def create_app():
     login_manager.login_view = 'auth.login'
     mail.init_app(app)
 
-    # Configuración de sesiones para múltiples workers
-    try:
-        from flask_session import Session
-        import redis
-        app.config['SESSION_TYPE'] = 'redis'
-        app.config['SESSION_REDIS'] = redis.from_url(os.environ.get('REDIS_URL', 'redis://localhost:6379'))
-        sess = Session()
-        sess.init_app(app)
-    except ImportError:
-        # Fallback para desarrollo sin Redis
-        app.config['SESSION_TYPE'] = 'null'  # Sesiones del servidor, no compartidas
+    # --- Configuración de sesiones (sin Redis) ---
+    app.config['SESSION_TYPE'] = 'filesystem'  # sesiones en archivos locales
 
     # --- Importa modelos aquí para evitar import circular ---
-    from app.models.users import Aprendiz, Instructor, Coordinador, Administrador, Sede, Empresa, Contrato, Programa, Seguimiento, Evidencia, Notificacion, PasswordResetToken
+    from app.models.users import (
+        Aprendiz, Instructor, Coordinador, Administrador,
+        Sede, Empresa, Contrato, Programa, Seguimiento,
+        Evidencia, Notificacion, PasswordResetToken
+    )
 
     # --- Importa Blueprints ---
     from app.routes.index_route import bp as index_bp
@@ -70,7 +65,7 @@ def create_app():
     app.register_blueprint(aprendiz_bp)
     app.register_blueprint(coordinador_bp)
     app.register_blueprint(crear_sede_bp)
-    app.register_blueprint(crear_adm_bp)  # Aquí registramos el Blueprint corregido
+    app.register_blueprint(crear_adm_bp)
     app.register_blueprint(adm_bp)
     app.register_blueprint(notificacion_bp)
 
@@ -81,25 +76,20 @@ def create_app():
         except Exception as e:
             raise
 
-        # Email se maneja exclusivamente con Gmail API
-        # No se requieren pruebas SMTP
-
     # --- Configuración para proxy reverso (PRODUCCIÓN) ---
-    # Esto es necesario cuando Flask está detrás de un proxy reverso (Nginx, Apache, etc.)
-    # Permite que Flask genere URLs externas correctamente en producción
     proxy_fix_enabled = os.environ.get('PROXY_FIX_ENABLED', 'true').lower() == 'true'
-
     if proxy_fix_enabled:
         app.wsgi_app = ProxyFix(
             app.wsgi_app,
-            x_for=1,      # Número de proxies para X-Forwarded-For
-            x_proto=1,    # Número de proxies para X-Forwarded-Proto
-            x_host=1,     # Número de proxies para X-Forwarded-Host
-            x_port=1,     # Número de proxies para X-Forwarded-Port
-            x_prefix=1    # Número de proxies para X-Forwarded-Prefix
+            x_for=1,
+            x_proto=1,
+            x_host=1,
+            x_port=1,
+            x_prefix=1
         )
 
     return app
+
 
 # --- Función para cargar usuarios según su rol ---
 @login_manager.user_loader
@@ -121,4 +111,3 @@ def load_user(user_id):
     elif role == "administrador":
         return Administrador.query.get(id)
     return None
-
