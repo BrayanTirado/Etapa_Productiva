@@ -9,7 +9,6 @@ from datetime import datetime, date, timedelta
 import secrets
 import re
 import os
-import threading
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -241,8 +240,8 @@ def registro_aprendiz():
 
             db.session.commit()
 
-            flash('Aprendiz creado exitosamente.', 'success')
-            return redirect(url_for('auth.login'))
+            flash('Aprendiz registrado con éxito.', 'success')
+            return render_template('aprendiz.html', sedes=sedes, now=datetime.now())
         except Exception as e:
             db.session.rollback()
             flash(f'Error al crear el aprendiz: {str(e)}', 'danger')
@@ -492,13 +491,14 @@ def forgot_password():
             # Generar URL de restablecimiento
             reset_url = url_for('auth.reset_password', token=token, _external=True)
 
-            # Enviar email en background para optimizar respuesta
-            def send_email_async():
-                send_reset_email(email, reset_url)
+            # Enviar email
+            email_sent = send_reset_email(email, reset_url)
 
-            threading.Thread(target=send_email_async).start()
+            if email_sent:
+                flash('Si tu correo electrónico está registrado, recibirás un enlace para restablecer tu contraseña.', 'info')
+            else:
+                flash('Hemos procesado tu solicitud, pero puede haber un problema temporal con el envío de emails. Contacta al administrador si no recibes el mensaje.', 'warning')
 
-            flash('Si tu correo electrónico está registrado, recibirás un enlace para restablecer tu contraseña.', 'info')
             return redirect(url_for('auth.login'))
 
         except Exception as e:

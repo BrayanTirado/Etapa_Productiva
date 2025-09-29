@@ -146,9 +146,9 @@ def puede_subir_archivo(aprendiz_id: int, tipo: str, sesion_excel: str = None) -
             if primera_subida and primera_subida[0]:
                 dias_desde_primera = (hoy - primera_subida[0]).days
                 print(f"DEBUG: Días desde primera subida Excel 15 días: {dias_desde_primera}")
-                if dias_desde_primera < 15:
-                    dias_restantes = 15 - dias_desde_primera
-                    fecha_proxima = primera_subida[0] + timedelta(days=15)
+                if dias_desde_primera < 90:
+                    dias_restantes = 90 - dias_desde_primera
+                    fecha_proxima = primera_subida[0] + timedelta(days=90)
                     return False, f"No puedes subir otro archivo Excel (sesión 15 días). Debes esperar {dias_restantes} días más.", fecha_proxima.strftime('%d/%m/%Y')
         elif sesion_excel == '3_meses':
             print(f"DEBUG: Aplicando lógica de 3 meses")
@@ -174,27 +174,15 @@ def puede_subir_archivo(aprendiz_id: int, tipo: str, sesion_excel: str = None) -
             if primera_subida and primera_subida[0]:
                 dias_desde_primera = (hoy - primera_subida[0]).days
                 print(f"DEBUG: Días desde primera subida Excel 3 meses: {dias_desde_primera}")
-                if dias_desde_primera < 15:
-                    dias_restantes = 15 - dias_desde_primera
-                    fecha_proxima = primera_subida[0] + timedelta(days=15)
+                if dias_desde_primera < 90:
+                    dias_restantes = 90 - dias_desde_primera
+                    fecha_proxima = primera_subida[0] + timedelta(days=90)
                     return False, f"No puedes subir otro archivo Excel (sesión 3 meses). Debes esperar {dias_restantes} días más.", fecha_proxima.strftime('%d/%m/%Y')
             else:
                 print(f"DEBUG: No se encontró primera subida para Excel 3 meses, permitiendo subida")
         else:
             print(f"DEBUG: Sesión Excel no reconocida: {sesion_excel}, permitiendo subida")
 
-    elif tipo == 'pdf':
-        primera_subida = db.session.query(Evidencia.primera_subida_pdf)\
-            .filter_by(aprendiz_id_aprendiz=aprendiz_id)\
-            .filter(Evidencia.primera_subida_pdf.isnot(None))\
-            .order_by(Evidencia.primera_subida_pdf)\
-            .first()
-        if primera_subida and primera_subida[0]:
-            dias_desde_primera = (hoy - primera_subida[0]).days
-            if dias_desde_primera < 90:  # 3 meses
-                dias_restantes = 90 - dias_desde_primera
-                fecha_proxima = primera_subida[0] + timedelta(days=90)
-                return False, f"No puedes subir otro archivo PDF. Debes esperar {dias_restantes} días más.", fecha_proxima.strftime('%d/%m/%Y')
 
     print(f"DEBUG: No se aplicó ninguna restricción para tipo={tipo}, sesion_excel={sesion_excel}, permitiendo subida")
     return True, "", ""
@@ -461,17 +449,6 @@ def upload_evidencia(tipo):
             else:
                 evidencia.primera_subida_excel_3 = hoy
             print(f"DEBUG: primera_subida_excel_3 establecido a {evidencia.primera_subida_excel_3}")
-    elif tipo == 'pdf':
-        # Buscar primera_subida_pdf existente
-        existing_pdf = db.session.query(Evidencia.primera_subida_pdf)\
-            .filter_by(aprendiz_id_aprendiz=current_user.id_aprendiz)\
-            .filter(Evidencia.primera_subida_pdf.isnot(None))\
-            .first()
-        if existing_pdf:
-            evidencia.primera_subida_pdf = existing_pdf[0]
-        else:
-            evidencia.primera_subida_pdf = hoy
-        print(f"DEBUG: primera_subida_pdf establecido a {evidencia.primera_subida_pdf}")
 
     db.session.commit()
 

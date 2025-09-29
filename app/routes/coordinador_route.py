@@ -107,6 +107,19 @@ def registro():
             db.session.add(coordinador)
             token_obj.usado = True
             db.session.commit()
+
+            # Notificación a administradores
+            noti = Notificacion(
+                mensaje=f"Se ha registrado un nuevo Coordinador: {coordinador.nombre} {coordinador.apellido}",
+                remitente_id=None,
+                rol_remitente="Sistema",
+                destinatario_id=None,
+                rol_destinatario="Administrador",
+                visto=False
+            )
+            db.session.add(noti)
+            db.session.commit()
+
             flash("Registro exitoso. Ahora inicia sesión", "success")
             return render_template('coordinador/registro.html', now=datetime.now())
         except Exception as e:
@@ -317,7 +330,7 @@ def asignar_aprendiz():
 
                 # Notificación al instructor
                 enviar_notificacion(
-                    mensaje=f"Te ha sido asignado un nuevo aprendiz: {aprendiz.nombre}",
+                    mensaje=f"[Se te ha asignado un nuevo aprendiz] {aprendiz.nombre} {aprendiz.apellido}",
                     destinatario_id=instructor.id_instructor,
                     rol_destinatario="Instructor"
                 )
