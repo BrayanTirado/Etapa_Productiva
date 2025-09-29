@@ -338,6 +338,20 @@ def instructor():
         try:
             db.session.add(nuevo)
             db.session.commit()
+
+            # Notificación al coordinador
+            noti = Notificacion(
+                motivo="Se ha registrado un nuevo Instructor",
+                mensaje=f"{nuevo.nombre_instructor} {nuevo.apellido_instructor}",
+                remitente_id=None,
+                rol_remitente="Sistema",
+                destinatario_id=nuevo.coordinador_id,
+                rol_destinatario="Coordinador",
+                visto=False
+            )
+            db.session.add(noti)
+            db.session.commit()
+
             flash('Instructor creado exitosamente.', 'success')
             return redirect(url_for('auth.login'))
         except Exception as e:
