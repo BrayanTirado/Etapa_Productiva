@@ -13,5 +13,4 @@ COPY . .
 # Exponer el puerto que usará Gunicorn
 EXPOSE 8080
 
-# Ejecutar con Gunicorn en producción
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers=4", "--threads=2", "--forwarded-allow-ips=*", "wsgi:app"]
+CMD ["python", "run.py"]

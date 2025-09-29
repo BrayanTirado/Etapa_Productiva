@@ -25,9 +25,6 @@ def create_app():
     login_manager.login_view = 'auth.login'
     mail.init_app(app)
 
-    # --- Configuración de sesiones (sin Redis) ---
-    app.config['SESSION_TYPE'] = 'filesystem'  # sesiones en archivos locales
-
     # --- Importa modelos aquí para evitar import circular ---
     from app.models.users import (
         Aprendiz, Instructor, Coordinador, Administrador,
