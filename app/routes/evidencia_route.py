@@ -465,11 +465,12 @@ def upload_evidencia(tipo):
                 tipo_archivo = f"Excel ({'15 días' if sesion_excel == '15_dias' else '3 meses'})"
 
             # Crear notificación con motivo y mensaje separados
-            motivo = "Subida de Evidencia"
-            mensaje = f"El aprendiz {current_user.nombre} {current_user.apellido} ha subido una nueva evidencia en formato {tipo_archivo}. Archivo: {evidencia.nombre_archivo} [ID:{evidencia.id_evidencia}]"
+            motivo = "Nueva Evidencia subida"
+            mensaje = f"El aprendiz {current_user.nombre} {current_user.apellido} ha Subido una nueva evidencia."
 
             notificacion = Notificacion(
-                mensaje=f"[{motivo}] {mensaje}",
+                motivo=motivo,
+                mensaje=mensaje,
                 remitente_id=current_user.id_aprendiz,
                 rol_remitente="Aprendiz",
                 destinatario_id=instructor.id_instructor,

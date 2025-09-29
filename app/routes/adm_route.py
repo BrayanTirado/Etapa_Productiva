@@ -246,8 +246,10 @@ def notificaciones():
     per_page = 10  # Notificaciones por página
 
     # Query con paginación
-    pagination = Notificacion.query.filter_by(
-        rol_destinatario="Administrador"
+    from sqlalchemy import or_
+    pagination = Notificacion.query.filter(
+        Notificacion.rol_destinatario == "Administrador",
+        or_(Notificacion.destinatario_id == current_user.id_admin, Notificacion.destinatario_id == None)
     ).order_by(Notificacion.fecha_creacion.desc()).paginate(page=pagina, per_page=per_page, error_out=False)
 
     notificaciones = pagination.items
