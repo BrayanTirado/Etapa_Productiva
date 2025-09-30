@@ -5,7 +5,7 @@
 {% block content %}
 <div class="min-h-screen flex items-center justify-center min-h-[calc(100vh-200px)]">
 
-  <div class="bg-white shadow-lg rounded-xl w-full max-w-3xl p-8 space-y-6">
+  <div class="bg-white shadow-lg rounded-xl w-full max-w-3xl p-4 sm:p-8 space-y-6">
 
     <!-- Título -->
     <h2 class="text-2xl font-bold text-center text-green-700">{% if mode == 'edit' %}Editar Instructor{% else %}Registrar Instructor{% endif %}</h2>
@@ -139,7 +139,7 @@
   {% for category, message in messages %}
     {% if category == 'success' %}
     <div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm text-center space-y-4">
+      <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 w-full max-w-md text-center space-y-4">
         <h3 class="text-lg font-bold text-green-700">¡Éxito!</h3>
         <p>{{ message }}</p>
         <button id="closeModal" class="mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">OK</button>

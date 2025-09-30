@@ -6,8 +6,8 @@
 
 <!-- Menú de navegación -->
 <div class="bg-white shadow-md mb-6">
-    <div class="container mx-auto px-4">
-        <div class="flex flex-wrap items-center justify-between py-2">
+    <div class="container mx-auto px-2 sm:px-4">
+        <div class="flex flex-wrap items-center justify-between py-1 sm:py-2">
             <!-- Botón Hamburguesa (solo en móviles) -->
             <button id="menu-toggle" class="md:hidden text-sena-primary focus:outline-none">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -50,8 +50,8 @@
 </div>
 
 <!-- Contenido principal -->
-<main class="container mx-auto px-4 py-6">
-    <div class="card-sena p-6 mb-8">
+<main class="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
+    <div class="card-sena p-4 sm:p-6 mb-8">
         <div class="text-center mb-6">
             <h2 class="text-3xl font-bold text-sena-primary mb-2">
                 Bienvenido {{ aprendiz.nombre }} {{ aprendiz.apellido }}
@@ -93,7 +93,7 @@
     </div>
 
     {% if es_aprendiz %}
-    <div class="card-sena p-6 mb-8 bg-white rounded-lg shadow-md">
+    <div class="card-sena p-4 sm:p-6 mb-8 bg-white rounded-lg shadow-md">
         <h3 class="text-xl font-bold mb-4 text-sena-dark text-center">Enviar Nota o Mensaje</h3>
         <form id="mensajeForm" method="POST" action="{{ url_for('aprendiz_bp.enviar_mensaje') }}" class="form-sena flex flex-col gap-4">
             <div class="form-group">
@@ -145,7 +145,7 @@
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
 <div id="flashModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-    <div class="bg-white rounded-lg shadow-lg p-6 w-96 text-center">
+    <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-md text-center">
         {% for category, message in messages %}
             <p class="text-lg font-semibold mb-2 
                 {% if category == 'success' %} text-green-600
@@ -187,8 +187,8 @@
     });
 </script>
 
-<footer class="mt-auto bg-sena-dark py-6">
-    <div class="container mx-auto px-4">
+<footer class="mt-auto bg-sena-dark py-4 sm:py-6">
+    <div class="container mx-auto px-2 sm:px-4">
         <div class="flex flex-col justify-between items-center">
             <div class="text-white text-center md:text-right">
                 <p class="text-center">© {{ now.year|default(2023) }} SENA - Servicio Nacional de Aprendizaje</p>

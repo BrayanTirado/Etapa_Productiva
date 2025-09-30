@@ -3,12 +3,12 @@
 {% block title %}SENA - Dashboard Administrador{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-6">
+<div class="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
 
     <!-- Header -->
 <header class="mb-8 relative flex justify-center items-center">
   <!-- Título centrado -->
-  <h1 class="text-3xl font-bold text-sena-primary text-center">
+  <h1 class="text-2xl sm:text-3xl font-bold text-sena-primary text-center">
     Bienvenido {{ current_user.nombre }} {{ current_user.apellido }}
   </h1>
 
@@ -46,7 +46,7 @@
       <!-- Modal overlay -->
       <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
         <!-- Modal box -->
-        <div class="bg-white rounded-lg shadow-lg p-6 w-96 text-center">
+        <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-md text-center">
           <p class="text-lg font-semibold text-gray-800 mb-4">
             {{ message }}
           </p>
@@ -63,7 +63,7 @@
 {% endwith %}
 
         <!-- Formulario para generar token -->
-        <section class="card-sena p-6">
+        <section class="card-sena p-4 sm:p-6">
             <h2 class="text-xl font-semibold mb-4 text-sena-dark">Generar Token para Coordinador</h2>
             <form method="POST" action="{{ url_for('adm_bp.generar_token') }}" class="form-sena">
                 <div class="form-group">
@@ -79,7 +79,7 @@
         </section>
 
         <!-- Lista de tokens generados -->
-<section class="card-sena p-6">
+        <section class="card-sena p-4 sm:p-6">
   <h2 class="text-xl font-semibold mb-4 text-sena-dark">Tokens generados</h2>
   {% if tokens %}
     <ul class="divide-y divide-gray-200">
@@ -130,7 +130,7 @@
 </section>
 
         <!-- Formulario para enviar mensaje -->
-<section class="card-sena p-6 md:col-span-2">
+<section class="card-sena p-4 sm:p-6 md:col-span-2">
     <!-- Encabezado con título y botón alineados -->
     <div class="flex justify-between items-center mb-4">
         <h2 class="text-xl font-semibold text-sena-dark">Enviar Mensaje</h2>
@@ -231,8 +231,8 @@ function mostrarDestinatarios() {
     </main>
     
     <!-- Footer SENA -->
-    <footer class="mt-auto bg-sena-dark py-6">
-        <div class="container mx-auto px-4">
+    <footer class="mt-auto bg-sena-dark py-4 sm:py-6">
+        <div class="container mx-auto px-2 sm:px-4">
             <div class="flex flex-col justify-between items-center">
                 <div class="text-white text-center md:text-right">
                     <p class=" text-center">© {{ now.year|default(2023) }} SENA - Servicio Nacional de Aprendizaje</p>

@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white shadow-lg rounded-xl w-full max-w-3xl p-8 space-y-6">
+    <div class="bg-white shadow-lg rounded-xl w-full max-w-3xl p-4 sm:p-8 space-y-6">
 
         <h2 class="text-2xl font-bold text-center text-sena-primary">
             Ver Perfil de Administrador
@@ -67,7 +67,7 @@
             </div>
 
             <!-- Botones -->
-            <div class="flex gap-4 mt-6">
+            <div class="flex flex-col sm:flex-row gap-4 mt-6">
                 <button type="button" onclick="showEdit()" class="flex-1 bg-sena-primary hover:bg-sena-dark text-white py-3 rounded-lg font-medium transition-colors">
                     Editar Perfil
                 </button>
@@ -145,7 +145,7 @@
                 </div>
 
                 <!-- Botones -->
-                <div class="flex gap-4 mt-6">
+                <div class="flex flex-col sm:flex-row gap-4 mt-6">
                     <button type="submit" class="flex-1 bg-sena-primary hover:bg-sena-dark text-white py-3 rounded-lg font-medium transition-colors">
                         Actualizar Perfil
                     </button>

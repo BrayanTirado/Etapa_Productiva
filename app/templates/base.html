@@ -36,20 +36,20 @@
   <!-- Header -->
 <!-- Header -->
 <header class="bg-sena-primary shadow-md">
-  <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+  <div class="container mx-auto px-2 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
     
     <!-- IZQUIERDA: Logo -->
-    <div class="flex items-center space-x-3">
-      <img src="{{ url_for('static', filename='img/logo-sena.png') }}" alt="SENA" class="h-12">
+    <div class="flex items-center space-x-2 sm:space-x-3">
+      <img src="{{ url_for('static', filename='img/logo-sena.png') }}" alt="SENA" class="h-8 sm:h-12">
     </div>
 
     <!-- CENTRO: Título -->
-    <h1 class="text-white text-xl font-bold text-center flex-1">
+    <h1 class="text-white text-lg sm:text-xl font-bold text-center flex-1">
       Etapa Productiva SENA
     </h1>
 
     <!-- DERECHA: Botones -->
-    <div class="flex items-center space-x-4">
+    <div class="flex items-center space-x-2 sm:space-x-4">
       {% block header_buttons %}{% endblock %}
     </div>
   </div>
@@ -58,7 +58,7 @@
 
   
   <!-- Mensajes Flash -->
-  <div class="container mx-auto px-4 py-3">
+  <div class="container mx-auto px-2 sm:px-4 py-2 sm:py-3">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="space-y-2">
@@ -76,7 +76,7 @@
   </div>
   
   <!-- Contenido principal -->
-  <main class="flex-grow container mx-auto px-4 py-6">
+  <main class="flex-grow container mx-auto px-2 sm:px-4 py-4 sm:py-6">
     {% block content %}{% endblock %}
   </main>
   

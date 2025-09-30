@@ -4,11 +4,11 @@
 
 {% block content %}
   <div class="min-h-screen flex items-center justify-center bg-gray-100">
-    <div class="card-sena w-full max-w-md p-8 bg-white shadow-lg rounded-xl">
+    <div class="card-sena w-full max-w-md p-4 sm:p-8 bg-white shadow-lg rounded-xl">
         <h2 class="text-2xl font-bold mb-6 text-center text-sena-primary">Login Administrador</h2>
-        
+
         <div class="flex justify-center mb-6">
-            <img src="{{ url_for('static', filename='img/logo-sena.png') }}" alt="SENA" class="h-20">
+            <img src="{{ url_for('static', filename='img/logo-sena.png') }}" alt="SENA" class="h-16 sm:h-20">
         </div>
 
         <form method="POST" class="form-sena space-y-4">
