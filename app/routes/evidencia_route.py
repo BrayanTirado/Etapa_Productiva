@@ -12,28 +12,66 @@ bp = Blueprint('evidencia_bp', __name__, url_prefix='/evidencia')
 # -------------------------------
 # VERIFICAR RESTRICCIÓN
 # -------------------------------
-@bp.route('/verificar_restriccion', methods=['POST'])
-@login_required
-def verificar_restriccion():
-    """Verifica si hay restricción de tiempo para un tipo de archivo específico."""
-    if not isinstance(current_user, Aprendiz):
-        return {'error': 'Acceso denegado'}, 403
+def puede_subir_archivo(aprendiz_id, tipo, sesion_excel=None):
+    from datetime import datetime, timedelta
+    from models import Evidencia
 
-    tipo = request.form.get('tipo')
-    sesion_excel = request.form.get('sesion_excel')
-
-    if not tipo:
-        return {'error': 'Tipo no especificado'}, 400
-
-    puede_subir, mensaje_error, fecha_proxima = puede_subir_archivo(
-        current_user.id_aprendiz, tipo, sesion_excel
-    )
-
-    return {
-        'restringido': not puede_subir,
-        'mensaje': mensaje_error,
-        'fecha_proxima': fecha_proxima
+    # Definir las restricciones
+    restricciones = {
+        'word': 90,
+        'excel_15': 15,
+        'excel_3': 90,
+        'pdf': 0  # sin restricción
     }
+
+    # Determinar clave según tipo + sesión
+    if tipo == 'word':
+        clave = 'word'
+    elif tipo == 'excel' and sesion_excel == '15_dias':
+        clave = 'excel_15'
+    elif tipo == 'excel' and sesion_excel == '3_meses':
+        clave = 'excel_3'
+    elif tipo == 'pdf':
+        clave = 'pdf'
+    else:
+        return True, None, None  # sin restricción por defecto
+
+    dias_restriccion = restricciones.get(clave, 0)
+
+    if dias_restriccion == 0:
+        # PDF → nunca se restringe
+        return True, None, None
+
+    # Buscar última evidencia subida de ese tipo
+    ultima = None
+    if clave == 'word':
+        ultima = Evidencia.query.filter_by(
+            aprendiz_id=aprendiz_id,
+            tipo='word'
+        ).order_by(Evidencia.fecha_subida.desc()).first()
+    elif clave == 'excel_15':
+        ultima = Evidencia.query.filter_by(
+            aprendiz_id=aprendiz_id,
+            tipo='excel',
+            sesion='15_dias'
+        ).order_by(Evidencia.fecha_subida.desc()).first()
+    elif clave == 'excel_3':
+        ultima = Evidencia.query.filter_by(
+            aprendiz_id=aprendiz_id,
+            tipo='excel',
+            sesion='3_meses'
+        ).order_by(Evidencia.fecha_subida.desc()).first()
+
+    if ultima:
+        fecha_limite = ultima.fecha_subida + timedelta(days=dias_restriccion)
+        if datetime.now() < fecha_limite:
+            return False, (
+                f"Debes esperar {dias_restriccion} días entre cada subida "
+                f"de este tipo de archivo."
+            ), fecha_limite.strftime("%d/%m/%Y")
+
+    return True, None, None
+
 
 
 # -------------------------------
