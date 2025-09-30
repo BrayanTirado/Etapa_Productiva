@@ -16,7 +16,7 @@ def puede_subir_archivo(aprendiz_id, tipo, sesion_excel=None):
     from datetime import datetime, timedelta
     from models import Evidencia
 
-    # Definir las restricciones
+    # Definir las restricciones en días
     restricciones = {
         'word': 90,
         'excel_15': 15,
@@ -27,12 +27,16 @@ def puede_subir_archivo(aprendiz_id, tipo, sesion_excel=None):
     # Determinar clave según tipo + sesión
     if tipo == 'word':
         clave = 'word'
+        etiqueta = "Word"
     elif tipo == 'excel' and sesion_excel == '15_dias':
         clave = 'excel_15'
+        etiqueta = "Excel (sesión 15 días)"
     elif tipo == 'excel' and sesion_excel == '3_meses':
         clave = 'excel_3'
+        etiqueta = "Excel (sesión 3 meses)"
     elif tipo == 'pdf':
         clave = 'pdf'
+        etiqueta = "PDF"
     else:
         return True, None, None  # sin restricción por defecto
 
@@ -66,13 +70,11 @@ def puede_subir_archivo(aprendiz_id, tipo, sesion_excel=None):
         fecha_limite = ultima.fecha_subida + timedelta(days=dias_restriccion)
         if datetime.now() < fecha_limite:
             return False, (
-                f"Debes esperar {dias_restriccion} días entre cada subida "
-                f"de este tipo de archivo."
+                f"No puedes subir otro archivo {etiqueta}. "
+                f"Debes esperar {dias_restriccion} días más."
             ), fecha_limite.strftime("%d/%m/%Y")
 
     return True, None, None
-
-
 
 # -------------------------------
 # MIGRACIÓN SESION_EXCEL
