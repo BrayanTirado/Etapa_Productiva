@@ -264,6 +264,36 @@ def notificaciones():
     )
 
 # -------------------------------
+# Función para obtener nombre del remitente
+# -------------------------------
+def obtener_remitente(noti):
+    """
+    Devuelve el nombre simple del remitente (sin prefijos como 'De: ').
+    Si no se encuentra el remitente, devuelve 'Sistema'.
+    """
+    role = (noti.rol_remitente or "").strip()
+
+    if role == "Coordinador":
+        remitente = Coordinador.query.filter_by(id_coordinador=noti.remitente_id).first()
+        if remitente:
+            return f"{remitente.nombre} {remitente.apellido}"
+    elif role == "Instructor":
+        remitente = Instructor.query.filter_by(id_instructor=noti.remitente_id).first()
+        if remitente:
+            return f"{remitente.nombre_instructor} {remitente.apellido_instructor}"
+    elif role == "Aprendiz":
+        remitente = Aprendiz.query.filter_by(id_aprendiz=noti.remitente_id).first()
+        if remitente:
+            return f"{remitente.nombre} {remitente.apellido}"
+    elif role == "Administrador":
+        remitente = Administrador.query.filter_by(id_admin=noti.remitente_id).first()
+        if remitente:
+            return f"{getattr(remitente, 'nombre', 'Administrador')} {getattr(remitente, 'apellido', '')}".strip()
+
+    # Si no hay remitente encontrado o rol desconocido -> "Sistema"
+    return "Sistema"
+
+# -------------------------------
 # Marcar notificación como vista
 # -------------------------------
 @adm_bp.route('/notificacion/ver/<int:noti_id>')
@@ -275,7 +305,10 @@ def ver_notificacion(noti_id):
     db.session.commit()
     fecha_local = noti.fecha_creacion - timedelta(hours=5)  # Ajuste a GMT-5 (Colombia)
 
-    return render_template('notificacion/ver_notificacion.html', notificacion=noti, now=datetime.now(), fecha_local=fecha_local)
+    # Obtener nombre del remitente
+    remitente_nombre = obtener_remitente(noti)
+
+    return render_template('notificacion/ver_notificacion.html', notificacion=noti, remitente_nombre=remitente_nombre, now=datetime.now(), fecha_local=fecha_local)
 
 
 

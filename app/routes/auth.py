@@ -157,6 +157,7 @@ def logout():
 @bp.route('/aprendiz', methods=['GET', 'POST'])
 def registro_aprendiz():
     from app.models.users import Sede  # Importar Sede aquí
+    sedes = Sede.query.all()  # Definir sedes al inicio
     if request.method == 'POST':
         nombre = request.form.get('nombre').strip()
         apellido = request.form.get('apellido').strip()
@@ -247,7 +248,6 @@ def registro_aprendiz():
             flash(f'Error al crear el aprendiz: {str(e)}', 'danger')
             return redirect(url_for('auth.registro_aprendiz'))
 
-    sedes = Sede.query.all()
     return render_template('aprendiz.html', sedes=sedes, now=datetime.now())
 
 
@@ -255,6 +255,7 @@ def registro_aprendiz():
 @bp.route('/instructor', methods=['GET', 'POST'])
 def instructor():
     from app.models.users import Sede  # Importar Sede aquí
+    sedes = Sede.query.all()  # Definir sedes al inicio
     if request.method == 'POST':
         token_input = request.form.get('token').strip()
         nombre = request.form.get('nombre_instructor').strip()
@@ -359,7 +360,6 @@ def instructor():
             flash(f'Error al crear el instructor: {str(e)}', 'danger')
             return redirect(url_for('auth.instructor'))
 
-    sedes = Sede.query.all()
     return render_template('instructor.html', sedes=sedes)
 
 
