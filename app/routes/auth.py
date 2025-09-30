@@ -343,8 +343,8 @@ def instructor():
             noti = Notificacion(
                 motivo="Se ha registrado un nuevo Instructor",
                 mensaje=f"{nuevo.nombre_instructor} {nuevo.apellido_instructor}",
-                remitente_id=None,
-                rol_remitente="Sistema",
+                remitente_id=nuevo.id_instructor,
+                rol_remitente="Instructor",
                 destinatario_id=nuevo.coordinador_id,
                 rol_destinatario="Coordinador",
                 visto=False

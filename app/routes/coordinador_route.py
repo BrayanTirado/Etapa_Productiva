@@ -112,8 +112,8 @@ def registro():
             noti = Notificacion(
                 motivo="Se ha registrado un nuevo Coordinador",
                 mensaje=f"{coordinador.nombre} {coordinador.apellido}",
-                remitente_id=None,
-                rol_remitente="Sistema",
+                remitente_id=coordinador.id_coordinador,
+                rol_remitente="Coordinador",
                 destinatario_id=None,
                 rol_destinatario="Administrador",
                 visto=False
