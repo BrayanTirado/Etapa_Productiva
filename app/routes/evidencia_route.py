@@ -176,10 +176,11 @@ def puede_subir_archivo(aprendiz_id: int, tipo: str, sesion_excel: str = None) -
 
             if primera_subida and primera_subida[0]:
                 dias_desde_primera = (hoy - primera_subida[0]).days
-                if dias_desde_primera < 90:
-                    dias_restantes = 90 - dias_desde_primera
-                    fecha_proxima = primera_subida[0] + timedelta(days=90)
-                    return False, f"No puedes subir otro archivo Excel (sesión 15 días). Debes esperar {dias_restantes} días más.", fecha_proxima.strftime('%d/%m/%Y')
+                if dias_desde_primera < 15:   # ✔ ahora sí 15 días
+                    dias_restantes = 15 - dias_desde_primera
+            fecha_proxima = primera_subida[0] + timedelta(days=15)
+            return False, f"No puedes subir otro archivo Excel (sesión 15 días). Debes esperar {dias_restantes} días más.", fecha_proxima.strftime('%d/%m/%Y')
+
 
         elif sesion_excel == '3_meses':
             primera_subida = db.session.query(Evidencia.primera_subida_excel_3)\
