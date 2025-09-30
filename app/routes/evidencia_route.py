@@ -466,7 +466,7 @@ def upload_evidencia(tipo):
 
             # Crear notificación con motivo y mensaje separados
             motivo = "Nueva Evidencia subida"
-            mensaje = f"El aprendiz {current_user.nombre} {current_user.apellido} ha Subido una nueva evidencia."
+            mensaje = f"El aprendiz {current_user.nombre} {current_user.apellido} ha Subido una nueva evidencia (ID: {evidencia.id_evidencia})."
 
             notificacion = Notificacion(
                 motivo=motivo,

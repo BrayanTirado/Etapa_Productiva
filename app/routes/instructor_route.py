@@ -409,7 +409,7 @@ from datetime import timedelta
 @login_required
 def ver_notificacion(noti_id):
     noti = Notificacion.query.get_or_404(noti_id)
-    
+
     # Marcar como visto
     if noti.rol_destinatario == "Instructor" and not noti.visto:
         noti.visto = True
@@ -417,14 +417,26 @@ def ver_notificacion(noti_id):
 
     # Obtener nombre del remitente
     remitente_nombre = obtener_remitente(noti)
-    
+
     # Calcular fecha_local (hora local)
     fecha_local = noti.fecha_creacion - timedelta(hours=5)  # ajustar según tu zona horaria
+
+    # Si es notificación de evidencia subida, extraer ID y obtener evidencia
+    evidencia = None
+    if noti.motivo == "Nueva Evidencia subida" and "(ID: " in noti.mensaje:
+        try:
+            id_str = noti.mensaje.split("(ID: ")[1].split(")")[0]
+            evidencia_id = int(id_str)
+            from app.models.users import Evidencia
+            evidencia = Evidencia.query.get(evidencia_id)
+        except (ValueError, IndexError):
+            evidencia = None
 
     return render_template(
         'notificacion/ver_notificacion.html',
         notificacion=noti,
         remitente_nombre=remitente_nombre,
+        evidencia=evidencia,
         now=datetime.now(),
         fecha_local=fecha_local
     )

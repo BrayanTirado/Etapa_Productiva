@@ -353,7 +353,7 @@ def instructor():
             db.session.commit()
 
             flash('Instructor creado exitosamente.', 'success')
-            return redirect(url_for('auth.login'))
+            return render_template('instructor.html', sedes=sedes)
         except Exception as e:
             db.session.rollback()
             flash(f'Error al crear el instructor: {str(e)}', 'danger')
