@@ -13,8 +13,6 @@ bp = Blueprint('evidencia_bp', __name__, url_prefix='/evidencia')
 # VERIFICAR RESTRICCIÓN
 # -------------------------------
 def puede_subir_archivo(aprendiz_id, tipo, sesion_excel=None):
-    from datetime import datetime, timedelta
-    from models import Evidencia
 
     # Definir las restricciones en días
     restricciones = {
@@ -144,67 +142,55 @@ def puede_subir_archivo(aprendiz_id: int, tipo: str, sesion_excel: str = None) -
     """
     hoy = date.today()
 
+    # --- REGLAS ---
     if tipo == 'word':
-        primera_subida = db.session.query(Evidencia.primera_subida_word)\
-            .filter_by(aprendiz_id_aprendiz=aprendiz_id)\
-            .filter(Evidencia.primera_subida_word.isnot(None))\
-            .order_by(Evidencia.primera_subida_word)\
+        dias_restriccion = 90
+        # Buscar la primera subida registrada
+        primera_subida = db.session.query(Evidencia.primera_subida_word) \
+            .filter_by(aprendiz_id_aprendiz=aprendiz_id) \
+            .filter(Evidencia.primera_subida_word.isnot(None)) \
             .first()
+        fecha_inicio = primera_subida[0] if primera_subida and primera_subida[0] else None
 
-        if primera_subida and primera_subida[0]:
-            dias_desde_primera = (hoy - primera_subida[0]).days
-            if dias_desde_primera < 90:
-                dias_restantes = 90 - dias_desde_primera
-                fecha_proxima = primera_subida[0] + timedelta(days=90)
-                return False, f"No puedes subir otro archivo Word. Debes esperar {dias_restantes} días más.", fecha_proxima.strftime('%d/%m/%Y')
+    elif tipo == 'excel' and sesion_excel == '15_dias':
+        dias_restriccion = 15
+        primera_subida = db.session.query(Evidencia.primera_subida_excel_15) \
+            .filter_by(aprendiz_id_aprendiz=aprendiz_id) \
+            .filter(Evidencia.primera_subida_excel_15.isnot(None)) \
+            .first()
+        fecha_inicio = primera_subida[0] if primera_subida and primera_subida[0] else None
 
-    elif tipo == 'excel':
-        if sesion_excel == '15_dias':
-            primera_subida = db.session.query(Evidencia.primera_subida_excel_15)\
-                .filter_by(aprendiz_id_aprendiz=aprendiz_id)\
-                .filter(Evidencia.primera_subida_excel_15.isnot(None))\
-                .order_by(Evidencia.primera_subida_excel_15)\
-                .first()
+    elif tipo == 'excel' and sesion_excel == '3_meses':
+        dias_restriccion = 90
+        primera_subida = db.session.query(Evidencia.primera_subida_excel_3) \
+            .filter_by(aprendiz_id_aprendiz=aprendiz_id) \
+            .filter(Evidencia.primera_subida_excel_3.isnot(None)) \
+            .first()
+        fecha_inicio = primera_subida[0] if primera_subida and primera_subida[0] else None
 
-            if not primera_subida or not primera_subida[0]:
-                evidencia_mas_antigua = db.session.query(db.func.min(Evidencia.fecha_subida))\
-                    .filter_by(aprendiz_id_aprendiz=aprendiz_id, tipo='Excel', sesion_excel='15_dias')\
-                    .filter(Evidencia.fecha_subida.isnot(None))\
-                    .first()
-                if evidencia_mas_antigua and evidencia_mas_antigua[0]:
-                    primera_subida = (evidencia_mas_antigua[0],)
+    elif tipo == 'pdf':
+        # Nunca restringe
+        return True, "", ""
 
-            if primera_subida and primera_subida[0]:
-                dias_desde_primera = (hoy - primera_subida[0]).days
-                if dias_desde_primera < 15:   # ✔ ahora sí 15 días
-                    dias_restantes = 15 - dias_desde_primera
-            fecha_proxima = primera_subida[0] + timedelta(days=15)
-            return False, f"No puedes subir otro archivo Excel (sesión 15 días). Debes esperar {dias_restantes} días más.", fecha_proxima.strftime('%d/%m/%Y')
+    else:
+        # Caso no esperado
+        return True, "", ""
 
+    # --- VALIDACIÓN ---
+    if fecha_inicio:
+        dias_desde = (hoy - fecha_inicio).days
+        if dias_desde < dias_restriccion:
+            dias_restantes = dias_restriccion - dias_desde
+            fecha_proxima = fecha_inicio + timedelta(days=dias_restriccion)
+            return False, (
+                f"No puedes subir otro archivo {tipo.capitalize()} "
+                f"{'(sesión 15 días)' if tipo=='excel' and sesion_excel=='15_dias' else '(sesión 3 meses)' if tipo=='excel' and sesion_excel=='3_meses' else ''}. "
+                f"Debes esperar {dias_restantes} días más."
+            ), fecha_proxima.strftime('%d/%m/%Y')
 
-        elif sesion_excel == '3_meses':
-            primera_subida = db.session.query(Evidencia.primera_subida_excel_3)\
-                .filter_by(aprendiz_id_aprendiz=aprendiz_id)\
-                .filter(Evidencia.primera_subida_excel_3.isnot(None))\
-                .order_by(Evidencia.primera_subida_excel_3)\
-                .first()
-
-            if not primera_subida or not primera_subida[0]:
-                evidencia_mas_antigua = db.session.query(db.func.min(Evidencia.fecha_subida))\
-                    .filter_by(aprendiz_id_aprendiz=aprendiz_id, tipo='Excel', sesion_excel='3_meses')\
-                    .filter(Evidencia.fecha_subida.isnot(None))\
-                    .first()
-                if evidencia_mas_antigua and evidencia_mas_antigua[0]:
-                    primera_subida = (evidencia_mas_antigua[0],)
-
-            if primera_subida and primera_subida[0]:
-                dias_desde_primera = (hoy - primera_subida[0]).days
-                if dias_desde_primera < 90:
-                    dias_restantes = 90 - dias_desde_primera
-                    fecha_proxima = primera_subida[0] + timedelta(days=90)
-                    return False, f"No puedes subir otro archivo Excel (sesión 3 meses). Debes esperar {dias_restantes} días más.", fecha_proxima.strftime('%d/%m/%Y')
-
+    # Si nunca subió nada, o ya pasó el tiempo, puede subir
     return True, "", ""
+
 
 
 # -------------------------------
