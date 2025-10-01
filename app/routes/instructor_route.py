@@ -464,8 +464,32 @@ def responder_notificacion(noti_id):
             remitente_id = None  # fallback
 
         if respuesta and remitente_id:
+            # Verificar si es respuesta a una notificación de subida de evidencia
+            if noti.motivo == "Nueva Evidencia subida" and "(ID: " in noti.mensaje:
+                try:
+                    id_str = noti.mensaje.split("(ID: ")[1].split(")")[0]
+                    evidencia_id = int(id_str)
+                    from app.models.users import Evidencia
+                    evidencia = Evidencia.query.get(evidencia_id)
+                    if evidencia:
+                        motivo = f"Respuesta a la entrega del archivo {evidencia.nombre_archivo}"
+                        mensaje = respuesta
+                    else:
+                        # Fallback si no se encuentra la evidencia
+                        motivo = None
+                        mensaje = f"[Respuesta a '{noti.mensaje.split(']')[0].replace('[','')}'] {respuesta}"
+                except (ValueError, IndexError):
+                    # Fallback si no se puede extraer el ID
+                    motivo = None
+                    mensaje = f"[Respuesta a '{noti.mensaje.split(']')[0].replace('[','')}'] {respuesta}"
+            else:
+                # Respuesta a otras notificaciones
+                motivo = None
+                mensaje = f"[Respuesta a '{noti.mensaje.split(']')[0].replace('[','')}'] {respuesta}"
+
             nueva = Notificacion(
-                mensaje=f"[Respuesta a '{noti.mensaje.split(']')[0].replace('[','')}'] {respuesta}",
+                motivo=motivo,
+                mensaje=mensaje,
                 remitente_id=remitente_id,
                 rol_remitente=current_user.__class__.__name__,
                 destinatario_id=noti.remitente_id,
