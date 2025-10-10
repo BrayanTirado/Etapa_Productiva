@@ -49,7 +49,7 @@ class Sede(db.Model):
         'CFGR - CENTRO DE FORMACIÓN EN GESTIÓN DEL RIESGO'
     ), nullable=False, unique=True)
     ciudad = db.Column(db.String(100), nullable=False)
-    token = db.Column(db.String(100), nullable=True)  # Token para registrar coordinador/instructor
+    token = db.Column(db.String(100), nullable=True)  
     token_expiracion = db.Column(db.DateTime, nullable=True)
 
     coordinadores = db.relationship('Coordinador', back_populates='sede', lazy=True)
@@ -240,13 +240,13 @@ class Evidencia(db.Model):
     nota = db.Column(db.String(255), nullable=True)
 
     # Nuevos campos para control de tiempo
-    primera_subida_word = db.Column(db.Date, nullable=True)  # Fecha de primera subida de Word
-    primera_subida_excel_15 = db.Column(db.Date, nullable=True)  # Fecha de primera subida de Excel (sesión 15 días)
-    primera_subida_excel_3 = db.Column(db.Date, nullable=True)  # Fecha de primera subida de Excel (sesión 3 meses)
-    primera_subida_pdf = db.Column(db.Date, nullable=True)  # Fecha de primera subida de PDF
+    primera_subida_word = db.Column(db.Date, nullable=True)  
+    primera_subida_excel_15 = db.Column(db.Date, nullable=True)  
+    primera_subida_excel_3 = db.Column(db.Date, nullable=True)  
+    primera_subida_pdf = db.Column(db.Date, nullable=True)
 
     # Campo para indicar la sesión específica de Excel
-    sesion_excel = db.Column(db.String(20), nullable=True)  # '15_dias' o '3_meses'
+    sesion_excel = db.Column(db.String(20), nullable=True)  
 
     aprendiz_id_aprendiz = db.Column(db.Integer, db.ForeignKey('aprendiz.id_aprendiz'), nullable=False)
     aprendiz_rel = db.relationship('Aprendiz', back_populates='evidencias', lazy=True)
