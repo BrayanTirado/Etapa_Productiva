@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, login_user, logout_user, current_user
-from app.models.users import Aprendiz, Instructor, Notificacion , Evidencia, Coordinador, Administrador
+from app.models.users import Aprendiz, Instructor, Notificacion , Evidencia, Coordinador, Administrador, Programa
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
@@ -90,8 +90,9 @@ def registro():
         celular = request.form.get('celular')
         password = request.form.get('password')
         sede_id_form = request.form.get('sede_id')
+        ficha = request.form.get('ficha')
 
-        if not all([nombre, apellido, tipo_documento, documento, correo, celular, password]):
+        if not all([nombre, apellido, tipo_documento, documento, correo, celular, password, ficha]):
             flash("Todos los campos son obligatorios", "error")
             return render_template('aprendiz/registro.html', now=datetime.now())
 
@@ -140,6 +141,14 @@ def registro():
         # Usar sede del formulario si se proporciona, sino la del instructor
         sede_id_final = int(sede_id_form) if sede_id_form else instructor.sede_id
 
+        # Buscar programa existente por ficha
+        programa = Programa.query.filter_by(ficha=int(ficha)).first()
+        if not programa:
+            flash("La ficha especificada no existe en el sistema.", "error")
+            from app.models.users import Sede
+            sedes = Sede.query.all()
+            return render_template('aprendiz/registro.html', sedes=sedes, now=datetime.now())
+
         aprendiz = Aprendiz(
             nombre=nombre,
             apellido=apellido,
@@ -150,7 +159,8 @@ def registro():
             password=password_hash,
             instructor_id=instructor.id_instructor,
             coordinador_id=instructor.coordinador_id,  # [OK] opcional pero útil
-            sede_id=sede_id_final
+            sede_id=sede_id_final,
+            programa_id=programa.id_programa
         )
 
         try:
