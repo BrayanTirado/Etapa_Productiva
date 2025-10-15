@@ -291,6 +291,11 @@ def asignar_aprendiz():
                 Aprendiz.instructor_id.isnot(None),
                 Aprendiz.sede_id == current_user.sede_id
             ).all()
+        else:
+            # Si no se encuentra el programa, resetear variables
+            aprendices = []
+            aprendices_asignados = []
+            programa = None
     else:
         # Sin ficha: mostrar todos los aprendices sin asignar de la sede o sin sede
         aprendices = Aprendiz.query.filter(
@@ -351,7 +356,7 @@ def asignar_aprendiz():
     # ------------------------------
     programas = (
         Programa.query
-        .join(Aprendiz)
+        .join(Aprendiz, Programa.id_programa == Aprendiz.programa_id)
         .filter(
             Aprendiz.instructor_id == None,
             or_(Aprendiz.sede_id == current_user.sede_id, Aprendiz.sede_id == None)
