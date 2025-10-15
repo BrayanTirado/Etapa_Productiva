@@ -132,11 +132,8 @@ class Ficha(db.Model):
     __tablename__ = 'ficha'
     id_ficha = db.Column(db.Integer, primary_key=True)
     numero_ficha = db.Column(db.Integer, unique=True, nullable=False)
-    nombre_programa = db.Column(db.String(100), nullable=False)
-    titulo = db.Column(db.Enum('Auxiliar', 'Tecnico', 'Tecnologo'), nullable=False)
-    jornada = db.Column(db.Enum('Mañana', 'Tarde', 'Noche'), nullable=False)
 
-    aprendices_rel = db.relationship('Aprendiz', back_populates='ficha', lazy=True)
+    programas_rel = db.relationship('Programa', back_populates='ficha_rel', lazy=True)
 
 # -------------------------
 # TABLA PROGRAMA
@@ -147,11 +144,16 @@ class Programa(db.Model):
     nombre_programa = db.Column(db.String(45), nullable=False)
     titulo = db.Column(db.Enum('Auxiliar', 'Tecnico', 'Tecnologo'), nullable=False)
     jornada = db.Column(db.Enum('Mañana', 'Tarde', 'Noche'), nullable=False)
-    ficha = db.Column(db.Integer, nullable=False)
+    ficha_id = db.Column(db.Integer, db.ForeignKey('ficha.id_ficha'), nullable=False)
     instructor_id_instructor = db.Column(db.Integer, db.ForeignKey('instructor.id_instructor'), nullable=True)
 
     aprendices_rel = db.relationship('Aprendiz', back_populates='programa', lazy=True)
     instructor_rel = db.relationship('Instructor', back_populates='programas', lazy=True)
+    ficha_rel = db.relationship('Ficha', back_populates='programas_rel', lazy=True)
+
+    @property
+    def ficha(self):
+        return self.ficha_rel.numero_ficha if self.ficha_rel else None
 
 # -------------------------
 # TABLA APRENDIZ
@@ -177,9 +179,6 @@ class Aprendiz(db.Model, UserMixin):
 
     programa_id = db.Column(db.Integer, db.ForeignKey('programa.id_programa'), nullable=True)
     programa = db.relationship('Programa', back_populates='aprendices_rel')
-
-    ficha_id = db.Column(db.Integer, db.ForeignKey('ficha.id_ficha'), nullable=True)
-    ficha = db.relationship('Ficha', back_populates='aprendices_rel')
 
     instructor_id = db.Column(db.Integer, db.ForeignKey('instructor.id_instructor'), nullable=True)
     instructor = db.relationship('Instructor', back_populates='aprendices_rel')

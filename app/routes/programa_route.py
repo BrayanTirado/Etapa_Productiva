@@ -23,18 +23,11 @@ def listar_programas():
 
     if isinstance(current_user, Aprendiz):
         aprendiz_id = current_user.id_aprendiz
-        if current_user.ficha:
-            # Crear un objeto similar a programa para compatibilidad con el template
-            programas = [{
-                'id_programa': current_user.ficha.id_ficha,
-                'nombre_programa': current_user.ficha.nombre_programa,
-                'titulo': current_user.ficha.titulo,
-                'jornada': current_user.ficha.jornada,
-                'ficha': current_user.ficha.numero_ficha
-            }]
+        if current_user.programa:
+            programas = [current_user.programa]
 
     elif isinstance(current_user, Instructor):
-        # Mostrar fichas solo de aprendices asignados a este instructor
+        # Mostrar programas solo de aprendices asignados a este instructor
         aprendiz_id_param = request.args.get('aprendiz_id', type=int)
         if aprendiz_id_param:
             aprendiz_id = aprendiz_id_param
@@ -42,14 +35,8 @@ def listar_programas():
                 id_aprendiz=aprendiz_id,
                 instructor_id=current_user.id_instructor
             ).first()
-            if aprendiz and aprendiz.ficha:
-                programas = [{
-                    'id_programa': aprendiz.ficha.id_ficha,
-                    'nombre_programa': aprendiz.ficha.nombre_programa,
-                    'titulo': aprendiz.ficha.titulo,
-                    'jornada': aprendiz.ficha.jornada,
-                    'ficha': aprendiz.ficha.numero_ficha
-                }]
+            if aprendiz and aprendiz.programa:
+                programas = [aprendiz.programa]
 
     return render_template('programa/listar_programa.html',
                            programas=programas,
@@ -83,94 +70,106 @@ def nuevo_programa():
             # Buscar ficha existente por número, si no existe crearla
             ficha = Ficha.query.filter_by(numero_ficha=numero_ficha).first()
             if not ficha:
-                ficha = Ficha(
-                    numero_ficha=numero_ficha,
-                    nombre_programa=nombre,
-                    titulo=titulo,
-                    jornada=jornada
-                )
+                ficha = Ficha(numero_ficha=numero_ficha)
                 db.session.add(ficha)
                 db.session.flush()
 
-            # Asignar ficha al aprendiz
+            # Buscar programa existente con la misma ficha, nombre, titulo y jornada
+            programa = Programa.query.filter_by(
+                nombre_programa=nombre,
+                titulo=titulo,
+                jornada=jornada,
+                ficha_id=ficha.id_ficha
+            ).first()
+
+            if not programa:
+                programa = Programa(
+                    nombre_programa=nombre,
+                    titulo=titulo,
+                    jornada=jornada,
+                    ficha_id=ficha.id_ficha,
+                    instructor_id_instructor=current_user.id_instructor if isinstance(current_user, Instructor) else None
+                )
+                db.session.add(programa)
+                db.session.flush()
+
+            # Asignar programa al aprendiz
             if isinstance(current_user, Aprendiz):
-                current_user.ficha = ficha
+                current_user.programa = programa
 
             db.session.commit()
-            flash("Ficha registrada correctamente [OK]", "success")
+            flash("Programa registrado correctamente [OK]", "success")
             return redirect(url_for('programa_bp.listar_programas', aprendiz_id=getattr(current_user, 'id_aprendiz', None)))
 
         except Exception as e:
             db.session.rollback()
-            flash(f"Error al registrar ficha: {e}", "danger")
+            flash(f"Error al registrar programa: {e}", "danger")
 
     return render_template('programa/nuevo_programa.html',
                            titulo=titulo_ops, jornada=jornada_ops, numero_ficha=None, now=datetime.now())
 
-# --- EDITAR FICHA ---
+# --- EDITAR PROGRAMA ---
 @bp.route('/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_programa(id):
-    ficha = Ficha.query.get_or_404(id)
-    titulo_ops = enum_choices(Ficha, 'titulo')
-    jornada_ops = enum_choices(Ficha, 'jornada')
+    programa = Programa.query.get_or_404(id)
+    titulo_ops = enum_choices(Programa, 'titulo')
+    jornada_ops = enum_choices(Programa, 'jornada')
 
-    if not (isinstance(current_user, Aprendiz) and current_user.ficha == ficha):
-        flash("No tienes permisos para editar esta ficha [ERROR]", "danger")
-        aprendiz_id = getattr(current_user, 'id_aprendiz', None)
+    if not (isinstance(current_user, Aprendiz) and current_user.programa == programa):
+        flash("No tienes permisos para editar este programa [ERROR]", "danger")
+        aprendiz_id = getattr(programa.aprendices_rel[0], 'id_aprendiz', None) if programa.aprendices_rel else None
         return redirect(url_for('programa_bp.listar_programas', aprendiz_id=aprendiz_id))
 
     if request.method == 'POST':
         nombre = request.form.get('nombre_programa', '').strip()
         titulo = request.form.get('titulo')
         jornada = request.form.get('jornada')
-        numero_ficha = request.form.get('numero_ficha', type=int)
+        ficha = request.form.get('ficha', type=int)
 
-        if not nombre or not numero_ficha:
-            flash("El nombre del programa y el número de ficha son obligatorios.", "warning")
+        if not nombre:
+            flash("El nombre del programa es obligatorio.", "warning")
             return render_template('programa/editar_programa.html',
-                                   ficha=ficha, titulo=titulo_ops, jornada=jornada_ops, numero_ficha=numero_ficha, now=datetime.now())
+                                   programa=programa, titulo=titulo_ops, jornada=jornada_ops, ficha=ficha, now=datetime.now())
 
-        if titulo not in titulo_ops or jornada not in jornada_ops:
-            flash("Selecciona valores válidos para Título y Jornada.", "danger")
+        if titulo not in titulo_ops or jornada not in jornada_ops or not ficha:
+            flash("Selecciona valores válidos para Título, Jornada y Centro de formación.", "danger")
             return render_template('programa/editar_programa.html',
-                                   ficha=ficha, titulo=titulo_ops, jornada=jornada_ops, numero_ficha=numero_ficha, now=datetime.now())
+                                   programa=programa, titulo=titulo_ops, jornada=jornada_ops, ficha=ficha, now=datetime.now())
 
         try:
-            ficha.nombre_programa = nombre
-            ficha.titulo = titulo
-            ficha.jornada = jornada
-            ficha.numero_ficha = numero_ficha
+            programa.nombre_programa = nombre
+            programa.titulo = titulo
+            programa.jornada = jornada
+            programa.ficha = ficha
 
             db.session.commit()
-            flash("Ficha actualizada correctamente [OK]", "success")
+            flash("Programa actualizado correctamente [OK]", "success")
             return redirect(url_for('programa_bp.listar_programas', aprendiz_id=getattr(current_user, 'id_aprendiz', None)))
         except Exception as e:
             db.session.rollback()
-            flash(f"Error al actualizar ficha: {e}", "danger")
+            flash(f"Error al actualizar programa: {e}", "danger")
 
     return render_template('programa/editar_programa.html',
-                           ficha=ficha, titulo=titulo_ops, jornada=jornada_ops, numero_ficha=ficha.numero_ficha, now=datetime.now())
+                           programa=programa, titulo=titulo_ops, jornada=jornada_ops, ficha=programa.ficha, now=datetime.now())
 
-# --- ELIMINAR FICHA ---
+# --- ELIMINAR PROGRAMA ---
 @bp.route('/eliminar/<int:id>')
 @login_required
 def eliminar_programa(id):
-    ficha = Ficha.query.get_or_404(id)
+    programa = Programa.query.get_or_404(id)
 
-    if not (isinstance(current_user, Aprendiz) and current_user.ficha == ficha):
-        flash("No tienes permisos para eliminar esta ficha [ERROR]", "danger")
-        aprendiz_id = getattr(current_user, 'id_aprendiz', None)
+    if not (isinstance(current_user, Aprendiz) and current_user.programa == programa):
+        flash("No tienes permisos para eliminar este programa [ERROR]", "danger")
+        aprendiz_id = getattr(programa.aprendices_rel[0], 'id_aprendiz', None) if programa.aprendices_rel else None
         return redirect(url_for('programa_bp.listar_programas', aprendiz_id=aprendiz_id))
 
     try:
-        # Desasignar ficha de todos los aprendices que la tienen
-        Aprendiz.query.filter_by(ficha_id=ficha.id_ficha).update({'ficha_id': None})
-        db.session.delete(ficha)
+        db.session.delete(programa)
         db.session.commit()
-        flash("Ficha eliminada correctamente [OK]", "success")
+        flash("Programa eliminado correctamente [OK]", "success")
     except Exception as e:
         db.session.rollback()
-        flash(f"Error al eliminar ficha: {e}", "danger")
+        flash(f"Error al eliminar programa: {e}", "danger")
 
     return redirect(url_for('programa_bp.listar_programas', aprendiz_id=getattr(current_user, 'id_aprendiz', None)))

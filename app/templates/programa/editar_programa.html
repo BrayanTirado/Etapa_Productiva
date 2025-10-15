@@ -22,24 +22,24 @@
         {% if current_user.__class__.__name__ == 'Aprendiz' %}
         <form method="POST">
             <label class="block mb-2">Nombre del Programa</label>
-            <input type="text" name="nombre_programa" value="{{ ficha.nombre_programa }}" required class="w-full border p-2 rounded mb-4">
+            <input type="text" name="nombre_programa" value="{{ programa.nombre_programa }}" required class="w-full border p-2 rounded mb-4">
 
             <label class="block mb-2">Título</label>
             <select name="titulo" required class="w-full border p-2 rounded mb-4">
                 {% for t in titulo %}
-                    <option value="{{ t }}" {% if ficha.titulo == t %}selected{% endif %}>{{ t }}</option>
+                    <option value="{{ t }}" {% if programa.titulo == t %}selected{% endif %}>{{ t }}</option>
                 {% endfor %}
             </select>
 
             <label class="block mb-2">Jornada</label>
             <select name="jornada" required class="w-full border p-2 rounded mb-4">
                 {% for j in jornada %}
-                    <option value="{{ j }}" {% if ficha.jornada == j %}selected{% endif %}>{{ j }}</option>
+                    <option value="{{ j }}" {% if programa.jornada == j %}selected{% endif %}>{{ j }}</option>
                 {% endfor %}
             </select>
 
-            <label class="block mb-2">NÚMERO DE FICHA</label>
-            <input type="number" name="numero_ficha" value="{{ ficha.numero_ficha }}" required class="w-full border p-2 rounded mb-4" min="1" placeholder="Ingrese número de ficha">
+            <label class="block mb-2">FICHA</label>
+            <input type="number" name="ficha" value="{{ programa.ficha }}" required class="w-full border p-2 rounded mb-4" min="1" placeholder="Ingrese número de ficha">
 
             <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600">Actualizar</button>
             <a href="{{ url_for('programa_bp.listar_programas') }}" class="ml-4 text-gray-600">Cancelar</a>
