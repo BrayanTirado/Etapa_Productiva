@@ -291,11 +291,19 @@ def asignar_aprendiz():
                 Aprendiz.instructor_id.isnot(None),
                 Aprendiz.sede_id == current_user.sede_id
             ).all()
+
+            # Debug: mostrar información
+            print(f"DEBUG: Programa encontrado: {programa.nombre_programa}, Ficha: {programa.ficha}")
+            print(f"DEBUG: Aprendices encontrados: {len(aprendices)}")
+            for ap in aprendices:
+                print(f"DEBUG: Aprendiz: {ap.nombre} {ap.apellido}, Programa ID: {ap.programa_id}, Instructor ID: {ap.instructor_id}")
         else:
             # Si no se encuentra el programa, resetear variables
             aprendices = []
             aprendices_asignados = []
             programa = None
+            print(f"DEBUG: No se encontró programa para ficha {ficha}")
+            flash(f"No se encontró un programa para la ficha {ficha}", "warning")
     else:
         # Sin ficha: mostrar todos los aprendices sin asignar de la sede o sin sede
         aprendices = Aprendiz.query.filter(
