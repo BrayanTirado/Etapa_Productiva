@@ -126,6 +126,19 @@ class Instructor(db.Model, UserMixin):
         return f'<Instructor {self.nombre_instructor} {self.apellido_instructor}>'
 
 # -------------------------
+# TABLA FICHA
+# -------------------------
+class Ficha(db.Model):
+    __tablename__ = 'ficha'
+    id_ficha = db.Column(db.Integer, primary_key=True)
+    numero_ficha = db.Column(db.Integer, unique=True, nullable=False)
+    nombre_programa = db.Column(db.String(100), nullable=False)
+    titulo = db.Column(db.Enum('Auxiliar', 'Tecnico', 'Tecnologo'), nullable=False)
+    jornada = db.Column(db.Enum('Mañana', 'Tarde', 'Noche'), nullable=False)
+
+    aprendices_rel = db.relationship('Aprendiz', back_populates='ficha', lazy=True)
+
+# -------------------------
 # TABLA PROGRAMA
 # -------------------------
 class Programa(db.Model):
@@ -164,6 +177,9 @@ class Aprendiz(db.Model, UserMixin):
 
     programa_id = db.Column(db.Integer, db.ForeignKey('programa.id_programa'), nullable=True)
     programa = db.relationship('Programa', back_populates='aprendices_rel')
+
+    ficha_id = db.Column(db.Integer, db.ForeignKey('ficha.id_ficha'), nullable=True)
+    ficha = db.relationship('Ficha', back_populates='aprendices_rel')
 
     instructor_id = db.Column(db.Integer, db.ForeignKey('instructor.id_instructor'), nullable=True)
     instructor = db.relationship('Instructor', back_populates='aprendices_rel')

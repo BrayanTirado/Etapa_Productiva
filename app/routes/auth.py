@@ -167,9 +167,8 @@ def registro_aprendiz():
         celular = request.form.get('celular').strip()
         password = request.form.get('password')
         sede_nombre = request.form.get('sede_id')
-        ficha = request.form.get('ficha')
 
-        if not all([nombre, apellido, tipo_documento, documento, email, celular, password, sede_nombre, ficha]):
+        if not all([nombre, apellido, tipo_documento, documento, email, celular, password, sede_nombre]):
             flash('Todos los campos son obligatorios.', 'warning')
             return redirect(url_for('auth.registro_aprendiz'))
 
@@ -210,12 +209,6 @@ def registro_aprendiz():
             flash('Error: Ya existe un usuario con ese número de celular.', 'danger')
             return redirect(url_for('auth.registro_aprendiz'))
 
-        # Buscar programa existente por ficha
-        programa = Programa.query.filter_by(ficha=int(ficha)).first()
-        if not programa:
-            flash('La ficha especificada no existe en el sistema.', 'danger')
-            return redirect(url_for('auth.registro_aprendiz'))
-
         hashed_password = generate_password_hash(password)
         nuevo = Aprendiz(
             nombre=nombre,
@@ -225,8 +218,7 @@ def registro_aprendiz():
             email=email,
             celular=celular,
             password_aprendiz=hashed_password,
-            sede_id=sede.id_sede,
-            programa_id=programa.id_programa
+            sede_id=sede.id_sede
         )
         try:
             db.session.add(nuevo)

@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
-from app.models.users import Programa, Aprendiz, Instructor
+from app.models.users import Programa, Aprendiz, Instructor, Ficha
 from app import db
 from datetime import datetime
 
@@ -23,11 +23,18 @@ def listar_programas():
 
     if isinstance(current_user, Aprendiz):
         aprendiz_id = current_user.id_aprendiz
-        if current_user.programa:
-            programas = [current_user.programa]
+        if current_user.ficha:
+            # Crear un objeto similar a programa para compatibilidad con el template
+            programas = [{
+                'id_programa': current_user.ficha.id_ficha,
+                'nombre_programa': current_user.ficha.nombre_programa,
+                'titulo': current_user.ficha.titulo,
+                'jornada': current_user.ficha.jornada,
+                'ficha': current_user.ficha.numero_ficha
+            }]
 
     elif isinstance(current_user, Instructor):
-        # Mostrar programas solo de aprendices asignados a este instructor
+        # Mostrar fichas solo de aprendices asignados a este instructor
         aprendiz_id_param = request.args.get('aprendiz_id', type=int)
         if aprendiz_id_param:
             aprendiz_id = aprendiz_id_param
@@ -35,8 +42,14 @@ def listar_programas():
                 id_aprendiz=aprendiz_id,
                 instructor_id=current_user.id_instructor
             ).first()
-            if aprendiz and aprendiz.programa:
-                programas = [aprendiz.programa]
+            if aprendiz and aprendiz.ficha:
+                programas = [{
+                    'id_programa': aprendiz.ficha.id_ficha,
+                    'nombre_programa': aprendiz.ficha.nombre_programa,
+                    'titulo': aprendiz.ficha.titulo,
+                    'jornada': aprendiz.ficha.jornada,
+                    'ficha': aprendiz.ficha.numero_ficha
+                }]
 
     return render_template('programa/listar_programa.html',
                            programas=programas,
@@ -54,49 +67,45 @@ def nuevo_programa():
         nombre = request.form.get('nombre_programa', '').strip()
         titulo = request.form.get('titulo')
         jornada = request.form.get('jornada')
-        ficha = request.form.get('ficha', type=int)
+        numero_ficha = request.form.get('numero_ficha', type=int)
 
-        if not nombre:
-            flash("El nombre del programa es obligatorio.", "warning")
+        if not nombre or not numero_ficha:
+            flash("El nombre del programa y el número de ficha son obligatorios.", "warning")
             return render_template('programa/nuevo_programa.html',
-                                   titulo=titulo_ops, jornada=jornada_ops, ficha=ficha, now=datetime.now())
+                                   titulo=titulo_ops, jornada=jornada_ops, numero_ficha=numero_ficha, now=datetime.now())
 
         if titulo not in titulo_ops or jornada not in jornada_ops:
-            flash("Selecciona valores válidos para Título, Jornada y Centro de formación.", "danger")
+            flash("Selecciona valores válidos para Título y Jornada.", "danger")
             return render_template('programa/nuevo_programa.html',
-                                   titulo=titulo_ops, jornada=jornada_ops, ficha=ficha, now=datetime.now())
+                                   titulo=titulo_ops, jornada=jornada_ops, numero_ficha=numero_ficha, now=datetime.now())
 
         try:
-            programa = Programa.query.filter_by(
-                nombre_programa=nombre,
-                ficha=ficha,
-                jornada=jornada
-            ).first()
-
-            if not programa:
-                programa = Programa(
+            # Buscar ficha existente por número, si no existe crearla
+            ficha = Ficha.query.filter_by(numero_ficha=numero_ficha).first()
+            if not ficha:
+                ficha = Ficha(
+                    numero_ficha=numero_ficha,
                     nombre_programa=nombre,
                     titulo=titulo,
-                    jornada=jornada,
-                    ficha=ficha,
-                    instructor_id_instructor=current_user.id_instructor if isinstance(current_user, Instructor) else None
+                    jornada=jornada
                 )
-                db.session.add(programa)
+                db.session.add(ficha)
                 db.session.flush()
 
+            # Asignar ficha al aprendiz
             if isinstance(current_user, Aprendiz):
-                current_user.programa = programa
+                current_user.ficha = ficha
 
             db.session.commit()
-            flash("Programa registrado correctamente [OK]", "success")
+            flash("Ficha registrada correctamente [OK]", "success")
             return redirect(url_for('programa_bp.listar_programas', aprendiz_id=getattr(current_user, 'id_aprendiz', None)))
 
         except Exception as e:
             db.session.rollback()
-            flash(f"Error al registrar programa: {e}", "danger")
+            flash(f"Error al registrar ficha: {e}", "danger")
 
     return render_template('programa/nuevo_programa.html',
-                           titulo=titulo_ops, jornada=jornada_ops, ficha=None, now=datetime.now())
+                           titulo=titulo_ops, jornada=jornada_ops, numero_ficha=None, now=datetime.now())
 
 # --- EDITAR PROGRAMA ---
 @bp.route('/editar/<int:id>', methods=['GET', 'POST'])

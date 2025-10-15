@@ -47,8 +47,8 @@
                 {% endfor %}
             </select>
 
-            <label class="block mb-2">FICHA</label>
-            <input type="number" name="ficha" required class="w-full border p-2 rounded mb-4" min="1" placeholder="Ingrese número de ficha">
+            <label class="block mb-2">NÚMERO DE FICHA</label>
+            <input type="number" name="numero_ficha" required class="w-full border p-2 rounded mb-4" min="1" placeholder="Ingrese número de ficha">
 
             <button type="submit" class="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600">Guardar</button>
             <a href="{{ url_for('programa_bp.listar_programas', aprendiz_id=aprendiz_id) }}" class="ml-4 text-gray-600">Cancelar</a>

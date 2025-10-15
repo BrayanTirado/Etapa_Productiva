@@ -30,7 +30,7 @@
             {% endif %}
         {% endwith %}
 
-        {% if current_user.is_authenticated and current_user.__class__.__name__ == 'Aprendiz' and not current_user.programa %}
+        {% if current_user.is_authenticated and current_user.__class__.__name__ == 'Aprendiz' and not current_user.ficha %}
         <div class="mb-4">
             <a href="{{ url_for('programa_bp.nuevo_programa') }}" class="bg-green-500 text-white px-4 py-2 rounded shadow hover:bg-green-600 transition">
                 Nuevo Programa
@@ -61,9 +61,8 @@
                             <td class="border p-3">{{ programa.ficha }}</td>
                             <td class="border p-3 text-center">
                                 <div class="flex justify-center space-x-4">
-                                    {% if current_user.__class__.__name__ == 'Aprendiz' and current_user.programa == programa %}
-                                    <a href="{{ url_for('programa_bp.editar_programa', id=programa.id_programa) }}" class="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 transition">Editar</a>
-                                    <a href="{{ url_for('programa_bp.eliminar_programa', id=programa.id_programa) }}" class="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600 transition" onclick="return confirm('¿Seguro de eliminar este programa?')">Eliminar</a>
+                                    {% if current_user.__class__.__name__ == 'Aprendiz' and current_user.ficha and current_user.ficha.id_ficha == programa.id_programa %}
+                                    <span class="text-green-600 font-semibold">Registrado</span>
                                     {% else %}
                                     <span class="text-gray-500">—</span>
                                     {% endif %}
