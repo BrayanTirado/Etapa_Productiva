@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, login_user, logout_user, current_user
-from app.models.users import Coordinador, Instructor, Aprendiz, TokenInstructor, TokenCoordinador, Programa, Notificacion, Sede, Administrador
+from app.models.users import Coordinador, Instructor, Aprendiz, TokenInstructor, TokenCoordinador, Programa, Notificacion, Sede, Administrador,Ficha
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
