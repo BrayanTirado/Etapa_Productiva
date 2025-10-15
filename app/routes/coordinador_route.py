@@ -276,7 +276,7 @@ def asignar_aprendiz():
     ficha = request.args.get("ficha")
 
     if ficha:
-        programa = Programa.query.filter_by(ficha=ficha).first()
+        programa = Programa.query.filter(Programa.ficha == ficha).first()
         if programa:
             # Aprendices disponibles (sin asignar) de la misma sede o sin sede
             aprendices = Aprendiz.query.filter(
