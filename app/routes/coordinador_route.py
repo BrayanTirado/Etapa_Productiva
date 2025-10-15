@@ -276,35 +276,50 @@ def asignar_aprendiz():
     ficha = request.args.get("ficha")
 
     if ficha:
-        # Buscar programa por el número de ficha (usando la propiedad ficha que accede a numero_ficha)
-        programa = Programa.query.filter(Programa.ficha == int(ficha)).first()
-        if programa:
-            # Aprendices disponibles (sin asignar) de la misma sede o sin sede
-            aprendices = Aprendiz.query.filter(
-                Aprendiz.programa_id == programa.id_programa,
-                Aprendiz.instructor_id == None,
-                or_(Aprendiz.sede_id == current_user.sede_id, Aprendiz.sede_id == None)
-            ).all()
+        # Buscar ficha por número
+        ficha_obj = Ficha.query.filter_by(numero_ficha=int(ficha)).first()
+        if ficha_obj:
+            # Buscar programas asociados a esta ficha
+            programas_ficha = Programa.query.filter_by(ficha_id=ficha_obj.id_ficha).all()
 
-            # Aprendices ya asignados en esa ficha y sede
-            aprendices_asignados = Aprendiz.query.filter(
-                Aprendiz.programa_id == programa.id_programa,
-                Aprendiz.instructor_id.isnot(None),
-                Aprendiz.sede_id == current_user.sede_id
-            ).all()
+            if programas_ficha:
+                programa_ids = [p.id_programa for p in programas_ficha]
+                # Aprendices disponibles (sin asignar) que estén en programas de esta ficha
+                aprendices = Aprendiz.query.filter(
+                    Aprendiz.programa_id.in_(programa_ids),
+                    Aprendiz.instructor_id == None,
+                    or_(Aprendiz.sede_id == current_user.sede_id, Aprendiz.sede_id == None)
+                ).all()
 
-            # Debug: mostrar información
-            print(f"DEBUG: Programa encontrado: {programa.nombre_programa}, Ficha: {programa.ficha}")
-            print(f"DEBUG: Aprendices encontrados: {len(aprendices)}")
-            for ap in aprendices:
-                print(f"DEBUG: Aprendiz: {ap.nombre} {ap.apellido}, Programa ID: {ap.programa_id}, Instructor ID: {ap.instructor_id}")
+                # Aprendices ya asignados en programas de esta ficha y sede
+                aprendices_asignados = Aprendiz.query.filter(
+                    Aprendiz.programa_id.in_(programa_ids),
+                    Aprendiz.instructor_id.isnot(None),
+                    Aprendiz.sede_id == current_user.sede_id
+                ).all()
+
+                # Usar el primer programa para mostrar información
+                programa = programas_ficha[0]
+
+                # Debug: mostrar información
+                print(f"DEBUG: Ficha encontrada: {ficha_obj.numero_ficha}")
+                print(f"DEBUG: Programas en esta ficha: {len(programas_ficha)}")
+                print(f"DEBUG: Aprendices encontrados: {len(aprendices)}")
+                for ap in aprendices:
+                    print(f"DEBUG: Aprendiz: {ap.nombre} {ap.apellido}, Programa ID: {ap.programa_id}, Instructor ID: {ap.instructor_id}")
+            else:
+                aprendices = []
+                aprendices_asignados = []
+                programa = None
+                print(f"DEBUG: No se encontraron programas para la ficha {ficha}")
+                flash(f"No se encontraron programas para la ficha {ficha}", "warning")
         else:
-            # Si no se encuentra el programa, resetear variables
+            # Si no se encuentra la ficha, resetear variables
             aprendices = []
             aprendices_asignados = []
             programa = None
-            print(f"DEBUG: No se encontró programa para ficha {ficha}")
-            flash(f"No se encontró un programa para la ficha {ficha}", "warning")
+            print(f"DEBUG: No se encontró ficha {ficha}")
+            flash(f"No se encontró la ficha {ficha}", "warning")
     else:
         # Sin ficha: mostrar todos los aprendices sin asignar de la sede o sin sede
         aprendices = Aprendiz.query.filter(
