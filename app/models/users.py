@@ -1,6 +1,7 @@
 from flask_login import UserMixin
 from datetime import datetime
 from app import db
+from sqlalchemy.dialects.postgresql import ENUM as PGEnum  # Opcional, pero útil si quieres explicitar
 
 # -------------------------
 # TABLA ADMINISTRADOR
@@ -10,12 +11,16 @@ class Administrador(db.Model, UserMixin):
     id_admin = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     apellido = db.Column(db.String(100), nullable=False)
-    tipo_documento = db.Column(db.Enum(
-        'Cedula de Ciudadania',
-        'Tarjeta de Identidad',
-        'Cedula Extrangeria',
-        'Registro Civil'
-    ), nullable=False)
+    tipo_documento = db.Column(
+        db.Enum(
+            'Cedula de Ciudadania',
+            'Tarjeta de Identidad',
+            'Cedula Extrangeria',
+            'Registro Civil',
+            name='tipo_documento_enum'  # ← Agregado name
+        ),
+        nullable=False
+    )
     documento = db.Column(db.String(50), unique=True, nullable=False)
     correo = db.Column(db.String(100), nullable=False, unique=True)
     celular = db.Column(db.String(45), nullable=False)
@@ -36,23 +41,19 @@ class Administrador(db.Model, UserMixin):
 class Sede(db.Model):
     __tablename__ = 'sede'
     id_sede = db.Column(db.Integer, primary_key=True)
-    nombre_sede = db.Column(db.Enum(
-        'CGAO - CENTRO DE GESTIÓN AGROEMPRESARIAL DEL ORIENTE',
-        'CCS - CENTRO DE COMERCIO Y SERVICIOS',
-        'CDM - CENTRO DE DISEÑO Y METROLOGÍA',
-        'CGAF - CENTRO DE GESTIÓN ADMINISTRATIVA Y FINANCIERA',
-        'CGPI - CENTRO DE GESTIÓN DE LA PRODUCCIÓN INDUSTRIAL',
-        'CTIC - CENTRO DE TECNOLOGÍA DE LA INFORMACIÓN Y COMUNICACIONES',
-        'CBA - CENTRO DE BIOTECNOLOGÍA AGROPECUARIA',
-        'CEM - CENTRO DE ENERGÍA Y MINAS',
-        'CSF - CENTRO DE SERVICIOS FINANCIEROS',
-        'CFGR - CENTRO DE FORMACIÓN EN GESTIÓN DEL RIESGO'
-    ), nullable=False, unique=True)
+    nombre_sede = db.Column(
+        db.Enum(
+            'CGAO', 'CCS', 'CDM', 'CGAF', 'CGPI', 'CTIC', 'CBA', 'CEM', 'CSF', 'CFGR',
+            name='nombre_sede_enum'  # ← Agregado name
+        ),
+        nullable=False, unique=True
+    )
     ciudad = db.Column(db.String(100), nullable=False)
     token = db.Column(db.String(100), nullable=True)  
     token_expiracion = db.Column(db.DateTime, nullable=True)
 
     coordinadores = db.relationship('Coordinador', back_populates='sede', lazy=True)
+
     def __repr__(self):
         return f'<Sede {self.nombre_sede} - {self.ciudad}>'
 
@@ -64,12 +65,16 @@ class Coordinador(db.Model, UserMixin):
     id_coordinador = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(45), nullable=False)
     apellido = db.Column(db.String(45), nullable=False)
-    tipo_documento = db.Column(db.Enum(
-        'Cedula de Ciudadania',
-        'Tarjeta de Identidad',
-        'Cedula Extrangeria',
-        'Registro Civil'
-    ), nullable=False)
+    tipo_documento = db.Column(
+        db.Enum(
+            'Cedula de Ciudadania',
+            'Tarjeta de Identidad',
+            'Cedula Extrangeria',
+            'Registro Civil',
+            name='tipo_documento_enum'  # ← Agregado name
+        ),
+        nullable=False
+    )
     documento = db.Column(db.String(45), unique=True, nullable=False)
     correo = db.Column(db.String(100), nullable=False, unique=True)
     celular = db.Column(db.String(45), nullable=False)
@@ -101,7 +106,14 @@ class Instructor(db.Model, UserMixin):
     apellido_instructor = db.Column(db.String(45), nullable=False)
     correo_instructor = db.Column(db.String(100), nullable=False, unique=True)
     celular_instructor = db.Column(db.String(45), nullable=False)
-    tipo_documento = db.Column(db.Enum('Cedula de Ciudadania','Cedula Extrangeria'), nullable=False)
+    tipo_documento = db.Column(
+        db.Enum(
+            'Cedula de Ciudadania',
+            'Cedula Extrangeria',
+            name='tipo_documento_instructor_enum'  # ← Agregado name (diferente para evitar conflicto)
+        ),
+        nullable=False
+    )
     documento = db.Column(db.String(45), nullable=False, unique=True)
     password_instructor = db.Column(db.String(250), nullable=False)
 
@@ -142,8 +154,14 @@ class Programa(db.Model):
     __tablename__ = 'programa'
     id_programa = db.Column(db.Integer, primary_key=True)
     nombre_programa = db.Column(db.String(45), nullable=False)
-    titulo = db.Column(db.Enum('Auxiliar', 'Tecnico', 'Tecnologo'), nullable=False)
-    jornada = db.Column(db.Enum('Mañana', 'Tarde', 'Noche'), nullable=False)
+    titulo = db.Column(
+        db.Enum('Auxiliar', 'Tecnico', 'Tecnologo', name='titulo_programa_enum'),  # ← Agregado
+        nullable=False
+    )
+    jornada = db.Column(
+        db.Enum('Mañana', 'Tarde', 'Noche', name='jornada_programa_enum'),  # ← Agregado
+        nullable=False
+    )
     ficha_id = db.Column(db.Integer, db.ForeignKey('ficha.id_ficha'), nullable=False)
     instructor_id_instructor = db.Column(db.Integer, db.ForeignKey('instructor.id_instructor'), nullable=True)
 
@@ -163,12 +181,16 @@ class Aprendiz(db.Model, UserMixin):
     id_aprendiz = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(45), nullable=False)
     apellido = db.Column(db.String(45), nullable=False)
-    tipo_documento = db.Column(db.Enum(
-        'Cedula de Ciudadania',
-        'Tarjeta de Identidad',
-        'Cedula Extrangeria',
-        'Registro Civil'
-    ), nullable=False)
+    tipo_documento = db.Column(
+        db.Enum(
+            'Cedula de Ciudadania',
+            'Tarjeta de Identidad',
+            'Cedula Extrangeria',
+            'Registro Civil',
+            name='tipo_documento_enum'  # ← Agregado (mismo que en otros, es válido)
+        ),
+        nullable=False
+    )
     documento = db.Column(db.String(45), unique=True, nullable=False, index=True)
     email = db.Column(db.String(100), unique=True, nullable=False, index=True)
     celular = db.Column(db.String(45), unique=True, nullable=False, index=True)
@@ -211,7 +233,10 @@ class Contrato(db.Model):
     id_contrato = db.Column(db.Integer, primary_key=True)
     fecha_inicio = db.Column(db.Date, nullable=False)
     fecha_fin = db.Column(db.Date, nullable=False)
-    tipo_contrato = db.Column(db.Enum('Contrato de Aprendizaje', 'Contrato laboral'), nullable=False)
+    tipo_contrato = db.Column(
+        db.Enum('Contrato de Aprendizaje', 'Contrato laboral', name='tipo_contrato_enum'),  # ← Agregado
+        nullable=False
+    )
 
     empresa_id_empresa = db.Column(db.Integer, db.ForeignKey('empresa.id_empresa'), nullable=False)
     empresa = db.relationship('Empresa', back_populates='contratos')
@@ -254,13 +279,11 @@ class Evidencia(db.Model):
     tipo = db.Column(db.String(50), nullable=False)
     nota = db.Column(db.String(255), nullable=True)
 
-    # Nuevos campos para control de tiempo
     primera_subida_word = db.Column(db.Date, nullable=True)  
     primera_subida_excel_15 = db.Column(db.Date, nullable=True)  
     primera_subida_excel_3 = db.Column(db.Date, nullable=True)  
     primera_subida_pdf = db.Column(db.Date, nullable=True)
 
-    # Campo para indicar la sesión específica de Excel
     sesion_excel = db.Column(db.String(20), nullable=True)  
 
     aprendiz_id_aprendiz = db.Column(db.Integer, db.ForeignKey('aprendiz.id_aprendiz'), nullable=False)
@@ -308,7 +331,6 @@ class TokenCoordinador(db.Model):
 # -------------------------
 class TokenInstructor(db.Model):
     __tablename__ = 'token_instructor'
-
     id_token = db.Column(db.Integer, primary_key=True)
     token = db.Column(db.String(100), nullable=False, unique=True)
     fecha_expiracion = db.Column(db.DateTime, nullable=False)
@@ -322,52 +344,30 @@ class TokenInstructor(db.Model):
 
     def __repr__(self):
         return f"<TokenInstructor {self.token} - Válido hasta {self.fecha_expiracion} - Sede {self.sede_id}>"
+
 # -------------------------
 # TABLA PASSWORD RESET TOKEN
 # -------------------------
 class PasswordResetToken(db.Model):
     __tablename__ = 'password_reset_token'
     id = db.Column(db.Integer, primary_key=True)
-    token = db.Column(db.String(100), unique=True, nullable=False, index=True)  # Agregado índice
-    email = db.Column(db.String(100), nullable=False, index=True)  # Agregado índice
+    token = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    email = db.Column(db.String(100), nullable=False, index=True)
     user_type = db.Column(db.String(20), nullable=False)
-    user_id = db.Column(db.Integer, nullable=False, index=True)  # Agregado índice
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)  # Agregado índice
-    expires_at = db.Column(db.DateTime, nullable=False, index=True)  # Agregado índice
-    used = db.Column(db.Boolean, default=False, index=True)  # Agregado índice
+    user_id = db.Column(db.Integer, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    expires_at = db.Column(db.DateTime, nullable=False, index=True)
+    used = db.Column(db.Boolean, default=False, index=True)
 
     def is_expired(self):
-        """Verificar si el token ha expirado con manejo optimizado de zona horaria"""
         try:
-            # Obtener tiempo actual en UTC
             current_time = datetime.utcnow()
-            print(f"[DEBUG] Verificando expiración del token:")
-            print(f"[DEBUG]   Current time (UTC): {current_time}")
-            print(f"[DEBUG]   Token expires_at: {self.expires_at}")
-            print(f"[DEBUG]   Token expires_at type: {type(self.expires_at)}")
-
-            # Asegurar que expires_at no tenga zona horaria para comparación consistente
             expires_time = self.expires_at
-            if hasattr(expires_time, 'replace') and hasattr(expires_time, 'tzinfo') and expires_time.tzinfo is not None:
+            if expires_time.tzinfo is not None:
                 expires_time = expires_time.replace(tzinfo=None)
-                print(f"[DEBUG]   Converted expires_time (no timezone): {expires_time}")
-            else:
-                # Si no tiene zona horaria, asumir que ya está en UTC
-                print(f"[DEBUG]   expires_time already without timezone: {expires_time}")
-
-            # Comparación directa
-            is_expired = current_time.replace(tzinfo=None) > expires_time
-            print(f"[DEBUG]   Is expired: {is_expired}")
-            print(f"[DEBUG]   Time difference: {(current_time.replace(tzinfo=None) - expires_time).total_seconds()} seconds")
-
-            return is_expired
-
-        except Exception as e:
-            # En caso de error, considerar el token como expirado por seguridad
-            print(f"[ERROR] Error verificando expiración del token: {e}")
-            import traceback
-            print(f"[ERROR] Traceback: {traceback.format_exc()}")
-            return True
+            return current_time > expires_time
+        except Exception:
+            return True  # Por seguridad, si hay error → expirado
 
 # -------------------------
 # TABLA NOTIFICACION
@@ -375,7 +375,7 @@ class PasswordResetToken(db.Model):
 class Notificacion(db.Model):
     __tablename__ = 'notificacion'
     id = db.Column(db.Integer, primary_key=True)
-    motivo = db.Column(db.String(100), nullable=True)  # Nuevo campo para el motivo/asunto de la notificación
+    motivo = db.Column(db.String(100), nullable=True)
     mensaje = db.Column(db.Text, nullable=False)
     remitente_id = db.Column(db.Integer, nullable=False)
     rol_remitente = db.Column(db.String(50), nullable=False)

@@ -10,29 +10,44 @@ db = SQLAlchemy()
 login_manager = LoginManager()
 mail = Mail()
 
-
 def create_app():
     """Crea y configura la aplicación Flask"""
     app = Flask(__name__)
 
-    # Configuración de seguridad y base de datos
+    # -------------------------
+    # Configuración básica
+    # -------------------------
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(24))
     app.config.from_object('config.Config')
 
+    # -------------------------
+    # Forzar PostgreSQL si existe DATABASE_URL
+    # -------------------------
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url:
+        # SQLAlchemy necesita driver explícito
+        if database_url.startswith("postgres://"):
+            database_url = database_url.replace("postgres://", "postgresql+psycopg2://", 1)
+        elif not database_url.startswith("postgresql+psycopg2://"):
+            database_url = "postgresql+psycopg2://" + database_url.split("://")[1]
+        app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+        print(f"[DEBUG] Usando PostgreSQL desde env: {app.config['SQLALCHEMY_DATABASE_URI']}")
+    else:
+        # Solo fallback local a SQLite
+        app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{app.instance_path}/app.db"
+        print(f"[DEBUG] Usando SQLite local: {app.config['SQLALCHEMY_DATABASE_URI']}")
+
+    # -------------------------
     # Inicializa extensiones
+    # -------------------------
     db.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
     mail.init_app(app)
 
-    # --- Importa modelos aquí para evitar import circular ---
-    from app.models.users import (
-        Aprendiz, Instructor, Coordinador, Administrador,
-        Sede, Empresa, Contrato, Programa, Seguimiento,
-        Evidencia, Notificacion, PasswordResetToken
-    )
-
-    # --- Importa Blueprints ---
+    # -------------------------
+    # Importa Blueprints
+    # -------------------------
     from app.routes.index_route import bp as index_bp
     from app.routes.auth import bp as auth_bp
     from app.routes.empresa_route import bp as empresa_bp
@@ -49,7 +64,7 @@ def create_app():
     from app.routes.adm_route import adm_bp
     from app.routes.notificacion_route import notificacion_bp
 
-    # --- Registra Blueprints ---
+    # Registra Blueprints
     app.register_blueprint(index_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(empresa_bp)
@@ -66,14 +81,27 @@ def create_app():
     app.register_blueprint(adm_bp)
     app.register_blueprint(notificacion_bp)
 
-    # --- Crea tablas en la base de datos ---
+    # -------------------------
+    # Importa modelos y crea tablas
+    # -------------------------
     with app.app_context():
         try:
+            from app.models.users import (
+                Aprendiz, Instructor, Coordinador, Administrador,
+                Sede, Empresa, Contrato, Programa, Seguimiento,
+                Evidencia, Notificacion, PasswordResetToken,
+                Ficha, TokenCoordinador, TokenInstructor
+            )
+            print("[DEBUG] Models imported successfully")
             db.create_all()
+            print("[DEBUG] Tablas creadas correctamente en la base de datos")
         except Exception as e:
+            print(f"[ERROR] Error al importar modelos o crear tablas: {e}")
             raise
 
-    # --- Configuración para proxy reverso (PRODUCCIÓN) ---
+    # -------------------------
+    # Configuración proxy reverso
+    # -------------------------
     proxy_fix_enabled = os.environ.get('PROXY_FIX_ENABLED', 'true').lower() == 'true'
     if proxy_fix_enabled:
         app.wsgi_app = ProxyFix(
@@ -87,8 +115,9 @@ def create_app():
 
     return app
 
-
-# --- Función para cargar usuarios según su rol ---
+# -------------------------
+# Carga usuarios según rol
+# -------------------------
 @login_manager.user_loader
 def load_user(user_id):
     from app.models.users import Aprendiz, Instructor, Coordinador, Administrador
