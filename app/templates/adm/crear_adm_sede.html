@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Crear Administrador de Sede{% endblock %}
+
+{% block content %}
+<div class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white shadow-lg rounded-xl w-full max-w-3xl p-4 sm:p-8 space-y-6">
+
+        <h2 class="text-2xl font-bold text-center text-sena-primary">
+            Crear Administrador de Sede
+        </h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-4">
+                    {% for category, message in messages %}
+                        <div class="p-4 rounded-lg text-white
+                            {% if category == 'success' %}bg-green-500
+                            {% elif category == 'danger' %}bg-red-500
+                            {% elif category == 'warning' %}bg-yellow-500
+                            {% else %}bg-blue-500{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('adm_bp.crear_adm_sede') }}" class="space-y-6">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Nombre -->
+                <div>
+                    <label for="nombre" class="font-semibold text-gray-700">Nombre</label>
+                    <input type="text" name="nombre" id="nombre" required
+                           class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                </div>
+
+                <!-- Apellido -->
+                <div>
+                    <label for="apellido" class="font-semibold text-gray-700">Apellido</label>
+                    <input type="text" name="apellido" id="apellido" required
+                           class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                </div>
+
+                <!-- Tipo de documento -->
+                <div>
+                    <label for="tipo_documento" class="font-semibold text-gray-700">Tipo de documento</label>
+                    <select name="tipo_documento" id="tipo_documento" required
+                            class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                        <option value="Cedula de Ciudadania">Cédula de Ciudadanía</option>
+                        <option value="Tarjeta de Identidad">Tarjeta de Identidad</option>
+                        <option value="Cedula Extrangeria">Cédula de Extranjería</option>
+                        <option value="Registro Civil">Registro Civil</option>
+                    </select>
+                </div>
+
+                <!-- Documento -->
+                <div>
+                    <label for="documento" class="font-semibold text-gray-700">Documento</label>
+                    <input type="text" name="documento" id="documento" required pattern="[0-9]+"
+                           class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                </div>
+
+                <!-- Correo -->
+                <div>
+                    <label for="correo" class="font-semibold text-gray-700">Correo Electrónico</label>
+                    <input type="email" name="correo" id="correo" required
+                           class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                </div>
+
+                <!-- Celular -->
+                <div>
+                    <label for="celular" class="font-semibold text-gray-700">Celular</label>
+                    <input type="text" name="celular" id="celular" required pattern="[0-9]+"
+                           class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                </div>
+
+                <!-- Sede -->
+              
+<div>
+    <label for="sede_id" class="font-semibold text-gray-700">Sede</label>
+    <select name="sede_id" id="sede_id" required
+            class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+        {% for sede in sedes %}
+            <option value="{{ sede.id_sede }}">
+                {{ sede.nombre_completo() }}
+            </option>
+        {% endfor %}
+    </select>
+</div>
+
+            <!-- Contraseña -->
+            <div class="mt-4">
+                <label for="password" class="font-semibold text-gray-700">Contraseña</label>
+                <input type="password" name="password" id="password" required minlength="8"
+                       class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+            </div>
+
+            <!-- Botones -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
+                <button type="submit" class="flex items-center justify-center gap-2 bg-sena-primary hover:bg-sena-dark text-white py-3 px-6 rounded-lg font-medium transition-colors shadow-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Crear Administrador de Sede
+                </button>
+                <a href="{{ url_for('adm_bp.dashboard') }}" class="flex items-center justify-center gap-2 bg-sena-secondary hover:bg-sena-dark text-white py-3 px-6 rounded-lg font-medium transition-colors shadow-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Volver al Dashboard
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

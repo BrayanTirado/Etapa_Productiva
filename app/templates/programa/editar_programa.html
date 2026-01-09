@@ -21,27 +21,32 @@
 
         {% if current_user.__class__.__name__ == 'Aprendiz' %}
         <form method="POST">
-            <label class="block mb-2">Nombre del Programa</label>
-            <input type="text" name="nombre_programa" value="{{ programa.nombre_programa }}" required class="w-full border p-2 rounded mb-4">
+            <div class="mb-4">
+                <label class="block mb-2 font-semibold">Nombre del Programa</label>
+                <input type="text" value="{{ programa.nombre_programa }}" readonly class="w-full border p-2 rounded bg-gray-100 text-gray-600">
+            </div>
 
-            <label class="block mb-2">Título</label>
-            <select name="titulo" required class="w-full border p-2 rounded mb-4">
-                {% for t in titulo %}
-                    <option value="{{ t }}" {% if programa.titulo == t %}selected{% endif %}>{{ t }}</option>
-                {% endfor %}
-            </select>
+            <div class="mb-4">
+                <label class="block mb-2 font-semibold">Título</label>
+                <input type="text" value="{{ programa.titulo }}" readonly class="w-full border p-2 rounded bg-gray-100 text-gray-600">
+            </div>
 
-            <label class="block mb-2">Jornada</label>
-            <select name="jornada" required class="w-full border p-2 rounded mb-4">
-                {% for j in jornada %}
-                    <option value="{{ j }}" {% if programa.jornada == j %}selected{% endif %}>{{ j }}</option>
-                {% endfor %}
-            </select>
+            <div class="mb-4">
+                <label class="block mb-2 font-semibold">Jornada</label>
+                <select name="jornada" required class="w-full border p-2 rounded">
+                    <option value="">Selecciona Jornada</option>
+                    {% for j in jornada %}
+                        <option value="{{ j }}" {% if programa.jornada == j %}selected{% endif %}>{{ j }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-            <label class="block mb-2">FICHA</label>
-            <input type="number" name="ficha" value="{{ programa.ficha }}" required class="w-full border p-2 rounded mb-4" min="1" placeholder="Ingrese número de ficha">
+            <div class="mb-4">
+                <label class="block mb-2 font-semibold">FICHA</label>
+                <input type="number" value="{{ programa.ficha }}" readonly class="w-full border p-2 rounded bg-gray-100 text-gray-600" min="1">
+            </div>
 
-            <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600">Actualizar</button>
+            <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600">Actualizar Jornada</button>
             <a href="{{ url_for('programa_bp.listar_programas') }}" class="ml-4 text-gray-600">Cancelar</a>
         </form>
         {% else %}

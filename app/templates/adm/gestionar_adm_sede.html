@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}SENA - Gestionar Administradores de Sede{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
+
+    <h1 class="text-2xl sm:text-3xl font-bold text-sena-primary text-center mb-6">Gestionar Administradores de Sede</h1>
+
+    {% if adm_sedes %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full bg-white shadow-md rounded-lg">
+                <thead class="bg-sena-primary text-white">
+                    <tr>
+                        <th class="py-3 px-4 text-left">Nombre</th>
+                        <th class="py-3 px-4 text-left">Apellido</th>
+                        <th class="py-3 px-4 text-left">Documento</th>
+                        <th class="py-3 px-4 text-left">Correo</th>
+                        <th class="py-3 px-4 text-left">Celular</th>
+                        <th class="py-3 px-4 text-left">Sede</th>
+                        <th class="py-3 px-4 text-left">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for adm in adm_sedes %}
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="py-3 px-4">{{ adm.nombre }}</td>
+                            <td class="py-3 px-4">{{ adm.apellido }}</td>
+                            <td class="py-3 px-4">{{ adm.documento }}</td>
+                            <td class="py-3 px-4">{{ adm.correo }}</td>
+                            <td class="py-3 px-4">{{ adm.celular }}</td>
+                            <td class="py-3 px-4">{{ adm.sede.nombre_sede if adm.sede else 'Sin sede' }}</td>
+                            <td class="py-3 px-4">
+                                <a href="{{ url_for('adm_bp.editar_adm_sede', id=adm.id_admin_sede) }}" class="btn-sena-secondary text-sm">Editar</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-gray-500 text-center">No hay administradores de sede registrados.</p>
+    {% endif %}
+
+    <div class="mt-6 text-center">
+        <a href="{{ url_for('adm_bp.dashboard') }}" class="btn-sena-primary">Volver al Dashboard</a>
+    </div>
+</div>
+{% endblock %}

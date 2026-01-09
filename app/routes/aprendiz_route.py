@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, login_user, logout_user, current_user
-from app.models.users import Aprendiz, Instructor, Notificacion , Evidencia, Coordinador, Administrador, Programa
+from app.models.users import Aprendiz, Instructor, Notificacion , Evidencia, Administrador, Programa, Ficha
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
@@ -36,9 +36,10 @@ def aprendiz_required(f):
 # -------------------------------
 # Función para enviar notificación
 # -------------------------------
-def enviar_notificacion(mensaje, destinatario_id=None, rol_destinatario=None):
+def enviar_notificacion(mensaje, destinatario_id=None, rol_destinatario=None, motivo=None):
     noti = Notificacion(
         mensaje=mensaje,
+        motivo=motivo,
         remitente_id=current_user.id_aprendiz,
         rol_remitente="Aprendiz",
         destinatario_id=destinatario_id,
@@ -54,12 +55,7 @@ def enviar_notificacion(mensaje, destinatario_id=None, rol_destinatario=None):
 def obtener_remitente(noti):
     role = (noti.rol_remitente or "").strip()
 
-    if role == "Coordinador":
-        from app.models.users import Coordinador
-        remitente = Coordinador.query.filter_by(id_coordinador=noti.remitente_id).first()
-        if remitente:
-            return f"{remitente.nombre} {remitente.apellido}"
-    elif role == "Instructor":
+    if role == "Instructor":
         from app.models.users import Instructor
         remitente = Instructor.query.filter_by(id_instructor=noti.remitente_id).first()
         if remitente:
@@ -82,63 +78,89 @@ def obtener_remitente(noti):
 @bp.route('/registro', methods=['GET', 'POST'])
 def registro():
     if request.method == 'POST':
-        nombre = request.form.get('nombre')
-        apellido = request.form.get('apellido')
+        nombre = request.form.get('nombre').strip()
+        apellido = request.form.get('apellido').strip()
         tipo_documento = request.form.get('tipo_documento')
-        documento = request.form.get('documento')
-        correo = request.form.get('correo')
-        celular = request.form.get('celular')
+        documento = request.form.get('documento').strip()
+        correo = request.form.get('correo').strip().lower()
+        celular = request.form.get('celular').strip()
         password = request.form.get('password')
-        sede_id_form = request.form.get('sede_id')
+        numero_ficha = request.form.get('ficha').strip()
+        jornada = request.form.get('jornada')
 
-        if not all([nombre, apellido, tipo_documento, documento, correo, celular, password]):
+        if not all([nombre, apellido, tipo_documento, documento, correo, celular, password, numero_ficha, jornada]):
             flash("Todos los campos son obligatorios", "error")
-            return render_template('aprendiz/registro.html', now=datetime.now())
+            return render_template('aprendiz.html', sedes=sedes, now=datetime.now())
 
-        # Verificar unicidad global (todos los tipos de usuario)
-        from app.models.users import Administrador, Coordinador, Instructor
+        try:
+            numero_ficha_int = int(numero_ficha)
+        except ValueError:
+            flash('El número de ficha debe ser un número entero válido.', 'danger')
+            return render_template('aprendiz.html', sedes=sedes, now=datetime.now())
 
-        # Verificar documento en todos los modelos
-        documento_existe = (Aprendiz.query.filter_by(documento=documento).first() or
-                           Administrador.query.filter_by(documento=documento).first() or
-                           Coordinador.query.filter_by(documento=documento).first() or
-                           Instructor.query.filter_by(documento=documento).first())
+        # Validar que la ficha exista
+        ficha = Ficha.query.filter_by(numero_ficha=numero_ficha_int).first()
+        if not ficha:
+            flash('Error: Ficha no encontrada.', 'danger')
+            return render_template('aprendiz.html', sedes=sedes, now=datetime.now())
 
-        # Verificar email (solo en modelos que tienen email)
-        email_existe = (Aprendiz.query.filter_by(correo=correo).first() or
-                       Coordinador.query.filter_by(correo=correo).first() or
-                       Instructor.query.filter_by(correo_instructor=correo).first())
-
-        # Verificar celular (solo en modelos que tienen celular)
-        celular_existe = (Aprendiz.query.filter_by(celular=celular).first() or
-                         Coordinador.query.filter_by(celular=celular).first() or
-                         Instructor.query.filter_by(celular_instructor=celular).first())
-
-        if documento_existe:
-            flash("Ya existe un usuario con ese documento", "error")
-            return render_template('aprendiz/registro.html', sedes=sedes, now=datetime.now())
-
-        if email_existe:
-            flash("Ya existe un usuario con ese email", "error")
-            return render_template('aprendiz/registro.html', sedes=sedes, now=datetime.now())
-
-        if celular_existe:
-            flash("Ya existe un usuario con ese número de celular", "error")
-            return render_template('aprendiz/registro.html', sedes=sedes, now=datetime.now())
-        password_hash = generate_password_hash(password)
+        # Obtener programa de la ficha
+        programa = Programa.query.filter_by(ficha_id=ficha.id_ficha).first()
+        if not programa:
+            flash('Error: La ficha no tiene un programa asignado.', 'danger')
+            return render_template('aprendiz.html', sedes=sedes, now=datetime.now())
 
         # Verificar instructor actual y su sede
         if not current_user or not hasattr(current_user, "id_instructor"):
             flash("Error: solo un instructor puede registrar aprendices.", "error")
-            return render_template('aprendiz/registro.html', now=datetime.now())
+            return render_template('aprendiz.html', now=datetime.now())
 
         instructor = Instructor.query.get(current_user.id_instructor)
         if not instructor or not instructor.sede_id:
             flash("El instructor no tiene una sede válida asignada.", "error")
-            return render_template('aprendiz/registro.html', now=datetime.now())
+            return render_template('aprendiz.html', sedes=sedes, now=datetime.now())
 
-        # Usar sede del formulario si se proporciona, sino la del instructor
-        sede_id_final = int(sede_id_form) if sede_id_form else instructor.sede_id
+        sede_id = instructor.sede_id
+
+        if not sede_id:
+            flash("El instructor no tiene una sede asignada. Contacte al administrador.", "error")
+            return render_template('aprendiz.html', sedes=sedes, now=datetime.now())
+
+        # Verificar unicidad global (todos los tipos de usuario)
+        from app.models.users import Administrador, Instructor, AdministradorSede
+
+        # Verificar documento en todos los modelos
+        documento_existe = (Aprendiz.query.filter_by(documento=documento).first() or
+                            Administrador.query.filter_by(documento=documento).first() or
+                            AdministradorSede.query.filter_by(documento=documento).first() or
+                            Instructor.query.filter_by(documento=documento).first())
+
+        # Verificar email (solo en modelos que tienen email)
+        email_existe = (Aprendiz.query.filter_by(correo=correo).first() or
+                        Administrador.query.filter_by(correo=correo).first() or
+                        AdministradorSede.query.filter_by(correo=correo).first() or
+                        Instructor.query.filter_by(correo_instructor=correo).first())
+
+        # Verificar celular (solo en modelos que tienen celular)
+        celular_existe = (Aprendiz.query.filter_by(celular=celular).first() or
+                          Administrador.query.filter_by(celular=celular).first() or
+                          AdministradorSede.query.filter_by(celular=celular).first() or
+                          Instructor.query.filter_by(celular_instructor=celular).first())
+
+        if documento_existe:
+            flash("Ya existe un usuario con ese documento", "error")
+            return render_template('aprendiz.html', sedes=sedes, now=datetime.now())
+
+        if email_existe:
+            flash("Ya existe un usuario con ese email", "error")
+            return render_template('aprendiz.html', sedes=sedes, now=datetime.now())
+
+        if celular_existe:
+            flash("Ya existe un usuario con ese número de celular", "error")
+            return render_template('aprendiz.html', sedes=sedes, now=datetime.now())
+
+        password_hash = generate_password_hash(password)
+
 
         aprendiz = Aprendiz(
             nombre=nombre,
@@ -147,10 +169,11 @@ def registro():
             documento=documento,
             correo=correo,
             celular=celular,
-            password=password_hash,
-            instructor_id=instructor.id_instructor,
-            coordinador_id=instructor.coordinador_id,  # [OK] opcional pero útil
-            sede_id=sede_id_final
+            jornada=jornada,
+            password_aprendiz=password_hash,
+            programa_id=programa.id_programa,
+            instructor_id=programa.instructor_id_instructor,
+            sede_id=sede_id
         )
 
         try:
@@ -163,13 +186,13 @@ def registro():
             flash(f"Ocurrió un error al registrar: {str(e)}", "error")
             from app.models.users import Sede
             sedes = Sede.query.all()
-            return render_template('aprendiz/registro.html', sedes=sedes, now=datetime.now())
+            return render_template('aprendiz.html', sedes=sedes, now=datetime.now())
 
     # Mostrar TODAS las sedes disponibles para que el aprendiz pueda elegir
     from app.models.users import Sede
     sedes = Sede.query.all()
 
-    return render_template('aprendiz/registro.html', sedes=sedes, now=datetime.now())
+    return render_template('aprendiz.html', sedes=sedes, now=datetime.now())
 
 # -------------------------------
 # Login del aprendiz
@@ -274,8 +297,6 @@ def dashboard_aprendiz(aprendiz_id):
     if es_aprendiz:
         # Filtrar instructor asignado
         usuarios['Instructor'] = Instructor.query.filter_by(id_instructor=current_user.instructor_id).all() if current_user.instructor_id else []
-        # Filtrar coordinador de la sede
-        usuarios['Coordinador'] = Coordinador.query.filter_by(sede_id=current_user.sede_id).all() if current_user.sede_id else []
         # Administradores todos
         usuarios['Administrador'] = Administrador.query.all()
 
@@ -397,19 +418,29 @@ def enviar_mensaje():
     destinatario_id = request.form.get('destinatario_id')
     motivo = request.form.get('motivo')  # opcional si lo quieres usar como en admin
     mensaje = request.form.get('mensaje')
+    archivo = request.files.get('archivo')
 
     if not rol_destinatario or not mensaje:
         flash("Debes seleccionar un destinatario y escribir un mensaje.", "error")
         return redirect(url_for('aprendiz_bp.dashboard_aprendiz'))
+
+    # Manejar archivo adjunto
+    if archivo and archivo.filename:
+        import os
+        from werkzeug.utils import secure_filename
+        upload_folder = os.path.join('app', 'static', 'uploads')
+        os.makedirs(upload_folder, exist_ok=True)
+        filename = secure_filename(archivo.filename)
+        archivo_path = os.path.join(upload_folder, filename)
+        archivo.save(archivo_path)
+        mensaje += f"\n\nArchivo adjunto: {filename}"
 
     # [OK] Caso 1: mensaje a usuario específico
     if destinatario_id:
         destinatario_id = int(destinatario_id)
 
         user = None
-        if rol_destinatario == "Coordinador":
-            user = Coordinador.query.get(destinatario_id)
-        elif rol_destinatario == "Instructor":
+        if rol_destinatario == "Instructor":
             user = Instructor.query.get(destinatario_id)
         elif rol_destinatario == "Administrador":
             user = Administrador.query.get(destinatario_id)
@@ -419,9 +450,6 @@ def enviar_mensaje():
             if rol_destinatario == "Instructor" and user.id_instructor != current_user.instructor_id:
                 flash("Solo puedes enviar mensajes a tu instructor asignado.", "error")
                 return redirect(url_for('aprendiz_bp.dashboard_aprendiz'))
-            elif rol_destinatario == "Coordinador" and user.sede_id != current_user.sede_id:
-                flash("Solo puedes enviar mensajes al coordinador de tu sede.", "error")
-                return redirect(url_for('aprendiz_bp.dashboard_aprendiz'))
 
             # Nombre completo según rol
             if rol_destinatario == "Instructor":
@@ -430,7 +458,8 @@ def enviar_mensaje():
                 nombre_completo = f"{user.nombre} {user.apellido}"
 
             enviar_notificacion(
-                mensaje=f"[{motivo}] {mensaje}" if motivo else mensaje,
+                mensaje=mensaje,
+                motivo=motivo,
                 destinatario_id=destinatario_id,
                 rol_destinatario=rol_destinatario
             )
@@ -445,7 +474,8 @@ def enviar_mensaje():
     # [OK] Caso 2: mensaje general al rol completo
     else:
         enviar_notificacion(
-            mensaje=f"[{motivo}] {mensaje}" if motivo else mensaje,
+            mensaje=mensaje,
+            motivo=motivo,
             destinatario_id=None,
             rol_destinatario=rol_destinatario
         )
@@ -531,13 +561,29 @@ def responder_notificacion(noti_id):
     ).first_or_404()
 
     if request.method == 'POST':
+        motivo_respuesta = request.form.get('motivo_respuesta')
         respuesta = request.form.get('respuesta')
+        archivo = request.files.get('archivo')
 
         remitente_id = current_user.id_aprendiz
 
         if respuesta and remitente_id:
+            mensaje_respuesta = respuesta
+
+            # Manejar archivo adjunto
+            if archivo and archivo.filename:
+                import os
+                from werkzeug.utils import secure_filename
+                upload_folder = os.path.join('app', 'static', 'uploads')
+                os.makedirs(upload_folder, exist_ok=True)
+                filename = secure_filename(archivo.filename)
+                archivo_path = os.path.join(upload_folder, filename)
+                archivo.save(archivo_path)
+                mensaje_respuesta += f"\n\nArchivo adjunto: {filename}"
+
             nueva = Notificacion(
-                mensaje=f"[Respuesta a '{noti.mensaje.split(']')[0].replace('[','')}'] {respuesta}",
+                motivo=motivo_respuesta,
+                mensaje=mensaje_respuesta,
                 remitente_id=remitente_id,
                 rol_remitente="Aprendiz",
                 destinatario_id=noti.remitente_id,

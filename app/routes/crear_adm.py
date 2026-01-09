@@ -1,74 +1,90 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+# app/routes/crear_adm.py
+import sys
+from getpass import getpass
 from werkzeug.security import generate_password_hash
-from app import db
+
+from app import create_app, db
 from app.models.users import Administrador
-from datetime import datetime
 
-bp = Blueprint('crear_adm', __name__, url_prefix='/crear_adm')
+TIPOS_DOCUMENTO = [
+    'Cedula de Ciudadania',
+    'Tarjeta de Identidad',
+    'Cedula Extrangeria',
+    'Registro Civil'
+]
 
-# Define tu clave secreta
-CLAVE_SECRETA = "pruebauno"
+def crear_administrador():
+    print("\n==============================")
+    print(" CREACIÓN ADMINISTRADOR PRINCIPAL ")
+    print("==============================\n")
 
-# --- Paso 1: Verificación de clave ---
-@bp.route('/clave', methods=['GET', 'POST'])
-def clave():
-    if request.method == 'POST':
-        clave_ingresada = request.form.get('clave')
-        if clave_ingresada == CLAVE_SECRETA:
-            session['clave_valida'] = True
-            return redirect(url_for('crear_adm.crear_admin'))
+    nombre = input("Nombre: ").strip()
+    apellido = input("Apellido: ").strip()
+
+    # Selección de tipo de documento guiada
+    print("\nTipos de documento:")
+    for i, t in enumerate(TIPOS_DOCUMENTO, 1):
+        print(f"{i}. {t}")
+
+    while True:
+        tipo_index = input("Selecciona el tipo de documento (1-4): ").strip()
+        if tipo_index.isdigit() and 1 <= int(tipo_index) <= len(TIPOS_DOCUMENTO):
+            tipo_documento = TIPOS_DOCUMENTO[int(tipo_index)-1]
+            break
+        print("❌ Opción inválida. Intenta de nuevo.")
+
+    documento = input("Número de documento: ").strip()
+    correo = input("Correo electrónico: ").strip()
+    celular = input("Celular: ").strip()
+
+    # Pedir contraseña de manera segura
+    while True:
+        password = getpass("Contraseña: ")
+        confirmar = getpass("Confirmar contraseña: ")
+        if password != confirmar:
+            print("❌ Las contraseñas no coinciden. Intenta de nuevo.")
+        elif not password:
+            print("❌ La contraseña no puede estar vacía.")
         else:
-            flash("Clave incorrecta.", "danger")
-            return render_template("clave.html", now=datetime.now())
-    return render_template("clave.html", now=datetime.now())
+            break
+
+    # Validación de campos
+    if not all([nombre, apellido, tipo_documento, documento, correo, celular, password]):
+        print("\n❌ Todos los campos son obligatorios.")
+        sys.exit(1)
+
+    # Verificar si ya existe un administrador con el mismo correo o documento
+    existente = Administrador.query.filter(
+        (Administrador.correo == correo) | (Administrador.documento == documento)
+    ).first()
+    if existente:
+        print("\n❌ Ya existe un administrador con ese correo o documento.")
+        sys.exit(1)
+
+    hashed_password = generate_password_hash(password)
+
+    admin = Administrador(
+        nombre=nombre,
+        apellido=apellido,
+        tipo_documento=tipo_documento,
+        documento=documento,
+        correo=correo,
+        celular=celular,
+        password=hashed_password
+    )
+
+    try:
+        db.session.add(admin)
+        db.session.commit()
+        print("\n✅ Administrador creado correctamente.")
+    except Exception as e:
+        db.session.rollback()
+        print("\n❌ Error al crear el administrador:")
+        print(str(e))
+        sys.exit(1)
 
 
-# --- Paso 2: Formulario de creación de admin ---
-@bp.route('/crear_admin', methods=['GET', 'POST'])
-def crear_admin():
-    # Verificar que la clave fue validada
-    if not session.get('clave_valida'):
-        flash("Debes ingresar la clave primero.", "warning")
-        return redirect(url_for('crear_adm.clave'))
-
-    if request.method == 'POST':
-        nombre = request.form.get('nombre')
-        apellido = request.form.get('apellido')
-        tipo_documento = request.form.get('tipo_documento')
-        documento = request.form.get('documento')
-        correo = request.form.get('correo')
-        celular = request.form.get('celular')
-        password = request.form.get('password')
-
-        if not all([nombre, apellido, tipo_documento, documento, correo, celular, password]):
-            flash("Todos los campos son obligatorios.", "warning")
-            return render_template("crear_admin.html", now=datetime.now())
-
-        hashed_password = generate_password_hash(password)
-        nuevo_admin = Administrador(
-            nombre=nombre,
-            apellido=apellido,
-            tipo_documento=tipo_documento,
-            documento=documento,
-            correo=correo,
-            celular=celular,
-            password=hashed_password
-        )
-
-        try:
-            db.session.add(nuevo_admin)
-            db.session.commit()
-            session.pop('clave_valida')  # Limpiar la sesión
-            flash("Administrador creado exitosamente.", "success")
-
-            # Renderizamos el mismo template para que el modal se muestre
-            # y le pasamos la URL de redirección
-            return render_template("crear_admin.html", now=datetime.now(), redirect_url=url_for("auth.login"))
-
-        except Exception as e:
-            db.session.rollback()
-            flash(f"Error al crear el administrador: {str(e)}", "danger")
-            return render_template("crear_admin.html", now=datetime.now())
-
-    return render_template("crear_admin.html", now=datetime.now())
-
+if __name__ == "__main__":
+    app = create_app()
+    with app.app_context():
+        crear_administrador()

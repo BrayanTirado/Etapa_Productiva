@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
-from app.models.users import Instructor, Aprendiz, TokenInstructor, Notificacion, Coordinador, Administrador, Contrato, Programa, Sede
+from app.models.users import Instructor, Aprendiz, TokenInstructor, Notificacion, Administrador, Contrato, Programa, Sede, AdministradorSede
 from app import db
 from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import IntegrityError
@@ -25,8 +25,9 @@ def ver_progreso_aprendiz(aprendiz_id):
 # -------------------------------
 # Función para enviar notificación
 # -------------------------------
-def enviar_notificacion(mensaje, destinatario_id=None, rol_destinatario=None):
+def enviar_notificacion(mensaje, destinatario_id=None, rol_destinatario=None, motivo=None):
     noti = Notificacion(
+        motivo=motivo,
         mensaje=mensaje,
         remitente_id=current_user.id_instructor,
         rol_remitente="Instructor",
@@ -47,11 +48,7 @@ def obtener_remitente(noti):
     """
     role = (noti.rol_remitente or "").strip()
 
-    if role == "Coordinador":
-        remitente = Coordinador.query.filter_by(id_coordinador=noti.remitente_id).first()
-        if remitente:
-            return f"{remitente.nombre} {remitente.apellido}"
-    elif role == "Instructor":
+    if role == "Instructor":
         remitente = Instructor.query.filter_by(id_instructor=noti.remitente_id).first()
         if remitente:
             return f"{remitente.nombre_instructor} {remitente.apellido_instructor}"
@@ -65,6 +62,10 @@ def obtener_remitente(noti):
         if remitente:
             # ajusta los atributos si tu modelo administrador usa otros nombres
             return f"{getattr(remitente, 'nombre', 'Administrador')} {getattr(remitente, 'apellido', '')}".strip()
+    elif role == "Administrador Sede":
+        remitente = AdministradorSede.query.filter_by(id_admin_sede=noti.remitente_id).first()
+        if remitente:
+            return f"{remitente.nombre} {remitente.apellido}"
 
     # Si no hay remitente encontrado o rol desconocido -> "Sistema"
     return "Sistema"
@@ -89,11 +90,9 @@ def dashboard_instructor():
         query = query.filter(Aprendiz.documento.like(f"%{documento}%"))
     aprendices_asignados = query.all()
 
-    # [OK] Coordinadores SOLO de la misma sede
-    coordinadores = Coordinador.query.filter_by(sede_id=sede_id).all()
-
-    # [OK] Administradores (estos pueden ser globales, los dejo sin sede, pero si quieres, también filtras por sede_id)
+    # [OK] Administradores principales y administradores de sede de la sede del instructor
     administradores = Administrador.query.all()
+    administradores_sede = AdministradorSede.query.filter_by(sede_id=current_user.sede_id).all()
 
     # [OK] Notificaciones no leídas SOLO del instructor actual
     notificaciones_no_leidas = Notificacion.query.filter(
@@ -125,8 +124,8 @@ def dashboard_instructor():
         'dasboardh_instructor.html',
         instructor=current_user,
         aprendices=aprendices_asignados,
-        coordinadores=coordinadores,
         administradores=administradores,
+        administradores_sede=administradores_sede,
         documento=documento,
         notificaciones_no_leidas=notificaciones_no_leidas,
         eventos=eventos,
@@ -167,27 +166,24 @@ def nuevo_instructor():
             flash('Token inválido, expirado o inactivo.', 'danger')
             return redirect(url_for('instructor_bp.nuevo_instructor'))
 
-        if token.coordinador_id is None or token.sede_id is None:
-            flash('El token no tiene un coordinador o sede válidos asignados.', 'danger')
+        if token.sede_id is None:
+            flash('El token no tiene una sede válida asignada.', 'danger')
             return redirect(url_for('instructor_bp.nuevo_instructor'))
 
         # [OK] Validar duplicados globales (todos los tipos de usuario)
-        from app.models.users import Administrador, Coordinador, Aprendiz
+        from app.models.users import Administrador, Aprendiz
 
         # Verificar documento en todos los modelos
         documento_existe = (Instructor.query.filter_by(documento=documento).first() or
                             Administrador.query.filter_by(documento=documento).first() or
-                            Coordinador.query.filter_by(documento=documento).first() or
                             Aprendiz.query.filter_by(documento=documento).first())
 
         # Verificar email (solo en modelos que tienen email)
         email_existe = (Instructor.query.filter_by(correo_instructor=correo).first() or
-                        Coordinador.query.filter_by(correo=correo).first() or
-                        Aprendiz.query.filter_by(email=correo).first())
+                        Aprendiz.query.filter_by(correo=correo).first())
 
         # Verificar celular (solo en modelos que tienen celular)
         celular_existe = (Instructor.query.filter_by(celular_instructor=celular).first() or
-                          Coordinador.query.filter_by(celular=celular).first() or
                           Aprendiz.query.filter_by(celular=celular).first())
 
         if documento_existe:
@@ -208,7 +204,6 @@ def nuevo_instructor():
         # [SEARCH] Debug 1: valores que vienen del token
         print("DEBUG TOKEN:",
               "id_token:", token.id_token,
-              "coordinador_id:", token.coordinador_id,
               "sede_id:", token.sede_id)
 
         # Usar sede del formulario si se proporciona, sino la del token
@@ -222,14 +217,12 @@ def nuevo_instructor():
             correo_instructor=correo,
             celular_instructor=celular,
             password_instructor=hashed_password,
-            coordinador_id=token.coordinador_id,
             sede_id=sede_id_final
         )
 
         # [SEARCH] Debug 2: antes del commit
         print("DEBUG NUEVO INSTRUCTOR (antes de commit):",
               "nombre:", nuevo.nombre_instructor,
-              "coordinador_id:", nuevo.coordinador_id,
               "sede_id:", nuevo.sede_id)
 
         try:
@@ -239,21 +232,21 @@ def nuevo_instructor():
             # [SEARCH] Debug 3: después del commit
             print("DEBUG INSTRUCTOR GUARDADO:",
                   "id_instructor:", nuevo.id_instructor,
-                  "coordinador_id:", nuevo.coordinador_id,
                   "sede_id:", nuevo.sede_id)
 
-            # Notificación al coordinador
-            from app.models.users import Notificacion
-            noti = Notificacion(
-                motivo="Se ha registrado un nuevo Instructor",
-                mensaje=f"{nuevo.nombre_instructor} {nuevo.apellido_instructor}",
-                remitente_id=None,
-                rol_remitente="Sistema",
-                destinatario_id=token.coordinador_id,
-                rol_destinatario="Coordinador",
-                visto=False
-            )
-            db.session.add(noti)
+            # Notificación a administradores
+            administradores = Administrador.query.all()
+            for admin in administradores:
+                noti = Notificacion(
+                    motivo="Se ha registrado un nuevo Instructor",
+                    mensaje=f"{nuevo.nombre_instructor} {nuevo.apellido_instructor} en la sede {sede.nombre_sede}",
+                    remitente_id=None,
+                    rol_remitente="Sistema",
+                    destinatario_id=admin.id_admin,
+                    rol_destinatario="administrador",
+                    visto=False
+                )
+                db.session.add(noti)
             db.session.commit()
 
             flash('Instructor registrado con éxito.', 'success')
@@ -357,16 +350,32 @@ def perfil_instructor():
 def enviar_mensaje():
     rol_destinatario = request.form.get('rol_destinatario')
     destinatario_id = request.form.get('destinatario_id')  # opcional
+    if destinatario_id == "":
+        destinatario_id = None
+    motivo = request.form.get('motivo')
     mensaje = request.form.get('mensaje')
+    archivo = request.files.get('archivo')
 
     if not rol_destinatario or not mensaje:
         flash("Debes seleccionar destinatario y escribir un mensaje", "error")
         return redirect(url_for('instructor_bp.dashboard_instructor'))
 
+    # Manejar archivo adjunto
+    if archivo and archivo.filename:
+        import os
+        from werkzeug.utils import secure_filename
+        upload_folder = os.path.join('app', 'static', 'uploads')
+        os.makedirs(upload_folder, exist_ok=True)
+        filename = secure_filename(archivo.filename)
+        archivo_path = os.path.join(upload_folder, filename)
+        archivo.save(archivo_path)
+        mensaje += f"\n\nArchivo adjunto: {filename}"
+
     enviar_notificacion(
         mensaje=mensaje,
         destinatario_id=destinatario_id if destinatario_id else None,
-        rol_destinatario=rol_destinatario
+        rol_destinatario=rol_destinatario,
+        motivo=motivo
     )
 
     flash(f"Mensaje enviado a {rol_destinatario}", "modal")
@@ -449,13 +458,13 @@ def responder_notificacion(noti_id):
     noti = Notificacion.query.get_or_404(noti_id)
 
     if request.method == 'POST':
+        motivo_respuesta = request.form.get('motivo_respuesta')
         respuesta = request.form.get('respuesta')
+        archivo = request.files.get('archivo')
 
         # Detectar ID del usuario según su rol
         if current_user.__class__.__name__ == "Administrador":
-            remitente_id = current_user.id_adm
-        elif current_user.__class__.__name__ == "Coordinador":
-            remitente_id = current_user.id_coordinador
+            remitente_id = current_user.id_admin
         elif current_user.__class__.__name__ == "Instructor":
             remitente_id = current_user.id_instructor
         elif current_user.__class__.__name__ == "Aprendiz":
@@ -464,32 +473,22 @@ def responder_notificacion(noti_id):
             remitente_id = None  # fallback
 
         if respuesta and remitente_id:
-            # Verificar si es respuesta a una notificación de subida de evidencia
-            if noti.motivo == "Nueva Evidencia subida" and "(ID: " in noti.mensaje:
-                try:
-                    id_str = noti.mensaje.split("(ID: ")[1].split(")")[0]
-                    evidencia_id = int(id_str)
-                    from app.models.users import Evidencia
-                    evidencia = Evidencia.query.get(evidencia_id)
-                    if evidencia:
-                        motivo = f"Respuesta a la entrega del archivo {evidencia.nombre_archivo}"
-                        mensaje = respuesta
-                    else:
-                        # Fallback si no se encuentra la evidencia
-                        motivo = None
-                        mensaje = f"[Respuesta a '{noti.mensaje.split(']')[0].replace('[','')}'] {respuesta}"
-                except (ValueError, IndexError):
-                    # Fallback si no se puede extraer el ID
-                    motivo = None
-                    mensaje = f"[Respuesta a '{noti.mensaje.split(']')[0].replace('[','')}'] {respuesta}"
-            else:
-                # Respuesta a otras notificaciones
-                motivo = None
-                mensaje = f"[Respuesta a '{noti.mensaje.split(']')[0].replace('[','')}'] {respuesta}"
+            mensaje_respuesta = respuesta
+
+            # Manejar archivo adjunto
+            if archivo and archivo.filename:
+                import os
+                from werkzeug.utils import secure_filename
+                upload_folder = os.path.join('app', 'static', 'uploads')
+                os.makedirs(upload_folder, exist_ok=True)
+                filename = secure_filename(archivo.filename)
+                archivo_path = os.path.join(upload_folder, filename)
+                archivo.save(archivo_path)
+                mensaje_respuesta += f"\n\nArchivo adjunto: {filename}"
 
             nueva = Notificacion(
-                motivo=motivo,
-                mensaje=mensaje,
+                motivo=motivo_respuesta,
+                mensaje=mensaje_respuesta,
                 remitente_id=remitente_id,
                 rol_remitente=current_user.__class__.__name__,
                 destinatario_id=noti.remitente_id,
@@ -504,8 +503,6 @@ def responder_notificacion(noti_id):
     # Redirigir según el rol
     if current_user.__class__.__name__ == "Administrador":
         return redirect(url_for('adm_bp.notificaciones'))
-    elif current_user.__class__.__name__ == "Coordinador":
-        return redirect(url_for('coordinador_bp.notificaciones'))
     elif current_user.__class__.__name__ == "Instructor":
         return redirect(url_for('instructor_bp.notificaciones'))
     elif current_user.__class__.__name__ == "Aprendiz":

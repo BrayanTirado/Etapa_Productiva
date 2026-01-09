@@ -1,14 +1,27 @@
 {% extends "base.html" %}
 
-{% block title %}SENA - Registrar Aprendiz{% endblock %}
+{% block title %}SENA - Confirmar Registro Aprendiz{% endblock %}
 
 {% block content %}
 
     <div class="card-sena w-full max-w-2xl mx-auto p-4 sm:p-8">
-        <h2 class="text-3xl font-extrabold text-center text-sena-primary mb-8">Crear cuenta de Aprendiz</h2>
-        
+        <h2 class="text-3xl font-extrabold text-center text-sena-primary mb-8">Confirmar Registro de Aprendiz</h2>
+
+        <div class="bg-gray-50 p-6 rounded-lg mb-6">
+            <h3 class="text-xl font-semibold mb-4">Detalles de la Ficha Verificada</h3>
+            <div class="space-y-2">
+                <p><strong>Número de Ficha:</strong> {{ ficha.numero_ficha }}</p>
+                <p><strong>Programa:</strong> {{ programa.nombre_programa }} ({{ programa.titulo }})</p>
+                <p><strong>Jornada:</strong> {{ programa.jornada }}</p>
+                <p><strong>Instructor:</strong> {{ instructor.nombre_instructor }} {{ instructor.apellido_instructor }}</p>
+                <p><strong>Sede:</strong> {{ sede.nombre_sede }} - {{ sede.ciudad }}</p>
+            </div>
+        </div>
+
+        <p class="text-center mb-6">Por favor, complete sus datos personales para finalizar el registro.</p>
 
         <form method="post" action="{{ url_for('auth.registro_aprendiz') }}" class="form-sena space-y-5">
+            <input type="hidden" name="action" value="registrar">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     <label for="nombre" class="font-semibold text-gray-700">NOMBRES</label>
@@ -19,7 +32,7 @@
                     <label for="apellido" class="font-semibold text-gray-700">APELLIDOS</label>
                     <input type="text" name="apellido" id="apellido" required class="w-full rounded-lg border p-2">
                 </div>
-            
+
                 <div>
     <label for="tipo_documento" class="font-semibold text-gray-700">TIPO DOCUMENTO</label>
     <select name="tipo_documento" id="tipo_documento" required class="w-full rounded-lg border p-2">
@@ -45,25 +58,6 @@
                     <label for="celular" class="font-semibold text-gray-700">CELULAR</label>
                     <input type="tel" name="celular" id="celular" required pattern="[0-9]{10}" title="Debe contener 10 dígitos" class="w-full rounded-lg border p-2">
                 </div>
-
-                <div>
-                    <label for="ficha" class="font-semibold text-gray-700">NÚMERO DE FICHA</label>
-                    <input type="text" name="ficha" id="ficha" required pattern="[0-9]+" title="Solo números" class="w-full rounded-lg border p-2">
-                </div>
-
-                <div>
-                    <label for="confirmar_ficha" class="font-semibold text-gray-700">CONFIRMAR NÚMERO DE FICHA</label>
-                    <input type="text" name="confirmar_ficha" id="confirmar_ficha" required pattern="[0-9]+" title="Solo números" class="w-full rounded-lg border p-2">
-                </div>
-
-                <div>
-                    <label for="jornada" class="font-semibold text-gray-700">JORNADA</label>
-                    <select name="jornada" id="jornada" required class="w-full rounded-lg border p-2">
-                        <option value="Mañana">Mañana</option>
-                        <option value="Tarde">Tarde</option>
-                        <option value="Noche">Noche</option>
-                    </select>
-                </div>
             </div>
 
             <!-- Contraseña -->
@@ -73,15 +67,13 @@
                 <p class="text-xs text-gray-500 mt-1">La contraseña debe tener al menos 8 caracteres</p>
             </div>
 
-            <button type="submit" class="w-full btn-sena-primary py-3 mt-6">
-                Registrar Aprendiz
-            </button>
+            <div class="flex gap-4">
+                <a href="{{ url_for('auth.registro_aprendiz') }}" class="w-full btn-sena-secondary py-3 text-center">Volver</a>
+                <button type="submit" class="w-full btn-sena-primary py-3">
+                    Registrar
+                </button>
+            </div>
         </form>
-
-        <p class="mt-6 text-sm text-center text-gray-600">
-            ¿Ya tienes una cuenta?
-            <a href="{{ url_for('auth.login') }}" class="text-sena-primary font-semibold hover:text-sena-dark">Inicia sesión aquí</a>
-        </p>
     </div>
 
 <!-- Modal de éxito -->

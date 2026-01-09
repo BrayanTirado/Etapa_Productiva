@@ -196,13 +196,13 @@
             <!-- Formulario enviar mensaje -->
             <div class="card-sena p-4 sm:p-6">
                 <h3 class="text-xl font-bold mb-4 text-sena-dark text-center">Enviar Mensaje</h3>
-                <form action="{{ url_for('instructor_bp.enviar_mensaje') }}" method="POST" class="form-sena flex flex-col gap-4">
+                <form action="{{ url_for('instructor_bp.enviar_mensaje') }}" method="POST" enctype="multipart/form-data" class="form-sena flex flex-col gap-4">
                     <div class="form-group">
                         <label for="rol_destinatario">Rol destinatario</label>
                         <select name="rol_destinatario" id="rol_destinatario" required>
                             <option value="">Seleccione rol</option>
-                            <option value="Coordinador">Coordinador</option>
                             <option value="Administrador">Administrador</option>
+                            <option value="Administrador Sede">Administrador Sede</option>
                             <option value="Aprendiz">Aprendiz</option>
                         </select>
                     </div>
@@ -214,11 +214,11 @@
                             {% for a in aprendices %}
                             <option class="aprendiz" value="{{ a.id_aprendiz }}">{{ a.nombre }} {{ a.apellido }} - {{ a.ficha }}</option>
                             {% endfor %}
-                            {% for c in coordinadores %}
-                            <option class="coordinador" value="{{ c.id_coordinador }}">{{ c.nombre }} {{ c.apellido }}</option>
-                            {% endfor %}
                             {% for adm in administradores %}
                             <option class="administrador" value="{{ adm.id_admin }}">{{ adm.nombre }} {{ adm.apellido }}</option>
+                            {% endfor %}
+                            {% for adm_s in administradores_sede %}
+                            <option class="administrador_sede" value="{{ adm_s.id_admin_sede }}">{{ adm_s.nombre }} {{ adm_s.apellido }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -226,6 +226,11 @@
                     <div class="form-group">
                         <label for="mensaje">Mensaje</label>
                         <textarea name="mensaje" id="mensaje" rows="4" placeholder="Escribe tu mensaje aquí..." required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="archivo">Adjuntar archivo (opcional)</label>
+                        <input type="file" name="archivo" id="archivo" accept=".pdf,.doc,.docx,.jpg,.png,.txt">
                     </div>
 
                     <button type="submit" class="btn-sena-primary">Enviar</button>
@@ -386,9 +391,10 @@ const destinatarioSelect = document.getElementById('destinatario_id');
 
 rolSelect.addEventListener('change', () => {
     const rol = rolSelect.value;
+    const className = rol.toLowerCase().replace(/\s+/g, '_');
     for (const option of destinatarioSelect.options) {
         if (option.value === "") { option.style.display = 'block'; continue; }
-        if (option.classList.contains(rol.toLowerCase())) option.style.display = 'block';
+        if (option.classList.contains(className)) option.style.display = 'block';
         else option.style.display = 'none';
     }
     destinatarioSelect.value = "";

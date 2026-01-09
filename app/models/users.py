@@ -5,7 +5,7 @@ from sqlalchemy.dialects.postgresql import ENUM as PGEnum  # Opcional, pero úti
 
 # -------------------------
 # TABLA ADMINISTRADOR
-# -------------------------
+# ------------------------->
 class Administrador(db.Model, UserMixin):
     __tablename__ = "administrador"
     id_admin = db.Column(db.Integer, primary_key=True)
@@ -26,45 +26,24 @@ class Administrador(db.Model, UserMixin):
     celular = db.Column(db.String(45), nullable=False)
     password = db.Column(db.String(200), nullable=False)
 
-    tokens_coordinador = db.relationship("TokenCoordinador", back_populates="administrador", lazy=True)
-    
+    # Relación con administradores de sede
+    administradores_sede = db.relationship("AdministradorSede", back_populates="administrador_principal", lazy=True)
+
     @property
     def rol_user(self):
         return "administrador"
-    
+
     def get_id(self):
         return f"administrador-{self.id_admin}"
 
-# -------------------------
-# TABLA SEDE
-# -------------------------
-class Sede(db.Model):
-    __tablename__ = 'sede'
-    id_sede = db.Column(db.Integer, primary_key=True)
-    nombre_sede = db.Column(
-        db.Enum(
-            'CGAO', 'CCS', 'CDM', 'CGAF', 'CGPI', 'CTIC', 'CBA', 'CEM', 'CSF', 'CFGR',
-            name='nombre_sede_enum'  # ← Agregado name
-        ),
-        nullable=False, unique=True
-    )
-    ciudad = db.Column(db.String(100), nullable=False)
-    token = db.Column(db.String(100), nullable=True)  
-    token_expiracion = db.Column(db.DateTime, nullable=True)
-
-    coordinadores = db.relationship('Coordinador', back_populates='sede', lazy=True)
-
-    def __repr__(self):
-        return f'<Sede {self.nombre_sede} - {self.ciudad}>'
-
-# -------------------------
-# TABLA COORDINADOR
-# -------------------------
-class Coordinador(db.Model, UserMixin):
-    __tablename__ = 'coordinador'
-    id_coordinador = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(45), nullable=False)
-    apellido = db.Column(db.String(45), nullable=False)
+# ------------------------->
+# TABLA ADMINISTRADOR SEDE
+# ------------------------->
+class AdministradorSede(db.Model, UserMixin):
+    __tablename__ = "administrador_sede"
+    id_admin_sede = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(100), nullable=False)
+    apellido = db.Column(db.String(100), nullable=False)
     tipo_documento = db.Column(
         db.Enum(
             'Cedula de Ciudadania',
@@ -75,26 +54,64 @@ class Coordinador(db.Model, UserMixin):
         ),
         nullable=False
     )
-    documento = db.Column(db.String(45), unique=True, nullable=False)
+    documento = db.Column(db.String(50), unique=True, nullable=False)
     correo = db.Column(db.String(100), nullable=False, unique=True)
     celular = db.Column(db.String(45), nullable=False)
-    password = db.Column(db.String(250), nullable=False)
+    password = db.Column(db.String(200), nullable=False)
 
-    sede_id = db.Column(db.Integer, db.ForeignKey('sede.id_sede'), nullable=True)
-    sede = db.relationship('Sede', back_populates='coordinadores')
+    # Relación con administrador principal
+    admin_principal_id = db.Column(db.Integer, db.ForeignKey('administrador.id_admin'), nullable=False)
+    administrador_principal = db.relationship('Administrador', back_populates='administradores_sede')
 
-    instructores = db.relationship('Instructor', back_populates='coordinador', lazy=True)
-    tokens = db.relationship('TokenInstructor', back_populates='coordinador', lazy=True)
+    # Relación con sede asignada
+    sede_id = db.Column(db.Integer, db.ForeignKey('sede.id_sede'), nullable=False)
+    sede = db.relationship('Sede', backref='administrador_sede')
+
+    # Relación con instructores que registra
+    instructores = db.relationship('Instructor', back_populates='administrador_sede', lazy=True)
 
     @property
     def rol_user(self):
-        return "coordinador"
+        return "administrador_sede"
 
     def get_id(self):
-        return f"coordinador-{self.id_coordinador}"
+        return f"administrador_sede-{self.id_admin_sede}"
 
     def __repr__(self):
-        return f'<Coordinador {self.nombre} {self.apellido}>'
+        return f'<AdministradorSede {self.nombre} {self.apellido} - Sede: {self.sede.nombre_sede if self.sede else "Sin sede"}>'
+
+# -------------------------
+# TABLA SEDE
+# -------------------------
+class Sede(db.Model):
+    __tablename__ = 'sede'
+    id_sede = db.Column(db.Integer, primary_key=True)
+    nombre_sede = db.Column(db.String(50), nullable=False, unique=True)  # Usamos String en vez de Enum
+    ciudad = db.Column(db.String(100), nullable=False)
+    token = db.Column(db.String(100), nullable=True)
+    token_expiracion = db.Column(db.DateTime, nullable=True)
+
+    # Diccionario para mapear siglas a nombres largos
+    nombres_completos = {
+        'CGAO': 'CENTRO DE GESTIÓN AGROEMPRESARIAL DEL ORIENTE',
+        'CCS': 'CENTRO DE CIENCIAS SOCIALES',
+        'CDM': 'CENTRO DE DISEÑO Y MANUFACTURA',
+        'CGAF': 'CENTRO DE GESTIÓN ADMINISTRATIVA Y FINANCIERA',
+        'CGPI': 'CENTRO DE GESTIÓN PRODUCTIVA E INDUSTRIAL',
+        'CTIC': 'CENTRO DE TECNOLOGÍAS DE INFORMACIÓN Y COMUNICACIÓN',
+        'CBA': 'CENTRO DE BIOLOGÍA APLICADA',
+        'CEM': 'CENTRO DE ENERGÍA Y MECÁNICA',
+        'CSF': 'CENTRO DE SALUD Y FORMACIÓN',
+        'CFGR': 'CENTRO DE FORMACIÓN GRÁFICA',
+    }
+
+    def nombre_completo(self):
+        return f"{self.nombre_sede} - {self.nombres_completos.get(self.nombre_sede, '')}"
+
+    def __repr__(self):
+        return f'<Sede {self.nombre_completo()} - {self.ciudad}>'
+
+
 
 # -------------------------
 # TABLA INSTRUCTOR
@@ -117,8 +134,9 @@ class Instructor(db.Model, UserMixin):
     documento = db.Column(db.String(45), nullable=False, unique=True)
     password_instructor = db.Column(db.String(250), nullable=False)
 
-    coordinador_id = db.Column(db.Integer, db.ForeignKey('coordinador.id_coordinador'), nullable=False)
-    coordinador = db.relationship('Coordinador', back_populates='instructores')
+    # Relación con administrador de sede que lo registra
+    administrador_sede_id = db.Column(db.Integer, db.ForeignKey('administrador_sede.id_admin_sede'), nullable=False)
+    administrador_sede = db.relationship('AdministradorSede', back_populates='instructores')
 
     sede_id = db.Column(db.Integer, db.ForeignKey('sede.id_sede'))
     sede = db.relationship('Sede', backref='instructores')
@@ -158,10 +176,7 @@ class Programa(db.Model):
         db.Enum('Auxiliar', 'Tecnico', 'Tecnologo', name='titulo_programa_enum'),  # ← Agregado
         nullable=False
     )
-    jornada = db.Column(
-        db.Enum('Mañana', 'Tarde', 'Noche', name='jornada_programa_enum'),  # ← Agregado
-        nullable=False
-    )
+    # jornada removida, ahora en Aprendiz
     ficha_id = db.Column(db.Integer, db.ForeignKey('ficha.id_ficha'), nullable=False)
     instructor_id_instructor = db.Column(db.Integer, db.ForeignKey('instructor.id_instructor'), nullable=True)
 
@@ -192,8 +207,9 @@ class Aprendiz(db.Model, UserMixin):
         nullable=False
     )
     documento = db.Column(db.String(45), unique=True, nullable=False, index=True)
-    email = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    correo = db.Column(db.String(100), unique=True, nullable=False, index=True)
     celular = db.Column(db.String(45), unique=True, nullable=False, index=True)
+    jornada = db.Column(db.Enum('Mañana', 'Tarde', 'Noche', name='jornada_aprendiz_enum'), nullable=False)
     password_aprendiz = db.Column(db.String(250), nullable=False)
 
     contrato_id = db.Column(db.Integer, db.ForeignKey('contrato.id_contrato'), nullable=True)
@@ -205,15 +221,12 @@ class Aprendiz(db.Model, UserMixin):
     instructor_id = db.Column(db.Integer, db.ForeignKey('instructor.id_instructor'), nullable=True)
     instructor = db.relationship('Instructor', back_populates='aprendices_rel')
 
-    sede_id = db.Column(db.Integer, db.ForeignKey('sede.id_sede'))
+    sede_id = db.Column(db.Integer, db.ForeignKey('sede.id_sede'), nullable=True)
     sede = db.relationship('Sede', backref='aprendices')
 
     empresas = db.relationship('Empresa', back_populates='aprendiz', cascade="all, delete-orphan")
     evidencias = db.relationship('Evidencia', back_populates='aprendiz_rel', lazy=True, cascade='all, delete-orphan')
     seguimiento = db.relationship('Seguimiento', back_populates='aprendiz_rel', lazy=True, uselist=False, cascade='all, delete-orphan')
-
-    coordinador_id = db.Column(db.Integer, db.ForeignKey('coordinador.id_coordinador'), nullable=True)
-    coordinador = db.relationship('Coordinador', backref='aprendices', lazy=True)
     
     @property
     def rol_user(self):
@@ -308,23 +321,6 @@ class Seguimiento(db.Model):
     def __repr__(self):
         return f'<Seguimiento {self.tipo} - {self.fecha}>'
 
-# -------------------------
-# TABLA TOKEN COORDINADOR
-# -------------------------
-class TokenCoordinador(db.Model):
-    __tablename__ = "token_coordinador"
-    id_token = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    token = db.Column(db.String(50), unique=True, nullable=False)
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
-    fecha_expiracion = db.Column(db.DateTime, nullable=True)
-    usado = db.Column(db.Boolean, default=False)
-    usado_para_sede = db.Column(db.Boolean, default=False)
-
-    admin_id = db.Column(db.Integer, db.ForeignKey("administrador.id_admin"), nullable=False)
-    administrador = db.relationship("Administrador", back_populates="tokens_coordinador")
-
-    def __repr__(self):
-        return f"<TokenCoordinador {self.token} - Usado: {self.usado} - Usado para sede: {self.usado_para_sede}>"
 
 # -------------------------
 # TABLA TOKEN INSTRUCTOR
@@ -335,9 +331,6 @@ class TokenInstructor(db.Model):
     token = db.Column(db.String(100), nullable=False, unique=True)
     fecha_expiracion = db.Column(db.DateTime, nullable=False)
     activo = db.Column(db.Boolean, default=True)
-
-    coordinador_id = db.Column(db.Integer, db.ForeignKey('coordinador.id_coordinador'), nullable=False)
-    coordinador = db.relationship('Coordinador', back_populates='tokens')
 
     sede_id = db.Column(db.Integer, db.ForeignKey('sede.id_sede'), nullable=False)
     sede = db.relationship('Sede', backref='tokens_instructor')

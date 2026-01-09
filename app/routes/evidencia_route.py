@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, send_from_directory
+from flask import Blueprint, render_template, request, redirect, url_for, flash, send_from_directory, current_app
 from flask_login import login_required, current_user
 from app.models.users import Evidencia, Aprendiz, Instructor
 from app import db
@@ -113,12 +113,6 @@ def migrar_sesion_excel():
     return redirect(url_for('evidencia_bp.listar_evidencias'))
 
 
-# -------------------------------
-# CONFIGURACIÓN ARCHIVOS
-# -------------------------------
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-UPLOAD_FOLDER = os.path.join(BASE_DIR, 'Uploads')
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 EXTENSIONES_PERMITIDAS = {
     "word": {"doc", "docx"},
@@ -243,7 +237,7 @@ def serve_file(id):
 
     try:
         unique_filename = os.path.basename(evidencia.url_archivo)
-        return send_from_directory(UPLOAD_FOLDER, unique_filename, as_attachment=True, download_name=evidencia.nombre_archivo)
+        return send_from_directory(current_app.config['UPLOAD_FOLDER'], unique_filename, as_attachment=True, download_name=evidencia.nombre_archivo)
     except FileNotFoundError:
         flash('El archivo no se encontró en el servidor.', 'danger')
     except Exception as e:
@@ -270,7 +264,7 @@ def view_file(id):
 
     try:
         unique_filename = os.path.basename(evidencia.url_archivo)
-        return send_from_directory(UPLOAD_FOLDER, unique_filename, as_attachment=False)
+        return send_from_directory(current_app.config['UPLOAD_FOLDER'], unique_filename, as_attachment=False)
     except FileNotFoundError:
         flash('El archivo no se encontró en el servidor.', 'danger')
     except Exception as e:
@@ -363,7 +357,7 @@ def upload_evidencia(tipo):
     original_name = secure_filename(archivo.filename)
     ext = original_name.rsplit('.', 1)[1].lower()
     unique_name = f"{uuid4().hex}_{original_name}"
-    filepath = os.path.join(UPLOAD_FOLDER, unique_name)
+    filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_name)
 
     try:
         archivo.save(filepath)
@@ -486,7 +480,7 @@ def editar_evidencia(id):
             original_name = secure_filename(archivo.filename)
             ext = original_name.rsplit('.', 1)[1].lower()
             unique_name = f"{uuid4().hex}_{original_name}"
-            new_filepath = os.path.join(UPLOAD_FOLDER, unique_name)
+            new_filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_name)
 
             try:
                 archivo.save(new_filepath)

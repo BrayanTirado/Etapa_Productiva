@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from app.models.users import Aprendiz, Instructor, Contrato, Programa, Coordinador, Administrador, Evidencia, PasswordResetToken, Notificacion
+from app.models.users import Aprendiz, Instructor, Contrato, Programa, Administrador, AdministradorSede, Evidencia, PasswordResetToken, Notificacion, Ficha
 from app import db
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
@@ -20,8 +20,8 @@ def login():
         # Redirigir según rol
         if isinstance(current_user, Administrador):
             return redirect(url_for('adm_bp.dashboard'))
-        elif isinstance(current_user, Coordinador):
-            return redirect(url_for('coordinador_bp.dashboard'))
+        elif isinstance(current_user, AdministradorSede):
+            return redirect(url_for('adm_sede_bp.dashboard'))
         elif isinstance(current_user, Instructor):
             return redirect(url_for('instructor_bp.dashboard_instructor', instructor_id=current_user.id_instructor))
         elif isinstance(current_user, Aprendiz):
@@ -39,13 +39,13 @@ def login():
 
         # Buscar usuario en todos los roles
         user = (Administrador.query.filter_by(documento=documento).first() or
-                Coordinador.query.filter_by(documento=documento).first() or
+                AdministradorSede.query.filter_by(documento=documento).first() or
                 Instructor.query.filter_by(documento=documento).first() or
                 Aprendiz.query.filter_by(documento=documento).first())
 
         if user:
             # Campo de contraseña según tipo
-            if isinstance(user, (Administrador, Coordinador)):
+            if isinstance(user, (Administrador, AdministradorSede)):
                 password_field = 'password'
             elif isinstance(user, Instructor):
                 password_field = 'password_instructor'
@@ -59,8 +59,8 @@ def login():
                 # Redirigir según rol
                 if isinstance(user, Administrador):
                     return redirect(url_for('adm_bp.dashboard'))
-                elif isinstance(user, Coordinador):
-                    return redirect(url_for('coordinador_bp.dashboard'))
+                elif isinstance(user, AdministradorSede):
+                    return redirect(url_for('adm_sede_bp.dashboard'))
                 elif isinstance(user, Instructor):
                     return redirect(url_for('instructor_bp.dashboard_instructor', instructor_id=user.id_instructor))
                 else:  # Aprendiz
@@ -136,9 +136,6 @@ def dashboard():
             now=datetime.now()
         )
 
-    elif isinstance(current_user, Coordinador):
-        return redirect(url_for('coordinador_bp.dashboard'))
-
     else:
         flash("No tienes permisos para acceder al dashboard.", "danger")
         return redirect(url_for("auth.login"))
@@ -156,45 +153,62 @@ def logout():
 # --- REGISTRO DE APRENDIZ ---
 @bp.route('/aprendiz', methods=['GET', 'POST'])
 def registro_aprendiz():
-    from app.models.users import Sede  # Importar Sede aquí
-    sedes = Sede.query.all()  # Definir sedes al inicio
     if request.method == 'POST':
         nombre = request.form.get('nombre').strip()
         apellido = request.form.get('apellido').strip()
         tipo_documento = request.form.get('tipo_documento').strip()
         documento = request.form.get('documento').strip()
-        email = request.form.get('email').strip().lower()
+        correo = request.form.get('correo').strip().lower()
         celular = request.form.get('celular').strip()
         password = request.form.get('password')
-        sede_nombre = request.form.get('sede_id')
+        ficha_numero = request.form.get('ficha').strip()
+        confirmar_ficha = request.form.get('confirmar_ficha').strip()
+        jornada = request.form.get('jornada').strip()
 
-        if not all([nombre, apellido, tipo_documento, documento, email, celular, password, sede_nombre]):
+        if not all([nombre, apellido, tipo_documento, documento, correo, celular, password, ficha_numero, confirmar_ficha, jornada]):
             flash('Todos los campos son obligatorios.', 'warning')
             return redirect(url_for('auth.registro_aprendiz'))
 
-        # Buscar la sede por nombre
-        sede = Sede.query.filter_by(nombre_sede=sede_nombre).first()
-        if not sede:
-            flash('La sede seleccionada no existe en el sistema.', 'danger')
+        if ficha_numero != confirmar_ficha:
+            flash('El número de ficha y la confirmación no coinciden.', 'danger')
             return redirect(url_for('auth.registro_aprendiz'))
 
+        # Verificar ficha
+        try:
+            ficha_numero_int = int(ficha_numero)
+        except ValueError:
+            flash('El número de ficha debe ser un número válido.', 'danger')
+            return redirect(url_for('auth.registro_aprendiz'))
+
+        ficha = Ficha.query.filter_by(numero_ficha=ficha_numero_int).first()
+        if not ficha:
+            flash('El número de ficha no existe en el sistema.', 'danger')
+            return redirect(url_for('auth.registro_aprendiz'))
+
+        # Buscar programa asociado a la ficha
+        programa = Programa.query.filter_by(ficha_id=ficha.id_ficha).first()
+        if not programa:
+            flash('No hay un programa asociado a esta ficha.', 'danger')
+            return redirect(url_for('auth.registro_aprendiz'))
+
+        # Obtener instructor y sede
+        instructor = programa.instructor_rel
+        sede = instructor.sede if instructor else None
+
         # Verificar unicidad global (todos los tipos de usuario)
-        from app.models.users import Administrador, Coordinador, Instructor
+        from app.models.users import Administrador, Instructor
 
         # Verificar documento en todos los modelos
         documento_existe = (Aprendiz.query.filter_by(documento=documento).first() or
                             Administrador.query.filter_by(documento=documento).first() or
-                            Coordinador.query.filter_by(documento=documento).first() or
                             Instructor.query.filter_by(documento=documento).first())
 
         # Verificar email (solo en modelos que tienen email)
-        email_existe = (Aprendiz.query.filter_by(email=email).first() or
-                        Coordinador.query.filter_by(correo=email).first() or
-                        Instructor.query.filter_by(correo_instructor=email).first())
+        email_existe = (Aprendiz.query.filter_by(correo=correo).first() or
+                        Instructor.query.filter_by(correo_instructor=correo).first())
 
         # Verificar celular (solo en modelos que tienen celular)
         celular_existe = (Aprendiz.query.filter_by(celular=celular).first() or
-                          Coordinador.query.filter_by(celular=celular).first() or
                           Instructor.query.filter_by(celular_instructor=celular).first())
 
         if documento_existe:
@@ -215,40 +229,44 @@ def registro_aprendiz():
             apellido=apellido,
             tipo_documento=tipo_documento,
             documento=documento,
-            email=email,
+            correo=correo,
             celular=celular,
+            jornada=jornada,
             password_aprendiz=hashed_password,
-            sede_id=sede.id_sede
+            programa_id=programa.id_programa,
+            instructor_id=instructor.id_instructor if instructor else None,
+            sede_id=sede.id_sede if sede else None
         )
         try:
             db.session.add(nuevo)
             db.session.commit()
 
-            # Crear notificaciones para los coordinadores de la sede
-            coordinadores = sede.coordinadores
-            mensaje_notificacion = f"El aprendiz {nuevo.nombre} {nuevo.apellido} se ha registrado exitosamente."
+            # Notificación al administrador principal
+            mensaje_notificacion = f"El aprendiz {nuevo.nombre} {nuevo.apellido} se ha registrado exitosamente con ficha {ficha_numero_int}."
 
-            for coordinador in coordinadores:
+            # Buscar administradores para notificar
+            administradores = Administrador.query.all()
+            for admin in administradores:
                 notificacion = Notificacion(
                     motivo="Registro de aprendiz",
                     mensaje=mensaje_notificacion,
                     remitente_id=nuevo.id_aprendiz,
                     rol_remitente="aprendiz",
-                    destinatario_id=coordinador.id_coordinador,
-                    rol_destinatario="coordinador"
+                    destinatario_id=admin.id_admin,
+                    rol_destinatario="administrador"
                 )
                 db.session.add(notificacion)
 
             db.session.commit()
 
             flash('Aprendiz registrado con éxito.', 'success')
-            return render_template('aprendiz.html', sedes=sedes, now=datetime.now())
+            return render_template('aprendiz.html', now=datetime.now())
         except Exception as e:
             db.session.rollback()
             flash(f'Error al crear el aprendiz: {str(e)}', 'danger')
             return redirect(url_for('auth.registro_aprendiz'))
 
-    return render_template('aprendiz.html', sedes=sedes, now=datetime.now())
+    return render_template('aprendiz.html', now=datetime.now())
 
 
 # --- REGISTRO DE INSTRUCTOR ---
@@ -290,22 +308,19 @@ def instructor():
             return redirect(url_for('auth.instructor'))
 
         # Verificar unicidad global (todos los tipos de usuario)
-        from app.models.users import Administrador, Coordinador, Aprendiz
+        from app.models.users import Administrador, Aprendiz
 
         # Verificar documento en todos los modelos
         documento_existe = (Instructor.query.filter_by(documento=documento).first() or
                             Administrador.query.filter_by(documento=documento).first() or
-                            Coordinador.query.filter_by(documento=documento).first() or
                             Aprendiz.query.filter_by(documento=documento).first())
 
         # Verificar email (solo en modelos que tienen email)
         email_existe = (Instructor.query.filter_by(correo_instructor=correo).first() or
-                        Coordinador.query.filter_by(correo=correo).first() or
-                        Aprendiz.query.filter_by(email=correo).first())
+                        Aprendiz.query.filter_by(correo=correo).first())
 
         # Verificar celular (solo en modelos que tienen celular)
         celular_existe = (Instructor.query.filter_by(celular_instructor=celular).first() or
-                          Coordinador.query.filter_by(celular=celular).first() or
                           Aprendiz.query.filter_by(celular=celular).first())
 
         if documento_existe:
@@ -313,7 +328,7 @@ def instructor():
             return redirect(url_for('auth.instructor'))
 
         if email_existe:
-            flash('Error: Ya existe un usuario con ese email.', 'danger')
+            flash('Error: Ya existe un usuario con ese correo.', 'danger')
             return redirect(url_for('auth.instructor'))
 
         if celular_existe:
@@ -332,7 +347,6 @@ def instructor():
             correo_instructor=correo,
             celular_instructor=celular,
             password_instructor=hashed_password,
-            coordinador_id=token.coordinador_id,
             sede_id=sede_id_final
         )
 
@@ -340,17 +354,19 @@ def instructor():
             db.session.add(nuevo)
             db.session.commit()
 
-            # Notificación al coordinador
-            noti = Notificacion(
-                motivo="Se ha registrado un nuevo Instructor",
-                mensaje=f"{nuevo.nombre_instructor} {nuevo.apellido_instructor}",
-                remitente_id=nuevo.id_instructor,
-                rol_remitente="Instructor",
-                destinatario_id=nuevo.coordinador_id,
-                rol_destinatario="Coordinador",
-                visto=False
-            )
-            db.session.add(noti)
+            # Notificación a administradores
+            administradores = Administrador.query.all()
+            for admin in administradores:
+                noti = Notificacion(
+                    motivo="Se ha registrado un nuevo Instructor",
+                    mensaje=f"{nuevo.nombre_instructor} {nuevo.apellido_instructor} en la sede {sede.nombre_sede}",
+                    remitente_id=nuevo.id_instructor,
+                    rol_remitente="Instructor",
+                    destinatario_id=admin.id_admin,
+                    rol_destinatario="administrador",
+                    visto=False
+                )
+                db.session.add(noti)
             db.session.commit()
 
             flash('Instructor creado exitosamente.', 'success')
@@ -372,7 +388,7 @@ def generate_reset_token():
 def find_user_by_email(email):
     """Busca un usuario por email en todos los tipos de usuario"""
     # Buscar en Aprendiz
-    user = Aprendiz.query.filter_by(email=email).first()
+    user = Aprendiz.query.filter_by(correo=email).first()
     if user:
         return user, 'aprendiz'
 
@@ -381,10 +397,7 @@ def find_user_by_email(email):
     if user:
         return user, 'instructor'
 
-    # Buscar en Coordinador
-    user = Coordinador.query.filter_by(correo=email).first()
-    if user:
-        return user, 'coordinador'
+    # Eliminado: Coordinador ya no existe
 
     # Buscar en Administrador
     user = Administrador.query.filter_by(correo=email).first()
@@ -477,7 +490,6 @@ def forgot_password():
         id_attr_map = {
             'aprendiz': 'id_aprendiz',
             'instructor': 'id_instructor',
-            'coordinador': 'id_coordinador',
             'administrador': 'id_admin'
         }
         id_attr = id_attr_map.get(user_type, f'id_{user_type}')
@@ -673,9 +685,6 @@ def reset_password(token):
         elif reset_token.user_type == 'instructor':
             user = Instructor.query.get(reset_token.user_id)
             password_field = 'password_instructor'
-        elif reset_token.user_type == 'coordinador':
-            user = Coordinador.query.get(reset_token.user_id)
-            password_field = 'password'
         elif reset_token.user_type == 'administrador':
             user = Administrador.query.get(reset_token.user_id)
             password_field = 'password'

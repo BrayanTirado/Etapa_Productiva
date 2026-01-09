@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}SENA - Dashboard Administrador{% endblock %}
+{% block title %}SENA - Dashboard Administrador de Sede{% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
@@ -15,12 +15,12 @@
   <!-- Botones a la derecha -->
   <div class="absolute right-0 flex items-center gap-4">
     <!-- Ver Perfil -->
-    <a href="{{ url_for('adm_bp.editar_perfil') }}" class="btn-sena-secondary">
+    <a href="{{ url_for('adm_sede_bp.editar_perfil') }}" class="btn-sena-secondary">
       Ver Perfil
     </a>
 
     <!-- Campana -->
-    <a href="{{ url_for('adm_bp.notificaciones') }}" class="relative text-2xl">
+    <a href="{{ url_for('adm_sede_bp.notificaciones') }}" class="relative text-2xl">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-sena-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14V11a6 6 0 00-5-5.917V4a1 1 0 10-2 0v1.083A6 6 0 006 11v3c0 .386-.146.735-.405 1.005L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
       </svg>
@@ -32,7 +32,7 @@
     </a>
 
     <!-- Botón Cerrar sesión -->
-    <a href="{{ url_for('adm_bp.logout') }}" class="btn-sena-danger">
+    <a href="{{ url_for('adm_sede_bp.logout') }}" class="btn-sena-danger">
       Cerrar sesión
     </a>
   </div>
@@ -62,28 +62,26 @@
   {% endif %}
 {% endwith %}
 
-        <!-- Gestión de Administradores de Sede -->
+
+        <!-- Gestión de Instructores -->
         <section class="card-sena p-4 sm:p-6">
-            <h2 class="text-xl font-semibold mb-6 text-sena-dark flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-sena-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-                Gestión de Administradores de Sede
-            </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <a href="{{ url_for('adm_bp.crear_adm_sede') }}" class="flex items-center gap-3 p-4 bg-sena-primary text-white rounded-lg hover:bg-sena-dark transition-colors shadow-md">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    <span class="font-medium">Crear Administrador de Sede</span>
-                </a>
-                <a href="{{ url_for('adm_bp.gestionar_adm_sede') }}" class="flex items-center gap-3 p-4 bg-sena-secondary text-white rounded-lg hover:bg-sena-dark transition-colors shadow-md">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                    <span class="font-medium">Gestionar Administradores</span>
-                </a>
-            </div>
+            <h2 class="text-xl font-semibold mb-4 text-sena-dark">Gestión de Instructores</h2>
+            <p class="text-gray-600 mb-4">Administra los instructores de tu sede</p>
+            <a href="{{ url_for('adm_sede_bp.gestionar_instructores') }}" class="btn-sena-primary">Ir a Gestión de Instructores</a>
+        </section>
+
+        <!-- Gestión de Programas -->
+        <section class="card-sena p-4 sm:p-6">
+            <h2 class="text-xl font-semibold mb-4 text-sena-dark">Gestión de Programas</h2>
+            <p class="text-gray-600 mb-4">Administra los programas asociados a fichas</p>
+            <a href="{{ url_for('adm_sede_bp.gestionar_programas') }}" class="btn-sena-primary">Ir a Gestión de Programas</a>
+        </section>
+
+        <!-- Gestión de Aprendices -->
+        <section class="card-sena p-4 sm:p-6 md:col-span-2">
+            <h2 class="text-xl font-semibold mb-4 text-sena-dark">Gestión de Aprendices</h2>
+            <p class="text-gray-600 mb-4">Administra los aprendices de tu sede</p>
+            <a href="{{ url_for('adm_sede_bp.gestionar_aprendices') }}" class="btn-sena-primary">Ir a Gestión de Aprendices</a>
         </section>
 
         <!-- Formulario para enviar mensaje -->
@@ -97,7 +95,7 @@
     </div>
 
     <!-- Formulario -->
-<form id="form-mensaje" method="POST" action="{{ url_for('adm_bp.enviar_mensaje') }}" enctype="multipart/form-data" class="form-sena">
+<form id="form-mensaje" method="POST" action="{{ url_for('adm_sede_bp.enviar_mensaje') }}" enctype="multipart/form-data" class="form-sena">
     <!-- Selección de rol -->
     <div class="form-group">
         <label for="rol_destinatario" class="form-label">Selecciona el rol:</label>
@@ -105,10 +103,9 @@
             <option value="">-- Selecciona un rol --</option>
             <option value="Instructor">Instructor</option>
             <option value="Aprendiz">Aprendiz</option>
-            <option value="AdministradorSede">Administrador de Sede</option>
+            <option value="Administrador">Administrador</option>
         </select>
     </div>
-
 
 <!-- Instructores -->
 <div id="select-instructor" class="form-group hidden">
@@ -132,13 +129,13 @@
     </select>
 </div>
 
-<!-- Administradores de Sede -->
-<div id="select-admin-sede" class="form-group hidden">
-    <label class="form-label">Selecciona un administrador de sede (opcional):</label>
+<!-- Administradores -->
+<div id="select-admin" class="form-group hidden">
+    <label class="form-label">Selecciona un administrador (opcional):</label>
     <select name="destinatario_id" class="form-select" disabled>
-        <option value="">-- Todos los administradores de sede --</option>
-        {% for adm in adm_sedes %}
-            <option value="{{ adm.id_admin_sede }}">{{ adm.nombre }} {{ adm.apellido }}</option>
+        <option value="">-- Todos los administradores --</option>
+        {% for adm in administradores %}
+            <option value="{{ adm.id_admin }}">{{ adm.nombre }} {{ adm.apellido }}</option>
         {% endfor %}
     </select>
 </div>
@@ -155,10 +152,10 @@
         <textarea name="mensaje" id="mensaje" rows="4" class="form-textarea" placeholder="Escribe tu mensaje aquí"></textarea>
     </div>
 
-    <!-- Adjuntar archivo -->
+    <!-- Archivo adjunto -->
     <div class="form-group">
         <label for="archivo" class="form-label">Adjuntar archivo (opcional):</label>
-        <input type="file" name="archivo" id="archivo" class="form-input" accept=".pdf,.doc,.docx,.jpg,.png,.txt">
+        <input type="file" name="archivo" id="archivo" class="form-input">
     </div>
 </form>
 
@@ -171,8 +168,8 @@ function mostrarDestinatarios() {
     document.getElementById('select-aprendiz').classList.add('hidden');
     document.querySelector('#select-aprendiz select').disabled = true;
 
-    document.getElementById('select-admin-sede').classList.add('hidden');
-    document.querySelector('#select-admin-sede select').disabled = true;
+    document.getElementById('select-admin').classList.add('hidden');
+    document.querySelector('#select-admin select').disabled = true;
 
     // Mostrar y habilitar el correspondiente
     const rol = document.getElementById('rol_destinatario').value;
@@ -185,15 +182,16 @@ function mostrarDestinatarios() {
         document.getElementById('select-aprendiz').classList.remove('hidden');
         document.querySelector('#select-aprendiz select').disabled = false;
     }
-    if (rol === "AdministradorSede") {
-        document.getElementById('select-admin-sede').classList.remove('hidden');
-        document.querySelector('#select-admin-sede select').disabled = false;
+    if (rol === "Administrador") {
+        document.getElementById('select-admin').classList.remove('hidden');
+        document.querySelector('#select-admin select').disabled = false;
     }
 }
+
 </script>
 </section>
     </main>
-    
+
     <!-- Footer SENA -->
     <footer class="mt-auto bg-sena-dark py-4 sm:py-6">
         <div class="container mx-auto px-2 sm:px-4">

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Instructor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+<div class="container mx-auto bg-white shadow-xl rounded-xl p-6 max-w-2xl">
+
+    <h2 class="text-2xl font-bold mb-6 text-green-700">Editar Instructor</h2>
+
+    <form method="POST" class="form-sena">
+        <div class="form-group">
+            <label for="nombre_instructor" class="form-label">Nombre:</label>
+            <input type="text" name="nombre_instructor" id="nombre_instructor" value="{{ instructor.nombre_instructor }}" class="form-input" required>
+        </div>
+
+        <div class="form-group">
+            <label for="apellido_instructor" class="form-label">Apellido:</label>
+            <input type="text" name="apellido_instructor" id="apellido_instructor" value="{{ instructor.apellido_instructor }}" class="form-input" required>
+        </div>
+
+        <div class="form-group">
+            <label for="documento" class="form-label">Documento:</label>
+            <input type="text" name="documento" id="documento" value="{{ instructor.documento }}" class="form-input" required>
+        </div>
+
+        <div class="form-group">
+            <label for="correo_instructor" class="form-label">Correo:</label>
+            <input type="email" name="correo_instructor" id="correo_instructor" value="{{ instructor.correo_instructor }}" class="form-input" required>
+        </div>
+
+        <div class="form-group">
+            <label for="celular_instructor" class="form-label">Celular:</label>
+            <input type="text" name="celular_instructor" id="celular_instructor" value="{{ instructor.celular_instructor }}" class="form-input" required>
+        </div>
+
+        <div class="form-group">
+            <label for="password" class="form-label">Nueva Contraseña (opcional):</label>
+            <input type="password" name="password" id="password" class="form-input">
+        </div>
+
+        <div class="form-group">
+            <button type="submit" class="w-full btn-sena-primary">Actualizar Instructor</button>
+        </div>
+    </form>
+
+    <div class="mt-6">
+        <a href="{{ url_for('adm_sede_bp.dashboard') }}" class="btn-sena-secondary">Volver al Dashboard</a>
+    </div>
+</div>
+</body>
+</html>

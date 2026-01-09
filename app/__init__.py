@@ -19,6 +19,7 @@ def create_app():
     # -------------------------
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(24))
     app.config.from_object('config.Config')
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
     # -------------------------
     # Forzar PostgreSQL si existe DATABASE_URL
@@ -41,6 +42,7 @@ def create_app():
     # Inicializa extensiones
     # -------------------------
     db.init_app(app)
+    os.makedirs(app.instance_path, exist_ok=True)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
     mail.init_app(app)
@@ -58,11 +60,11 @@ def create_app():
     from app.routes.evidencia_route import bp as evidencia_bp
     from app.routes.listar_route import estudiantes_bp
     from app.routes.aprendiz_route import bp as aprendiz_bp
-    from app.routes.coordinador_route import bp as coordinador_bp
     from app.routes.crear_sede import bp as crear_sede_bp
-    from app.routes.crear_adm import bp as crear_adm_bp
     from app.routes.adm_route import adm_bp
+    from app.routes.adm_sede_route import adm_sede_bp
     from app.routes.notificacion_route import notificacion_bp
+    from app.routes.sedes_route import sedes_bp
 
     # Registra Blueprints
     app.register_blueprint(index_bp)
@@ -75,11 +77,11 @@ def create_app():
     app.register_blueprint(evidencia_bp)
     app.register_blueprint(estudiantes_bp)
     app.register_blueprint(aprendiz_bp)
-    app.register_blueprint(coordinador_bp)
     app.register_blueprint(crear_sede_bp)
-    app.register_blueprint(crear_adm_bp)
     app.register_blueprint(adm_bp)
+    app.register_blueprint(adm_sede_bp)
     app.register_blueprint(notificacion_bp)
+    app.register_blueprint(sedes_bp)
 
     # -------------------------
     # Importa modelos y crea tablas
@@ -87,10 +89,10 @@ def create_app():
     with app.app_context():
         try:
             from app.models.users import (
-                Aprendiz, Instructor, Coordinador, Administrador,
+                Aprendiz, Instructor, Administrador, AdministradorSede,
                 Sede, Empresa, Contrato, Programa, Seguimiento,
                 Evidencia, Notificacion, PasswordResetToken,
-                Ficha, TokenCoordinador, TokenInstructor
+                Ficha, TokenInstructor
             )
             print("[DEBUG] Models imported successfully")
             db.create_all()
@@ -120,7 +122,7 @@ def create_app():
 # -------------------------
 @login_manager.user_loader
 def load_user(user_id):
-    from app.models.users import Aprendiz, Instructor, Coordinador, Administrador
+    from app.models.users import Aprendiz, Instructor, Administrador, AdministradorSede
 
     try:
         role, id = user_id.split("-")
@@ -132,8 +134,8 @@ def load_user(user_id):
         return Aprendiz.query.get(id)
     elif role == "instructor":
         return Instructor.query.get(id)
-    elif role == "coordinador":
-        return Coordinador.query.get(id)
     elif role == "administrador":
         return Administrador.query.get(id)
+    elif role == "administrador_sede":
+        return AdministradorSede.query.get(id)
     return None

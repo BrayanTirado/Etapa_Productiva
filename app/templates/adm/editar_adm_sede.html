@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Administrador de Sede{% endblock %}
+
+{% block content %}
+<div class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white shadow-lg rounded-xl w-full max-w-3xl p-4 sm:p-8 space-y-6">
+
+        <h2 class="text-2xl font-bold text-center text-sena-primary">
+            Editar Administrador de Sede
+        </h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-4">
+                    {% for category, message in messages %}
+                        <div class="p-4 rounded-lg text-white
+                            {% if category == 'success' %}bg-green-500
+                            {% elif category == 'danger' %}bg-red-500
+                            {% elif category == 'warning' %}bg-yellow-500
+                            {% else %}bg-blue-500{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Vista del perfil -->
+        <div id="view-section" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Nombre -->
+                <div>
+                    <label class="font-semibold text-gray-700">Nombre</label>
+                    <p class="text-gray-900">{{ adm_sede.nombre }}</p>
+                </div>
+
+                <!-- Apellido -->
+                <div>
+                    <label class="font-semibold text-gray-700">Apellido</label>
+                    <p class="text-gray-900">{{ adm_sede.apellido }}</p>
+                </div>
+
+                <!-- Tipo de documento -->
+                <div>
+                    <label class="font-semibold text-gray-700">Tipo de documento</label>
+                    <p class="text-gray-900">{{ adm_sede.tipo_documento }}</p>
+                </div>
+
+                <!-- Documento -->
+                <div>
+                    <label class="font-semibold text-gray-700">Documento</label>
+                    <p class="text-gray-900">{{ adm_sede.documento }}</p>
+                </div>
+
+                <!-- Correo -->
+                <div>
+                    <label class="font-semibold text-gray-700">Correo Electrónico</label>
+                    <p class="text-gray-900">{{ adm_sede.correo }}</p>
+                </div>
+
+                <!-- Celular -->
+                <div>
+                    <label class="font-semibold text-gray-700">Celular</label>
+                    <p class="text-gray-900">{{ adm_sede.celular }}</p>
+                </div>
+
+                <!-- Sede -->
+                <div>
+                    <label class="font-semibold text-gray-700">Sede</label>
+                    <p class="text-gray-900">{{ adm_sede.sede.nombre_sede if adm_sede.sede else 'Sin sede' }}</p>
+                </div>
+            </div>
+
+            <!-- Botones -->
+            <div class="flex flex-col sm:flex-row gap-4 mt-6">
+                <button type="button" onclick="showEdit()" class="flex-1 bg-sena-primary hover:bg-sena-dark text-white py-3 rounded-lg font-medium transition-colors">
+                    Editar Perfil
+                </button>
+                <a href="{{ url_for('adm_bp.gestionar_adm_sede') }}"
+                    class="bg-sena-secondary hover:bg-sena-dark text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                    Volver
+                </a>
+            </div>
+        </div>
+
+        <!-- Formulario de edición (oculto por defecto) -->
+        <div id="edit-section" style="display: none;" class="space-y-6">
+            <form method="POST" action="{{ url_for('adm_bp.editar_adm_sede', id=adm_sede.id_admin_sede) }}" class="space-y-6">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Nombre -->
+                    <div>
+                        <label for="nombre" class="font-semibold text-gray-700">Nombre</label>
+                        <input type="text" name="nombre" id="nombre" required
+                               value="{{ adm_sede.nombre }}"
+                               class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                    </div>
+
+                    <!-- Apellido -->
+                    <div>
+                        <label for="apellido" class="font-semibold text-gray-700">Apellido</label>
+                        <input type="text" name="apellido" id="apellido" required
+                               value="{{ adm_sede.apellido }}"
+                               class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                    </div>
+
+                    <!-- Tipo de documento -->
+                    <div>
+                        <label for="tipo_documento" class="font-semibold text-gray-700">Tipo de documento</label>
+                        <select name="tipo_documento" id="tipo_documento" required
+                                class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                            <option value="Cedula de Ciudadania" {% if adm_sede.tipo_documento == 'Cedula de Ciudadania' %}selected{% endif %}>Cédula de Ciudadanía</option>
+                            <option value="Tarjeta de Identidad" {% if adm_sede.tipo_documento == 'Tarjeta de Identidad' %}selected{% endif %}>Tarjeta de Identidad</option>
+                            <option value="Cedula Extrangeria" {% if adm_sede.tipo_documento == 'Cedula Extrangeria' %}selected{% endif %}>Cédula de Extranjería</option>
+                            <option value="Registro Civil" {% if adm_sede.tipo_documento == 'Registro Civil' %}selected{% endif %}>Registro Civil</option>
+                        </select>
+                    </div>
+
+                    <!-- Documento -->
+                    <div>
+                        <label for="documento" class="font-semibold text-gray-700">Documento</label>
+                        <input type="text" name="documento" id="documento" required pattern="[0-9]+"
+                               value="{{ adm_sede.documento }}"
+                               class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                    </div>
+
+                    <!-- Correo -->
+                    <div>
+                        <label for="correo" class="font-semibold text-gray-700">Correo Electrónico</label>
+                        <input type="email" name="correo" id="correo" required
+                               value="{{ adm_sede.correo }}"
+                               class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                    </div>
+
+                    <!-- Celular -->
+                    <div>
+                        <label for="celular" class="font-semibold text-gray-700">Celular</label>
+                        <input type="text" name="celular" id="celular" required pattern="[0-9]+"
+                               value="{{ adm_sede.celular }}"
+                               class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                    </div>
+                </div>
+
+                <!-- Contraseña -->
+                <div class="mt-4">
+                    <label for="password" class="font-semibold text-gray-700">Nueva Contraseña (opcional)</label>
+                    <input type="password" name="password" id="password" minlength="8"
+                           class="w-full rounded-lg border border-gray-300 p-3 focus:ring-sena-primary focus:border-sena-primary">
+                    <p class="text-xs text-gray-500 mt-1">Deja vacío si no quieres cambiar la contraseña</p>
+                </div>
+
+                <!-- Botones -->
+                <div class="flex flex-col sm:flex-row gap-4 mt-6">
+                    <button type="submit" class="flex-1 bg-sena-primary hover:bg-sena-dark text-white py-3 rounded-lg font-medium transition-colors">
+                        Actualizar Perfil
+                    </button>
+                    <a href="{{ url_for('adm_bp.gestionar_adm_sede') }}"
+                        class="bg-sena-secondary hover:bg-sena-dark text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                        Volver
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <script>
+            function showEdit() {
+                document.getElementById('view-section').style.display = 'none';
+                document.getElementById('edit-section').style.display = 'block';
+            }
+        </script>
+    </div>
+</div>
+{% endblock %}

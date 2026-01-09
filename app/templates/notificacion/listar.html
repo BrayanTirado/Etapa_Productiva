@@ -59,6 +59,11 @@
                            class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600">
                            Ver Notificación
                         </a>
+                    {% elif current_user.__class__.__name__ == 'AdministradorSede' %}
+                        <a href="{{ url_for('adm_sede_bp.ver_notificacion', noti_id=noti.id) }}"
+                           class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600">
+                           Ver Notificación
+                        </a>
                     {% endif %}
                 </div>
             </li>
@@ -107,6 +112,11 @@
                class="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600">
                 Volver
             </a>
+        {% elif current_user.__class__.__name__ == 'AdministradorSede' %}
+            <a href="{{ url_for('adm_sede_bp.dashboard') }}"
+               class="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600">
+                Volver
+            </a>
         {% endif %}
     </div>
 
@@ -134,6 +144,8 @@ document.getElementById("marcarTodasBtn").addEventListener("click", function() {
         url = "{{ url_for('instructor_bp.marcar_todas_notificaciones') }}";
     {% elif current_user.__class__.__name__ == 'Aprendiz' %}
         url = "{{ url_for('aprendiz_bp.marcar_todas_notificaciones') }}";
+    {% elif current_user.__class__.__name__ == 'AdministradorSede' %}
+        url = "{{ url_for('adm_sede_bp.marcar_todas_notificaciones') }}";
     {% endif %}
 
     fetch(url, { method: "POST" })

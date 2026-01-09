@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registrar Instructor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+<div class="container mx-auto bg-white shadow-xl rounded-xl p-6 max-w-2xl">
+
+    <h2 class="text-2xl font-bold mb-6 text-green-700">Registrar Nuevo Instructor</h2>
+
+    <form method="POST" class="form-sena">
+        <div class="form-group">
+            <label for="nombre_instructor" class="form-label">Nombre:</label>
+            <input type="text" name="nombre_instructor" id="nombre_instructor" class="form-input" required>
+        </div>
+
+        <div class="form-group">
+            <label for="apellido_instructor" class="form-label">Apellido:</label>
+            <input type="text" name="apellido_instructor" id="apellido_instructor" class="form-input" required>
+        </div>
+
+        <div class="form-group">
+            <label for="tipo_documento" class="form-label">Tipo de Documento:</label>
+            <select name="tipo_documento" id="tipo_documento" class="form-select" required>
+                <option value="Cedula de Ciudadania">Cédula de Ciudadanía</option>
+                <option value="Tarjeta de Identidad">Tarjeta de Identidad</option>
+                <option value="Cedula Extrangeria">Cédula de Extranjería</option>
+                <option value="Registro Civil">Registro Civil</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="documento" class="form-label">Documento:</label>
+            <input type="text" name="documento" id="documento" class="form-input" required>
+        </div>
+
+        <div class="form-group">
+            <label for="correo_instructor" class="form-label">Correo:</label>
+            <input type="email" name="correo_instructor" id="correo_instructor" class="form-input" required>
+        </div>
+
+        <div class="form-group">
+            <label for="celular_instructor" class="form-label">Celular:</label>
+            <input type="text" name="celular_instructor" id="celular_instructor" class="form-input" required>
+        </div>
+
+
+        <div class="form-group">
+            <label for="password" class="form-label">Contraseña:</label>
+            <input type="password" name="password" id="password" class="form-input" required>
+        </div>
+
+        <div class="form-group">
+            <button type="submit" class="w-full btn-sena-primary">Registrar Instructor</button>
+        </div>
+    </form>
+
+    <div class="mt-6">
+        <a href="{{ url_for('adm_sede_bp.dashboard') }}" class="btn-sena-secondary">Volver al Dashboard</a>
+    </div>
+</div>
+</body>
+</html>

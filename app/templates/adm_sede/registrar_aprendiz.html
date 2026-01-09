@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registrar Aprendiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen py-12">
+<div class="container mx-auto px-4">
+    <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-2xl overflow-hidden">
+
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6">
+            <h1 class="text-3xl font-bold text-white text-center">Registrar Nuevo Aprendiz</h1>
+            <p class="text-blue-100 text-center mt-2">Complete la información del aprendiz</p>
+        </div>
+
+        <!-- Form -->
+        <div class="p-8">
+            <form method="POST" class="space-y-6">
+                <!-- Nombre y Apellido -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="nombre" class="block text-sm font-semibold text-gray-700 mb-2">Nombre</label>
+                        <input type="text" name="nombre" id="nombre" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 shadow-sm" placeholder="Ej: Juan" required>
+                    </div>
+                    <div>
+                        <label for="apellido" class="block text-sm font-semibold text-gray-700 mb-2">Apellido</label>
+                        <input type="text" name="apellido" id="apellido" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 shadow-sm" placeholder="Ej: Pérez" required>
+                    </div>
+                </div>
+
+                <!-- Tipo de Documento y Documento -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="tipo_documento" class="block text-sm font-semibold text-gray-700 mb-2">Tipo de Documento</label>
+                        <select name="tipo_documento" id="tipo_documento" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 shadow-sm" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="Cedula de Ciudadania">Cédula de Ciudadanía</option>
+                            <option value="Tarjeta de Identidad">Tarjeta de Identidad</option>
+                            <option value="Cedula Extrangeria">Cédula de Extranjería</option>
+                            <option value="Registro Civil">Registro Civil</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="documento" class="block text-sm font-semibold text-gray-700 mb-2">Documento</label>
+                        <input type="text" name="documento" id="documento" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 shadow-sm" placeholder="Ej: 123456789" required>
+                    </div>
+                </div>
+
+                <!-- Correo y Celular -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="correo" class="block text-sm font-semibold text-gray-700 mb-2">Correo</label>
+                        <input type="email" name="correo" id="correo" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 shadow-sm" placeholder="Ej: juan@example.com" required>
+                    </div>
+                    <div>
+                        <label for="celular" class="block text-sm font-semibold text-gray-700 mb-2">Celular</label>
+                        <input type="text" name="celular" id="celular" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 shadow-sm" placeholder="Ej: 3001234567" required>
+                    </div>
+                </div>
+
+                <!-- Número de Ficha -->
+                <div>
+                    <label for="numero_ficha" class="block text-sm font-semibold text-gray-700 mb-2">Número de Ficha</label>
+                    <input type="number" name="numero_ficha" id="numero_ficha" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 shadow-sm" placeholder="Ej: 123456" required>
+                </div>
+
+                <!-- Contraseña -->
+                <div>
+                    <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">Contraseña</label>
+                    <input type="password" name="password" id="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 shadow-sm" required minlength="8">
+                    <p class="text-xs text-gray-500 mt-1">La contraseña debe tener al menos 8 caracteres</p>
+                </div>
+
+                <!-- Botones -->
+                <div class="flex flex-col sm:flex-row gap-4 pt-6">
+                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 transform hover:scale-105 shadow-lg">
+                        👨‍🎓 Registrar Aprendiz
+                    </button>
+                    <a href="{{ url_for('adm_sede_bp.gestionar_aprendices') }}" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 text-center">
+                        ← Volver
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Aprendices</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+<div class="container mx-auto px-4 py-8">
+
+    <!-- Header -->
+    <div class="mb-8 text-center">
+        <h1 class="text-4xl font-bold text-gray-800 mb-2">Gestión de Aprendices</h1>
+        <p class="text-gray-600">Administra los aprendices por jornada y programa</p>
+    </div>
+
+    <!-- Filtro de búsqueda -->
+    <form method="GET" class="mb-8 flex items-center space-x-4">
+        <input type="text" name="search" value="{{ search }}" placeholder="Buscar por documento..." class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+        <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200">Buscar</button>
+        {% if search %}
+            <a href="{{ url_for('adm_sede_bp.gestionar_aprendices') }}" class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200">Limpiar</a>
+        {% endif %}
+    </form>
+
+    <!-- Secciones por jornada -->
+    {% for jornada, lista in [('Mañana', aprendices_manana), ('Tarde', aprendices_tarde), ('Noche', aprendices_noche)] %}
+        <div class="bg-white rounded-xl shadow-2xl overflow-hidden mb-8">
+            <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600">
+                <h3 class="text-xl font-bold text-white">Aprendices - {{ jornada }}</h3>
+            </div>
+            <div class="p-6">
+                {% if lista %}
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documento</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Correo</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Programa</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Instructor</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for aprendiz in lista %}
+                                     <tr class="hover:bg-gray-50 transition duration-200">
+                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ aprendiz.nombre }} {{ aprendiz.apellido }}</td>
+                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ aprendiz.documento }}</td>
+                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ aprendiz.correo }}</td>
+                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                             {% if aprendiz.programa %}
+                                                 {{ aprendiz.programa.nombre_programa }}
+                                             {% else %}
+                                                 <span class="text-red-500">Sin programa</span>
+                                             {% endif %}
+                                         </td>
+                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                             {% if aprendiz.instructor %}
+                                                 {{ aprendiz.instructor.nombre_instructor }} {{ aprendiz.instructor.apellido_instructor }}
+                                             {% else %}
+                                                 <span class="text-gray-500">Sin asignar</span>
+                                             {% endif %}
+                                         </td>
+                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                             <form method="POST" action="{{ url_for('adm_sede_bp.asignar_instructor_lista') }}" class="flex items-center space-x-2">
+                                                 <input type="hidden" name="aprendiz_id" value="{{ aprendiz.id_aprendiz }}">
+                                                 <select name="instructor_id" class="px-2 py-1 border border-gray-300 rounded text-sm">
+                                                     <option value="">Seleccionar instructor</option>
+                                                     {% for instructor in instructores %}
+                                                         <option value="{{ instructor.id_instructor }}" {% if aprendiz.instructor_id == instructor.id_instructor %}selected{% endif %}>{{ instructor.nombre_instructor }} {{ instructor.apellido_instructor }}</option>
+                                                     {% endfor %}
+                                                 </select>
+                                                 <button type="submit" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Asignar</button>
+                                             </form>
+                                         </td>
+                                     </tr>
+                                 {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-6">
+                        <p class="text-gray-500">No hay aprendices registrados en esta jornada.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endfor %}
+
+    <!-- Botón volver -->
+    <div class="mt-8 text-center">
+        <a href="{{ url_for('adm_sede_bp.dashboard') }}" class="inline-flex items-center px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-200">
+            ← Volver al Dashboard
+        </a>
+    </div>
+</div>
+</body>
+</html>

@@ -29,6 +29,21 @@
         </div>
     </div>
 
+    <!-- Archivo adjunto si hay en el mensaje -->
+    {% if "Archivo adjunto:" in notificacion.mensaje %}
+    <div class="mb-4">
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Archivo Adjunto</label>
+        <div class="p-3 border rounded-md bg-blue-50">
+            {% set filename = notificacion.mensaje.split("Archivo adjunto: ")[1].split("\n")[0] %}
+            <a href="{{ url_for('static', filename='uploads/' + filename) }}"
+               class="inline-flex items-center bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition"
+               target="_blank">
+                📥 Descargar {{ filename }}
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Archivo adjunto si es notificación de evidencia -->
     {% if evidencia %}
     <div class="mb-4">
@@ -56,15 +71,15 @@
     </p>
 
     <!-- Formulario para responder -->
-    <form id="respuestaForm" method="POST"
+    <form id="respuestaForm" method="POST" enctype="multipart/form-data"
       action="{% if current_user.__class__.__name__ == 'Administrador' %}
                   {{ url_for('adm_bp.responder_notificacion', noti_id=notificacion.id) }}
-              {% elif current_user.__class__.__name__ == 'Coordinador' %}
-                  {{ url_for('coordinador_bp.responder_notificacion', noti_id=notificacion.id) }}
               {% elif current_user.__class__.__name__ == 'Instructor' %}
                   {{ url_for('instructor_bp.responder_notificacion', noti_id=notificacion.id) }}
               {% elif current_user.__class__.__name__ == 'Aprendiz' %}
                   {{ url_for('aprendiz_bp.responder_notificacion', noti_id=notificacion.id) }}
+              {% elif current_user.__class__.__name__ == 'AdministradorSede' %}
+                  {{ url_for('adm_sede_bp.responder_notificacion', noti_id=notificacion.id) }}
               {% endif %}"
       data-redirect-url="{% if current_user.__class__.__name__ == 'Administrador' %}
                             {{ url_for('adm_bp.notificaciones') }}
@@ -74,12 +89,25 @@
                             {{ url_for('instructor_bp.notificaciones') }}
                         {% elif current_user.__class__.__name__ == 'Aprendiz' %}
                             {{ url_for('aprendiz_bp.notificaciones') }}
+                        {% elif current_user.__class__.__name__ == 'AdministradorSede' %}
+                            {{ url_for('adm_sede_bp.notificaciones') }}
                         {% endif %}">
 
         <div class="mb-4">
-            <label for="respuesta" class="block text-sm font-semibold text-gray-700 mb-1">Responder mensaje</label>
+            <label for="motivo_respuesta" class="block text-sm font-semibold text-gray-700 mb-1">Motivo de la respuesta (opcional)</label>
+            <input type="text" name="motivo_respuesta" id="motivo_respuesta"
+                   class="mt-1 block w-full border rounded-md p-3 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500">
+        </div>
+
+        <div class="mb-4">
+            <label for="respuesta" class="block text-sm font-semibold text-gray-700 mb-1">Mensaje de respuesta</label>
             <textarea name="respuesta" id="respuesta" rows="3"
                       class="mt-1 block w-full border rounded-md p-3 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500"></textarea>
+        </div>
+
+        <div class="mb-4">
+            <label for="archivo" class="block text-sm font-semibold text-gray-700 mb-1">Adjuntar archivo (opcional)</label>
+            <input type="file" name="archivo" id="archivo" class="mt-1 block w-full border rounded-md p-3 bg-gray-50">
         </div>
 
         <div class="flex justify-between">
@@ -101,6 +129,11 @@
                 </a>
             {% elif current_user.__class__.__name__ == 'Aprendiz' %}
                 <a href="{{ url_for('aprendiz_bp.notificaciones') }}"
+                   class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">
+                    Volver a notificaciones
+                </a>
+            {% elif current_user.__class__.__name__ == 'AdministradorSede' %}
+                <a href="{{ url_for('adm_sede_bp.notificaciones') }}"
                    class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">
                     Volver a notificaciones
                 </a>

@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
-from werkzeug.security import check_password_hash
-from app.models.users import Administrador, TokenCoordinador, Notificacion, Aprendiz, Coordinador, Instructor
+from werkzeug.security import check_password_hash, generate_password_hash
+from app.models.users import Administrador, Notificacion, Aprendiz, Instructor, AdministradorSede
 from app import db
 import secrets
 from datetime import datetime, timedelta
@@ -17,7 +17,7 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated or not isinstance(current_user, Administrador):
             flash("No tienes permisos para acceder a esta sección", "error")
-            return redirect(url_for('adm_login'))
+            return redirect(url_for('adm_bp.login'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -30,12 +30,10 @@ def generate_random_token(length=8):
 # -------------------------------
 # Función para enviar notificación
 # -------------------------------
-def enviar_notificacion(mensaje, destinatario_id=None, rol_destinatario=None):
+def enviar_notificacion(mensaje, destinatario_id=None, rol_destinatario=None, motivo=None):
     # Determinar remitente dinámicamente según rol
     if current_user.rol_user == "administrador":
         remitente_id = current_user.id_admin
-    elif current_user.rol_user == "coordinador":
-        remitente_id = current_user.id_coordinador
     elif current_user.rol_user == "instructor":
         remitente_id = current_user.id_instructor
     elif current_user.rol_user == "aprendiz":
@@ -44,6 +42,7 @@ def enviar_notificacion(mensaje, destinatario_id=None, rol_destinatario=None):
         return False  # rol no válido
 
     noti = Notificacion(
+        motivo=motivo,
         mensaje=mensaje,
         remitente_id=remitente_id,
         rol_remitente=current_user.rol_user.capitalize(),
@@ -84,73 +83,25 @@ def login():
 @login_required
 @admin_required
 def dashboard():
-    tokens = TokenCoordinador.query.filter_by(admin_id=current_user.id_admin).all()
     notificaciones_no_leidas = Notificacion.query.filter_by(
         rol_destinatario="Administrador",
         visto=False
     ).count()
 
     aprendices = Aprendiz.query.all()
-    coordinadores = Coordinador.query.all()
     instructores = Instructor.query.all()
+    adm_sedes = AdministradorSede.query.all()
 
     return render_template(
         'adm/dashboard_adm.html',
-        tokens=tokens,
         notificaciones_no_leidas=notificaciones_no_leidas,
         now=datetime.now(),
         aprendices=aprendices,
-        coordinadores=coordinadores,
         instructores=instructores,
+        adm_sedes=adm_sedes,
         admin_nombre=f"{current_user.nombre} {current_user.apellido}",  # [POINTING] agregado para saludo
     )
 
-# -------------------------------
-# Generar token para coordinador
-# -------------------------------
-@adm_bp.route('/generar_token', methods=['POST'])
-@login_required
-@admin_required
-def generar_token():
-    dias_validos = int(request.form.get('dias', 7))
-    token_str = generate_random_token(8)
-    fecha_expiracion = datetime.utcnow() + timedelta(days=dias_validos)
-    token = TokenCoordinador(
-        token=token_str,
-        admin_id=current_user.id_admin,
-        fecha_expiracion=fecha_expiracion,
-        usado=False
-    )
-    db.session.add(token)
-    db.session.commit()
-
-    # Enviar notificación al rol coordinador (si quieres notificarlo)
-    enviar_notificacion(
-        mensaje=f"Se ha generado un nuevo token para coordinadores: {token_str}",
-        rol_destinatario="Coordinador"
-    )
-
-    flash(f"Token generado: {token_str} (válido {dias_validos} días)", "success")
-    return redirect(url_for('adm_bp.dashboard'))
-
-# -------------------------------
-# Eliminar token
-# -------------------------------
-@adm_bp.route('/eliminar_token/<int:token_id>', methods=['POST'])
-@login_required
-@admin_required
-def eliminar_token(token_id):
-    token = TokenCoordinador.query.get_or_404(token_id)
-    try:
-        db.session.delete(token)
-        db.session.commit()
-        flash("Token eliminado correctamente", "success")
-    except Exception:
-        db.session.rollback()
-        from flask import current_app
-        current_app.logger.exception("Error eliminando token")
-        flash("Error eliminando token", "error")
-    return redirect(url_for('adm_bp.dashboard'))
 
 # -------------------------------
 # Enviar mensaje a un rol
@@ -159,11 +110,11 @@ def eliminar_token(token_id):
 @login_required
 @admin_required
 def enviar_mensaje():
-    roles_disponibles = ["Coordinador", "Instructor", "Aprendiz"]
+    roles_disponibles = ["Instructor", "Aprendiz", "AdministradorSede"]
 
-    coordinadores = Coordinador.query.all()
     instructores = Instructor.query.all()
     aprendices = Aprendiz.query.all()
+    adm_sedes = AdministradorSede.query.all()
 
     notificaciones_no_leidas = Notificacion.query.filter_by(
         rol_destinatario="Administrador",
@@ -175,6 +126,20 @@ def enviar_mensaje():
         destinatario_id = request.form.get('destinatario_id')  # puede venir vacío
         motivo = request.form.get('motivo')
         mensaje = request.form.get('mensaje')
+        archivo = request.files.get('archivo')
+
+        # Manejar archivo adjunto
+        archivo_url = None
+        if archivo and archivo.filename:
+            import os
+            from werkzeug.utils import secure_filename
+            upload_folder = os.path.join('app', 'static', 'uploads')
+            os.makedirs(upload_folder, exist_ok=True)
+            filename = secure_filename(archivo.filename)
+            archivo_path = os.path.join(upload_folder, filename)
+            archivo.save(archivo_path)
+            archivo_url = f"/static/uploads/{filename}"
+            mensaje += f"\n\nArchivo adjunto: {filename}"
 
         if not rol_destinatario:
             flash("Debes seleccionar un rol para enviar el mensaje.", "danger")
@@ -185,24 +150,27 @@ def enviar_mensaje():
             destinatario_id = int(destinatario_id)
 
             user = None
-            if rol_destinatario == "Coordinador":
-                user = Coordinador.query.get(destinatario_id)
-            elif rol_destinatario == "Instructor":
+            if rol_destinatario == "Instructor":
                 user = Instructor.query.get(destinatario_id)
             elif rol_destinatario == "Aprendiz":
                 user = Aprendiz.query.get(destinatario_id)
+            elif rol_destinatario == "AdministradorSede":
+                user = AdministradorSede.query.get(destinatario_id)
 
             if user:
                 # Determinar nombre completo según rol
                 if rol_destinatario == "Instructor":
                     nombre_completo = f"{user.nombre_instructor} {user.apellido_instructor}"
+                elif rol_destinatario == "AdministradorSede":
+                    nombre_completo = f"{user.nombre} {user.apellido}"
                 else:
                     nombre_completo = f"{user.nombre} {user.apellido}"
 
                 enviar_notificacion(
-                    mensaje=f"[{motivo}] {mensaje}",
+                    mensaje=mensaje,
                     destinatario_id=destinatario_id,
-                    rol_destinatario=rol_destinatario
+                    rol_destinatario=rol_destinatario,
+                    motivo=motivo
                 )
                 # [OK] Mensaje más descriptivo con nombre y rol
                 flash(
@@ -215,9 +183,10 @@ def enviar_mensaje():
         # [OK] Caso 2: mensaje general al rol completo
         else:
             enviar_notificacion(
-                mensaje=f"[{motivo}] {mensaje}",
+                mensaje=mensaje,
                 destinatario_id=None,  # [POINTING] general
-                rol_destinatario=rol_destinatario
+                rol_destinatario=rol_destinatario,
+                motivo=motivo
             )
             flash(f"Notificación general enviada a todos los {rol_destinatario.lower()}s.", "success")
 
@@ -226,9 +195,9 @@ def enviar_mensaje():
     return render_template(
         'adm/dashboard_adm.html',
         roles=roles_disponibles,
-        coordinadores=coordinadores,
         instructores=instructores,
         aprendices=aprendices,
+        adm_sedes=adm_sedes,
         notificaciones_no_leidas=notificaciones_no_leidas,
         now=datetime.now(),
         admin_nombre=f"{current_user.nombre} {current_user.apellido}"
@@ -273,11 +242,7 @@ def obtener_remitente(noti):
     """
     role = (noti.rol_remitente or "").strip()
 
-    if role == "Coordinador":
-        remitente = Coordinador.query.filter_by(id_coordinador=noti.remitente_id).first()
-        if remitente:
-            return f"{remitente.nombre} {remitente.apellido}"
-    elif role == "Instructor":
+    if role == "Instructor":
         remitente = Instructor.query.filter_by(id_instructor=noti.remitente_id).first()
         if remitente:
             return f"{remitente.nombre_instructor} {remitente.apellido_instructor}"
@@ -319,13 +284,13 @@ def responder_notificacion(noti_id):
     noti = Notificacion.query.get_or_404(noti_id)
 
     if request.method == 'POST':
+        motivo_respuesta = request.form.get('motivo_respuesta')
         respuesta = request.form.get('respuesta')
+        archivo = request.files.get('archivo')
 
         # Detectar ID del usuario según su rol
         if current_user.__class__.__name__ == "Administrador":
             remitente_id = current_user.id_admin
-        elif current_user.__class__.__name__ == "Coordinador":
-            remitente_id = current_user.id_coordinador
         elif current_user.__class__.__name__ == "Instructor":
             remitente_id = current_user.id_instructor
         elif current_user.__class__.__name__ == "Aprendiz":
@@ -334,8 +299,22 @@ def responder_notificacion(noti_id):
             remitente_id = None  # fallback
 
         if respuesta and remitente_id:
+            mensaje_respuesta = respuesta
+
+            # Manejar archivo adjunto
+            if archivo and archivo.filename:
+                import os
+                from werkzeug.utils import secure_filename
+                upload_folder = os.path.join('app', 'static', 'uploads')
+                os.makedirs(upload_folder, exist_ok=True)
+                filename = secure_filename(archivo.filename)
+                archivo_path = os.path.join(upload_folder, filename)
+                archivo.save(archivo_path)
+                mensaje_respuesta += f"\n\nArchivo adjunto: {filename}"
+
             nueva = Notificacion(
-                mensaje=f"[Respuesta a '{noti.mensaje.split(']')[0].replace('[','')}'] {respuesta}",
+                motivo=motivo_respuesta,
+                mensaje=mensaje_respuesta,
                 remitente_id=remitente_id,
                 rol_remitente=current_user.__class__.__name__,
                 destinatario_id=noti.remitente_id,
@@ -349,8 +328,6 @@ def responder_notificacion(noti_id):
     # Redirigir según el rol
     if current_user.__class__.__name__ == "Administrador":
         return redirect(url_for('adm_bp.notificaciones'))
-    elif current_user.__class__.__name__ == "Coordinador":
-        return redirect(url_for('coordinador_bp.notificaciones'))
     elif current_user.__class__.__name__ == "Instructor":
         return redirect(url_for('instructor_bp.notificaciones'))
     elif current_user.__class__.__name__ == "Aprendiz":
@@ -366,9 +343,6 @@ def marcar_todas_notificaciones():
     if current_user.__class__.__name__ == "Administrador":
         user_id = current_user.id_admin
         rol = "Administrador"
-    elif current_user.__class__.__name__ == "Coordinador":
-        user_id = current_user.id_coordinador
-        rol = "Coordinador"
     elif current_user.__class__.__name__ == "Instructor":
         user_id = current_user.id_instructor
         rol = "Instructor"
@@ -433,6 +407,124 @@ def editar_perfil():
             flash(f'Error al actualizar perfil: {str(e)}', 'danger')
 
     return render_template('adm/editar_perfil.html', admin=current_user, now=datetime.now())
+
+# -------------------------------
+# Crear Administrador de Sede
+# -------------------------------
+@adm_bp.route('/crear_adm_sede', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def crear_adm_sede():
+    from app.models.users import Sede, AdministradorSede
+    # Obtener todas las sedes
+    sedes = Sede.query.all()
+    import logging
+    logging.info(f"Current user: {current_user}, type: {type(current_user)}")
+    logging.info(f"Sedes retrieved for crear_adm_sede: {len(sedes)} sedes - {[s.nombre_sede for s in sedes]}")
+    flash(f"Sedes encontradas: {len(sedes)}", "info")
+
+    if request.method == 'POST':
+        nombre = request.form.get('nombre').strip()
+        apellido = request.form.get('apellido').strip()
+        tipo_documento = request.form.get('tipo_documento').strip()
+        documento = request.form.get('documento').strip()
+        correo = request.form.get('correo').strip().lower()
+        celular = request.form.get('celular').strip()
+        password = request.form.get('password')
+        sede_id = request.form.get('sede_id')
+
+        if not all([nombre, apellido, tipo_documento, documento, correo, celular, password, sede_id]):
+            flash('Todos los campos son obligatorios.', 'warning')
+            return redirect(url_for('adm_bp.crear_adm_sede'))
+
+
+        # Checks for uniqueness
+        documento_existe = AdministradorSede.query.filter_by(documento=documento).first() or Administrador.query.filter_by(documento=documento).first() or Instructor.query.filter_by(documento=documento).first() or Aprendiz.query.filter_by(documento=documento).first()
+        correo_existe = AdministradorSede.query.filter_by(correo=correo).first() or Administrador.query.filter_by(correo=correo).first() or Instructor.query.filter_by(correo_instructor=correo).first() or Aprendiz.query.filter_by(correo=correo).first()
+        celular_existe = AdministradorSede.query.filter_by(celular=celular).first() or Administrador.query.filter_by(celular=celular).first() or Instructor.query.filter_by(celular_instructor=celular).first() or Aprendiz.query.filter_by(celular=celular).first()
+
+        if documento_existe:
+            flash('Ya existe un usuario con ese documento.', 'danger')
+            return redirect(url_for('adm_bp.crear_adm_sede'))
+        if correo_existe:
+            flash('Ya existe un usuario con ese correo.', 'danger')
+            return redirect(url_for('adm_bp.crear_adm_sede'))
+        if celular_existe:
+            flash('Ya existe un usuario con ese celular.', 'danger')
+            return redirect(url_for('adm_bp.crear_adm_sede'))
+
+        hashed_password = generate_password_hash(password)
+        nuevo = AdministradorSede(
+            nombre=nombre,
+            apellido=apellido,
+            tipo_documento=tipo_documento,
+            documento=documento,
+            correo=correo,
+            celular=celular,
+            password=hashed_password,
+            admin_principal_id=current_user.id_admin,
+            sede_id=int(sede_id)
+        )
+        db.session.add(nuevo)
+        db.session.commit()
+        flash('Administrador de Sede creado con éxito.', 'success')
+        return redirect(url_for('adm_bp.dashboard'))
+
+    return render_template('adm/crear_adm_sede.html', sedes=sedes, now=datetime.now())
+
+# -------------------------------
+# Gestionar Administradores de Sede
+# -------------------------------
+@adm_bp.route('/gestionar_adm_sede')
+@login_required
+@admin_required
+def gestionar_adm_sede():
+    adm_sedes = AdministradorSede.query.all()
+    return render_template('adm/gestionar_adm_sede.html', adm_sedes=adm_sedes, now=datetime.now())
+
+# -------------------------------
+# Editar Administrador de Sede
+# -------------------------------
+@adm_bp.route('/editar_adm_sede/<int:id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def editar_adm_sede(id):
+    adm_sede = AdministradorSede.query.get_or_404(id)
+    if request.method == 'POST':
+        nombre = request.form.get('nombre').strip()
+        apellido = request.form.get('apellido').strip()
+        documento = request.form.get('documento').strip()
+        correo = request.form.get('correo').strip().lower()
+        celular = request.form.get('celular').strip()
+        password = request.form.get('password')
+
+        if not all([nombre, apellido, documento, correo, celular]):
+            flash('Faltan campos obligatorios.', 'warning')
+            return redirect(url_for('adm_bp.editar_adm_sede', id=id))
+
+        # Verificar unicidad
+        existing = AdministradorSede.query.filter(
+            (AdministradorSede.documento == documento) | (AdministradorSede.correo == correo)
+        ).filter(AdministradorSede.id_admin_sede != id).first()
+
+        if existing:
+            flash('Documento o correo ya están en uso.', 'danger')
+            return redirect(url_for('adm_bp.editar_adm_sede', id=id))
+
+        adm_sede.nombre = nombre
+        adm_sede.apellido = apellido
+        adm_sede.documento = documento
+        adm_sede.correo = correo
+        adm_sede.celular = celular
+
+        if password:
+            adm_sede.password = generate_password_hash(password)
+
+        db.session.commit()
+        flash('Perfil actualizado correctamente.', 'success')
+        return redirect(url_for('adm_bp.gestionar_adm_sede'))
+
+    return render_template('adm/editar_adm_sede.html', adm_sede=adm_sede, now=datetime.now())
 
 # -------------------------------
 # Logout administrador
