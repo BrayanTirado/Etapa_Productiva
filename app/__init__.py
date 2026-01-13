@@ -2,13 +2,17 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_mail import Mail
+from flask_migrate import Migrate
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 
-# --- Extensiones globales ---
+# -------------------------
+# Extensiones globales
+# -------------------------
 db = SQLAlchemy()
 login_manager = LoginManager()
 mail = Mail()
+migrate = Migrate()
 
 def create_app():
     """Crea y configura la aplicación Flask"""
@@ -22,33 +26,41 @@ def create_app():
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
     # -------------------------
-    # Forzar PostgreSQL si existe DATABASE_URL
+    # Configuración de Base de Datos
     # -------------------------
     database_url = os.environ.get('DATABASE_URL')
+
     if database_url:
-        # SQLAlchemy necesita driver explícito
+        # Ajuste obligatorio para SQLAlchemy
         if database_url.startswith("postgres://"):
-            database_url = database_url.replace("postgres://", "postgresql+psycopg2://", 1)
+            database_url = database_url.replace(
+                "postgres://", "postgresql+psycopg2://", 1
+            )
         elif not database_url.startswith("postgresql+psycopg2://"):
             database_url = "postgresql+psycopg2://" + database_url.split("://")[1]
+
         app.config['SQLALCHEMY_DATABASE_URI'] = database_url
         print(f"[DEBUG] Usando PostgreSQL desde env: {app.config['SQLALCHEMY_DATABASE_URI']}")
     else:
-        # Solo fallback local a SQLite
+        # Fallback local (solo desarrollo)
         app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{app.instance_path}/app.db"
         print(f"[DEBUG] Usando SQLite local: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
     # -------------------------
-    # Inicializa extensiones
+    # Inicialización de extensiones
     # -------------------------
     db.init_app(app)
-    os.makedirs(app.instance_path, exist_ok=True)
+    migrate.init_app(app, db)   # 🔴 CLAVE PARA flask db
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
     mail.init_app(app)
 
+    os.makedirs(app.instance_path, exist_ok=True)
+
     # -------------------------
-    # Importa Blueprints
+    # Importación de Blueprints
     # -------------------------
     from app.routes.index_route import bp as index_bp
     from app.routes.auth import bp as auth_bp
@@ -66,7 +78,9 @@ def create_app():
     from app.routes.notificacion_route import notificacion_bp
     from app.routes.sedes_route import sedes_bp
 
-    # Registra Blueprints
+    # -------------------------
+    # Registro de Blueprints
+    # -------------------------
     app.register_blueprint(index_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(empresa_bp)
@@ -84,27 +98,12 @@ def create_app():
     app.register_blueprint(sedes_bp)
 
     # -------------------------
-    # Importa modelos y crea tablas
+    # Proxy reverso (Coolify / Nginx)
     # -------------------------
-    with app.app_context():
-        try:
-            from app.models.users import (
-                Aprendiz, Instructor, Administrador, AdministradorSede,
-                Sede, Empresa, Contrato, Programa, Seguimiento,
-                Evidencia, Notificacion, PasswordResetToken,
-                Ficha, TokenInstructor
-            )
-            print("[DEBUG] Models imported successfully")
-            db.create_all()
-            print("[DEBUG] Tablas creadas correctamente en la base de datos")
-        except Exception as e:
-            print(f"[ERROR] Error al importar modelos o crear tablas: {e}")
-            raise
+    proxy_fix_enabled = os.environ.get(
+        'PROXY_FIX_ENABLED', 'true'
+    ).lower() == 'true'
 
-    # -------------------------
-    # Configuración proxy reverso
-    # -------------------------
-    proxy_fix_enabled = os.environ.get('PROXY_FIX_ENABLED', 'true').lower() == 'true'
     if proxy_fix_enabled:
         app.wsgi_app = ProxyFix(
             app.wsgi_app,
@@ -118,11 +117,14 @@ def create_app():
     return app
 
 # -------------------------
-# Carga usuarios según rol
+# Carga de usuario por rol
 # -------------------------
 @login_manager.user_loader
 def load_user(user_id):
-    from app.models.users import Aprendiz, Instructor, Administrador, AdministradorSede
+    from app.models.users import (
+        Aprendiz, Instructor,
+        Administrador, AdministradorSede
+    )
 
     try:
         role, id = user_id.split("-")
@@ -138,4 +140,5 @@ def load_user(user_id):
         return Administrador.query.get(id)
     elif role == "administrador_sede":
         return AdministradorSede.query.get(id)
+
     return None
