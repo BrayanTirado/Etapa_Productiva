@@ -164,6 +164,8 @@ class Ficha(db.Model):
     numero_ficha = db.Column(db.Integer, unique=True, nullable=False)
 
     programas_rel = db.relationship('Programa', back_populates='ficha_rel', lazy=True)
+    sede_id = db.Column(db.Integer, db.ForeignKey('sede.id_sede'), nullable=False)
+    sede_rel = db.relationship('Sede', backref='fichas', lazy=True)
 
 # -------------------------
 # TABLA PROGRAMA

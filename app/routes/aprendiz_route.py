@@ -111,20 +111,10 @@ def registro():
             flash('Error: La ficha no tiene un programa asignado.', 'danger')
             return render_template('aprendiz.html', sedes=sedes, now=datetime.now())
 
-        # Verificar instructor actual y su sede
-        if not current_user or not hasattr(current_user, "id_instructor"):
-            flash("Error: solo un instructor puede registrar aprendices.", "error")
-            return render_template('aprendiz.html', now=datetime.now())
-
-        instructor = Instructor.query.get(current_user.id_instructor)
-        if not instructor or not instructor.sede_id:
-            flash("El instructor no tiene una sede válida asignada.", "error")
-            return render_template('aprendiz.html', sedes=sedes, now=datetime.now())
-
-        sede_id = instructor.sede_id
-
+        # Determinar sede a partir de la ficha
+        sede_id = ficha.sede_id
         if not sede_id:
-            flash("El instructor no tiene una sede asignada. Contacte al administrador.", "error")
+            flash("La ficha no tiene una sede asignada.", "error")
             return render_template('aprendiz.html', sedes=sedes, now=datetime.now())
 
         # Verificar unicidad global (todos los tipos de usuario)
@@ -173,7 +163,7 @@ def registro():
             jornada=jornada,
             password_aprendiz=password_hash,
             programa_id=programa.id_programa,
-            instructor_id=programa.instructor_id_instructor,
+            instructor_id=None,
             sede_id=sede_id
         )
 
