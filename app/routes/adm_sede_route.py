@@ -8,6 +8,7 @@ from app.models.users import (
 from app import db
 from datetime import datetime, timedelta
 from functools import wraps
+import logging
 
 adm_sede_bp = Blueprint('adm_sede_bp', __name__, url_prefix='/adm_sede')
 
@@ -639,10 +640,7 @@ def asignar_instructor_lista():
         else:
             flash('Instructor no válido.', 'danger')
     else:
-        aprendiz.instructor_id = None
-        aprendiz.sede_id = None
-        db.session.commit()
-        flash('Instructor removido.', 'success')
+        flash('No se puede remover el instructor, ya que la sede es obligatoria.', 'danger')
 
     return redirect(url_for('adm_sede_bp.gestionar_aprendices'))
 
@@ -686,7 +684,17 @@ def registrar_aprendiz():
             flash('Error: La ficha no tiene un programa asignado.', 'danger')
             return redirect(url_for('adm_sede_bp.registrar_aprendiz'))
 
-        sede_id = current_user.sede_id
+        # Validar que el programa tenga instructor asignado
+        if not programa.instructor_id_instructor:
+            flash('El programa no tiene instructor asignado. Asigne un instructor al programa antes de registrar aprendices.', 'danger')
+            return redirect(url_for('adm_sede_bp.registrar_aprendiz'))
+
+        instructor = programa.instructor_rel
+        if instructor.sede_id != current_user.sede_id:
+            flash('El programa pertenece a una sede diferente. No puede registrar aprendices para este programa.', 'danger')
+            return redirect(url_for('adm_sede_bp.registrar_aprendiz'))
+
+        sede_id = instructor.sede_id
 
         # Verificar unicidad
         documento_existe = (Aprendiz.query.filter_by(documento=documento).first() or
@@ -718,13 +726,6 @@ def registrar_aprendiz():
 
         hashed_password = generate_password_hash(password)
 
-        # Validar que el programa pertenezca a la sede
-        if programa.instructor_id_instructor:
-            instructor = Instructor.query.get(programa.instructor_id_instructor)
-            if instructor and instructor.sede_id != current_user.sede_id:
-                flash('No puede registrar aprendiz para programa de instructor de otra sede.', 'danger')
-                return redirect(url_for('adm_sede_bp.registrar_aprendiz'))
-
         nuevo_aprendiz = Aprendiz(
             nombre=nombre,
             apellido=apellido,
@@ -736,7 +737,7 @@ def registrar_aprendiz():
             password_aprendiz=hashed_password,
             programa_id=programa.id_programa,
             instructor_id=programa.instructor_id_instructor,
-            sede_id=current_user.sede_id
+            sede_id=sede_id
         )
 
         try:
@@ -795,7 +796,17 @@ def editar_aprendiz(id):
             flash('Error: La ficha no tiene un programa asignado.', 'danger')
             return redirect(url_for('adm_sede_bp.editar_aprendiz', id=id))
 
-        sede_id = current_user.sede_id
+        # Validar que el programa tenga instructor asignado
+        if not programa.instructor_id_instructor:
+            flash('El programa no tiene instructor asignado. Asigne un instructor al programa antes de editar aprendices.', 'danger')
+            return redirect(url_for('adm_sede_bp.editar_aprendiz', id=id))
+
+        instructor = programa.instructor_rel
+        if instructor.sede_id != current_user.sede_id:
+            flash('El programa pertenece a una sede diferente. No puede editar aprendices para este programa.', 'danger')
+            return redirect(url_for('adm_sede_bp.editar_aprendiz', id=id))
+
+        sede_id = instructor.sede_id
 
         # Verificar unicidad
         existing = Aprendiz.query.filter(
@@ -874,10 +885,7 @@ def asignar_instructor(aprendiz_id):
             else:
                 flash('Instructor no válido.', 'danger')
         else:
-            aprendiz.instructor_id = None
-            aprendiz.sede_id = None
-            db.session.commit()
-            flash('Instructor removido.', 'success')
+            flash('No se puede remover el instructor, ya que la sede es obligatoria.', 'danger')
         return redirect(url_for('adm_sede_bp.dashboard'))
 
     instructores = Instructor.query.filter_by(administrador_sede_id=current_user.id_admin_sede).all()

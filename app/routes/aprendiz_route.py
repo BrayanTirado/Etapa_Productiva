@@ -9,6 +9,7 @@ from sqlalchemy import or_
 import os
 from flask import current_app
 from werkzeug.utils import secure_filename
+import logging
 
 bp = Blueprint('aprendiz_bp', __name__, url_prefix='/aprendiz')
 

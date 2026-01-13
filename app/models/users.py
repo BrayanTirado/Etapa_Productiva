@@ -221,7 +221,7 @@ class Aprendiz(db.Model, UserMixin):
     instructor_id = db.Column(db.Integer, db.ForeignKey('instructor.id_instructor'), nullable=True)
     instructor = db.relationship('Instructor', back_populates='aprendices_rel')
 
-    sede_id = db.Column(db.Integer, db.ForeignKey('sede.id_sede'), nullable=True)
+    sede_id = db.Column(db.Integer, db.ForeignKey('sede.id_sede'), nullable=False)
     sede = db.relationship('Sede', backref='aprendices')
 
     empresas = db.relationship('Empresa', back_populates='aprendiz', cascade="all, delete-orphan")

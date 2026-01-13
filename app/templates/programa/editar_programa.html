@@ -32,22 +32,11 @@
             </div>
 
             <div class="mb-4">
-                <label class="block mb-2 font-semibold">Jornada</label>
-                <select name="jornada" required class="w-full border p-2 rounded">
-                    <option value="">Selecciona Jornada</option>
-                    {% for j in jornada %}
-                        <option value="{{ j }}" {% if programa.jornada == j %}selected{% endif %}>{{ j }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="mb-4">
                 <label class="block mb-2 font-semibold">FICHA</label>
                 <input type="number" value="{{ programa.ficha }}" readonly class="w-full border p-2 rounded bg-gray-100 text-gray-600" min="1">
             </div>
 
-            <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600">Actualizar Jornada</button>
-            <a href="{{ url_for('programa_bp.listar_programas') }}" class="ml-4 text-gray-600">Cancelar</a>
+            <a href="{{ url_for('programa_bp.listar_programas') }}" class="ml-4 text-gray-600">Volver</a>
         </form>
         {% else %}
             <p class="text-gray-600 text-center mt-6">⚠️ Solo los aprendices pueden editar este programa.</p>
