@@ -185,15 +185,17 @@ def registro_aprendiz():
             flash('El número de ficha no existe en el sistema.', 'danger')
             return redirect(url_for('auth.registro_aprendiz'))
 
+        print(f"Debug: Ficha encontrada - numero_ficha: {ficha.numero_ficha}, sede_id: {ficha.sede_id}")
+
         # Buscar programa asociado a la ficha
         programa = Programa.query.filter_by(ficha_id=ficha.id_ficha).first()
         if not programa:
             flash('No hay un programa asociado a esta ficha.', 'danger')
             return redirect(url_for('auth.registro_aprendiz'))
 
-        # Obtener instructor y sede
+        # Obtener sede desde ficha
+        sede = ficha.sede_rel
         instructor = programa.instructor_rel
-        sede = instructor.sede if instructor else None
 
         # Verificar unicidad global (todos los tipos de usuario)
         from app.models.users import Administrador, Instructor
