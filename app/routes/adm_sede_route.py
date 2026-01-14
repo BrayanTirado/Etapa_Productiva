@@ -80,14 +80,17 @@ def obtener_remitente(noti):
 @login_required
 @admin_sede_required
 def dashboard():
-    # Instructores registrados por este admin de sede
-    instructores = Instructor.query.filter_by(administrador_sede_id=current_user.id_admin_sede).all()
+    # Instructores en la sede
+    instructores = Instructor.query.filter_by(sede_id=current_user.sede_id).all()
+    logging.info(f"Dashboard: Instructores encontrados para sede_id={current_user.sede_id}: {len(instructores)}")
 
     # Aprendices en la sede
     aprendices = Aprendiz.query.filter_by(sede_id=current_user.sede_id).all()
+    logging.info(f"Dashboard: Aprendices encontrados para sede_id={current_user.sede_id}: {len(aprendices)}")
 
     # Programas y fichas asociados a la sede
     programas = Programa.query.join(Ficha).filter(Ficha.sede_id == current_user.sede_id).all()
+    logging.info(f"Dashboard: Programas encontrados para sede_id={current_user.sede_id}: {len(programas)}")
 
     # Notificaciones no leídas
     notificaciones_no_leidas = Notificacion.query.filter_by(
@@ -369,7 +372,7 @@ def responder_notificacion(noti_id):
 @admin_sede_required
 def editar_instructor(id):
     instructor = Instructor.query.get_or_404(id)
-    if instructor.administrador_sede_id != current_user.id_admin_sede:
+    if instructor.sede_id != current_user.sede_id:
         flash('No tienes permiso para editar este instructor.', 'danger')
         return redirect(url_for('adm_sede_bp.dashboard'))
 
@@ -420,7 +423,7 @@ def editar_instructor(id):
 @admin_sede_required
 def eliminar_instructor(id):
     instructor = Instructor.query.get_or_404(id)
-    if instructor.administrador_sede_id != current_user.id_admin_sede:
+    if instructor.sede_id != current_user.sede_id:
         flash('No tienes permiso para eliminar este instructor.', 'danger')
         return redirect(url_for('adm_sede_bp.dashboard'))
 
@@ -568,7 +571,8 @@ def eliminar_programa(id):
 @login_required
 @admin_sede_required
 def gestionar_instructores():
-    instructores = Instructor.query.filter_by(administrador_sede_id=current_user.id_admin_sede).all()
+    instructores = Instructor.query.filter_by(sede_id=current_user.sede_id).all()
+    logging.info(f"Gestionar Instructores: Instructores encontrados para sede_id={current_user.sede_id}: {len(instructores)}")
     return render_template('adm_sede/gestionar_instructores.html', instructores=instructores, now=datetime.now())
 
 # -------------------------------
@@ -609,15 +613,16 @@ def gestionar_aprendices():
 
     # Obtener instructores disponibles para asignación
     instructores = Instructor.query.filter_by(sede_id=current_user.sede_id).all()
+    logging.info(f"Gestionar Aprendices: Instructores encontrados para sede_id={current_user.sede_id}: {len(instructores)}")
 
     return render_template('adm_sede/gestionar_aprendices.html',
-                          aprendices=aprendices,
-                          aprendices_manana=aprendices_manana,
-                          aprendices_tarde=aprendices_tarde,
-                          aprendices_noche=aprendices_noche,
-                          instructores=instructores,
-                          search=search,
-                          now=datetime.now())
+                           aprendices=aprendices,
+                           aprendices_manana=aprendices_manana,
+                           aprendices_tarde=aprendices_tarde,
+                           aprendices_noche=aprendices_noche,
+                           instructores=instructores,
+                           search=search,
+                           now=datetime.now())
 
 # -------------------------------
 # Asignar Instructor a Aprendiz (desde lista)
@@ -636,7 +641,7 @@ def asignar_instructor_lista():
 
     if instructor_id:
         instructor = Instructor.query.get(int(instructor_id))
-        if instructor and instructor.administrador_sede_id == current_user.id_admin_sede:
+        if instructor and instructor.sede_id == current_user.sede_id:
             aprendiz.instructor_id = int(instructor_id)
             db.session.commit()
             flash('Instructor asignado correctamente.', 'success')
@@ -906,7 +911,8 @@ def asignar_instructor(aprendiz_id):
             flash('No se puede remover el instructor, ya que la sede es obligatoria.', 'danger')
         return redirect(url_for('adm_sede_bp.dashboard'))
 
-    instructores = Instructor.query.filter_by(administrador_sede_id=current_user.id_admin_sede).all()
+    instructores = Instructor.query.filter_by(sede_id=current_user.sede_id).all()
+    logging.info(f"Asignar Instructor: Instructores encontrados para sede_id={current_user.sede_id}: {len(instructores)}")
     return render_template('adm_sede/asignar_instructor.html', aprendiz=aprendiz, instructores=instructores, now=datetime.now())
 
 # -------------------------------
