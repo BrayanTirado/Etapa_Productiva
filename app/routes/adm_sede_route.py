@@ -462,9 +462,12 @@ def registrar_programa():
         # Buscar o crear ficha
         ficha = Ficha.query.filter_by(numero_ficha=numero_ficha_int).first()
         if not ficha:
-            ficha = Ficha(numero_ficha=numero_ficha_int)
+            ficha = Ficha(numero_ficha=numero_ficha_int, sede_id=current_user.sede_id)
             db.session.add(ficha)
             db.session.flush()  # Para obtener el id_ficha
+        elif ficha.sede_id is None:
+            ficha.sede_id = current_user.sede_id
+            db.session.flush()
 
         nuevo_programa = Programa(
             nombre_programa=nombre_programa,
