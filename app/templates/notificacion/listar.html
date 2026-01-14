@@ -35,7 +35,7 @@
                 {% endif %}
                 <p>{{ noti.mensaje[:50] }}{% if noti.mensaje|length > 50 %}...{% endif %}</p>
                 <small class="text-gray-500">
-                    De: {{ noti.remitente_nombre }} |
+                    De: {{ noti.rol_remitente }} - {{ noti.remitente_nombre }} |
                     {{ noti.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}
                 </small>
                 <div class="mt-2">

@@ -292,6 +292,9 @@ def dashboard_aprendiz(aprendiz_id):
         usuarios['Instructor'] = Instructor.query.filter_by(id_instructor=current_user.instructor_id).all() if current_user.instructor_id else []
         # Administradores todos
         usuarios['Administrador'] = Administrador.query.all()
+        # Administradores de sede de la sede del aprendiz
+        from app.models.users import AdministradorSede
+        usuarios['AdministradorSede'] = AdministradorSede.query.filter_by(sede_id=current_user.sede_id).all()
 
     # -----------------------------
     # Renderizar template
@@ -437,6 +440,9 @@ def enviar_mensaje():
             user = Instructor.query.get(destinatario_id)
         elif rol_destinatario == "Administrador":
             user = Administrador.query.get(destinatario_id)
+        elif rol_destinatario == "AdministradorSede":
+            from app.models.users import AdministradorSede
+            user = AdministradorSede.query.get(destinatario_id)
 
         if user:
             # Validar permisos según rol
@@ -447,6 +453,8 @@ def enviar_mensaje():
             # Nombre completo según rol
             if rol_destinatario == "Instructor":
                 nombre_completo = f"{user.nombre_instructor} {user.apellido_instructor}"
+            elif rol_destinatario == "AdministradorSede":
+                nombre_completo = f"{user.nombre} {user.apellido}"
             else:
                 nombre_completo = f"{user.nombre} {user.apellido}"
 

@@ -110,14 +110,13 @@
             <!-- Notificaciones y Cerrar sesión -->
             <div class="flex items-center space-x-4">
                 <!-- Campana de notificaciones -->
-                <div class="relative">
-                    <a href="{{ url_for('instructor_bp.notificaciones') }}" class="text-sena-primary hover:text-sena-dark">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <a href="{{ url_for('instructor_bp.notificaciones') }}" class="relative text-2xl">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-sena-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3c0 .386-.149.735-.395 1.001L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                         </svg>
                         {% if notificaciones_no_leidas > 0 %}
-                        <span class="absolute -top-1 -right-1 inline-block w-5 h-5 bg-sena-primary text-white text-xs font-bold rounded-full text-center border-2 border-white">
+                        <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full px-2">
                             {{ notificaciones_no_leidas }}
                         </span>
                         {% endif %}
@@ -202,7 +201,7 @@
                         <select name="rol_destinatario" id="rol_destinatario" required>
                             <option value="">Seleccione rol</option>
                             <option value="Administrador">Administrador</option>
-                            <option value="Administrador Sede">Administrador Sede</option>
+                            <option value="administrador_sede">Administrador de sede</option>
                             <option value="Aprendiz">Aprendiz</option>
                         </select>
                     </div>
@@ -212,15 +211,20 @@
                         <select name="destinatario_id" id="destinatario_id">
                             <option value="">Todos</option>
                             {% for a in aprendices %}
-                            <option class="aprendiz" value="{{ a.id_aprendiz }}">{{ a.nombre }} {{ a.apellido }} - {{ a.ficha }}</option>
+                            <option data-rol="Aprendiz" value="{{ a.id_aprendiz }}">{{ a.nombre }} {{ a.apellido }} - {{ a.ficha }}</option>
                             {% endfor %}
                             {% for adm in administradores %}
-                            <option class="administrador" value="{{ adm.id_admin }}">{{ adm.nombre }} {{ adm.apellido }}</option>
+                            <option data-rol="Administrador" value="{{ adm.id_admin }}">{{ adm.nombre }} {{ adm.apellido }}</option>
                             {% endfor %}
                             {% for adm_s in administradores_sede %}
-                            <option class="administrador_sede" value="{{ adm_s.id_admin_sede }}">{{ adm_s.nombre }} {{ adm_s.apellido }}</option>
+                            <option data-rol="administrador_sede" value="{{ adm_s.id_admin_sede }}">{{ adm_s.nombre }} {{ adm_s.apellido }}</option>
                             {% endfor %}
                         </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="motivo">Motivo (opcional)</label>
+                        <input type="text" name="motivo" id="motivo" placeholder="Motivo del mensaje">
                     </div>
 
                     <div class="form-group">
@@ -391,10 +395,9 @@ const destinatarioSelect = document.getElementById('destinatario_id');
 
 rolSelect.addEventListener('change', () => {
     const rol = rolSelect.value;
-    const className = rol.toLowerCase().replace(/\s+/g, '_');
     for (const option of destinatarioSelect.options) {
         if (option.value === "") { option.style.display = 'block'; continue; }
-        if (option.classList.contains(className)) option.style.display = 'block';
+        if (option.dataset.rol === rol) option.style.display = 'block';
         else option.style.display = 'none';
     }
     destinatarioSelect.value = "";

@@ -371,6 +371,10 @@ def enviar_mensaje():
         archivo.save(archivo_path)
         mensaje += f"\n\nArchivo adjunto: {filename}"
 
+    # Ajustar rol_destinatario para coincidir con el backend
+    if rol_destinatario == "administrador_sede":
+        rol_destinatario = "AdministradorSede"
+
     enviar_notificacion(
         mensaje=mensaje,
         destinatario_id=destinatario_id if destinatario_id else None,
