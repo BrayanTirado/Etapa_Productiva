@@ -9,6 +9,7 @@ from app import db
 from datetime import datetime, timedelta
 from functools import wraps
 import logging
+from sqlalchemy.orm import joinedload
 
 adm_sede_bp = Blueprint('adm_sede_bp', __name__, url_prefix='/adm_sede')
 
@@ -86,9 +87,7 @@ def dashboard():
     aprendices = Aprendiz.query.filter_by(sede_id=current_user.sede_id).all()
 
     # Programas y fichas asociados a la sede
-    programas = Programa.query.join(Ficha, Programa.ficha_id == Ficha.id_ficha).filter(
-        Programa.instructor_id_instructor.in_([i.id_instructor for i in instructores])
-    ).all() if instructores else []
+    programas = Programa.query.join(Ficha).filter(Ficha.sede_id == current_user.sede_id).all()
 
     # Notificaciones no leídas
     notificaciones_no_leidas = Notificacion.query.filter_by(
@@ -496,12 +495,17 @@ def registrar_programa():
 @admin_sede_required
 def editar_programa(id):
     programa = Programa.query.get_or_404(id)
-    # Verificar que el instructor asignado sea de esta sede
-    if programa.instructor_rel and programa.instructor_rel.administrador_sede_id != current_user.id_admin_sede:
+    # Verificar que el programa pertenezca a la sede del admin
+    if programa.ficha_rel and programa.ficha_rel.sede_id != current_user.sede_id:
         flash('No tienes permiso para editar este programa.', 'danger')
         return redirect(url_for('adm_sede_bp.dashboard'))
 
     if request.method == 'POST':
+        # Verificar nuevamente en POST
+        if programa.ficha_rel and programa.ficha_rel.sede_id != current_user.sede_id:
+            flash('No tienes permiso para editar este programa.', 'danger')
+            return redirect(url_for('adm_sede_bp.dashboard'))
+
         nombre_programa = request.form.get('nombre_programa').strip()
         titulo = request.form.get('titulo')
         numero_ficha = request.form.get('numero_ficha').strip()
@@ -528,7 +532,7 @@ def editar_programa(id):
         try:
             db.session.commit()
             flash('Programa actualizado correctamente.', 'success')
-            return redirect(url_for('adm_sede_bp.dashboard'))
+            return redirect(url_for('adm_sede_bp.gestionar_programas'))
         except Exception as e:
             db.session.rollback()
             flash(f'Error: {str(e)}', 'danger')
@@ -543,7 +547,7 @@ def editar_programa(id):
 @admin_sede_required
 def eliminar_programa(id):
     programa = Programa.query.get_or_404(id)
-    if programa.instructor_rel and programa.instructor_rel.administrador_sede_id != current_user.id_admin_sede:
+    if programa.ficha_rel and programa.ficha_rel.sede_id != current_user.sede_id:
         flash('No tienes permiso para eliminar este programa.', 'danger')
         return redirect(url_for('adm_sede_bp.dashboard'))
 
@@ -574,12 +578,9 @@ def gestionar_instructores():
 @login_required
 @admin_sede_required
 def gestionar_programas():
-    instructor_ids = [i.id_instructor for i in Instructor.query.filter_by(administrador_sede_id=current_user.id_admin_sede).all()]
-    from sqlalchemy import or_
-    from sqlalchemy.orm import joinedload
-    programas = Programa.query.join(Ficha).options(joinedload(Programa.ficha_rel)).filter(
-        or_(Programa.instructor_id_instructor.in_(instructor_ids), Programa.instructor_id_instructor.is_(None))
-    ).all()
+    logging.info(f"Gestionando programas para sede_id={current_user.sede_id}")
+    programas = Programa.query.join(Ficha).options(joinedload(Programa.ficha_rel)).filter(Ficha.sede_id == current_user.sede_id).all()
+    logging.info(f"Programas encontrados: {len(programas)}")
     return render_template('adm_sede/gestionar_programas.html', programas=programas, now=datetime.now())
 
 # -------------------------------
@@ -592,8 +593,8 @@ def gestionar_aprendices():
     search = request.args.get('search', '').strip()
     # Incluir aprendices en la sede del administrador
     query = Aprendiz.query.filter_by(sede_id=current_user.sede_id).options(
-        db.joinedload(Aprendiz.programa).joinedload(Programa.ficha_rel),
-        db.joinedload(Aprendiz.instructor)
+        joinedload(Aprendiz.programa).joinedload(Programa.ficha_rel),
+        joinedload(Aprendiz.instructor)
     )
 
     if search:
@@ -637,7 +638,6 @@ def asignar_instructor_lista():
         instructor = Instructor.query.get(int(instructor_id))
         if instructor and instructor.administrador_sede_id == current_user.id_admin_sede:
             aprendiz.instructor_id = int(instructor_id)
-            aprendiz.sede_id = instructor.sede_id
             db.session.commit()
             flash('Instructor asignado correctamente.', 'success')
         else:
@@ -680,24 +680,22 @@ def registrar_aprendiz():
         if not ficha:
             flash('Error: Ficha no encontrada.', 'danger')
             return redirect(url_for('adm_sede_bp.registrar_aprendiz'))
+        logging.info(f"Ficha encontrada: id={ficha.id_ficha}, sede_id={ficha.sede_id}")
 
         # Obtener programa de la ficha
         programa = Programa.query.filter_by(ficha_id=ficha.id_ficha).first()
         if not programa:
             flash('Error: La ficha no tiene un programa asignado.', 'danger')
             return redirect(url_for('adm_sede_bp.registrar_aprendiz'))
+        logging.info(f"Programa encontrado: id={programa.id_programa}, instructor_id={programa.instructor_id_instructor}")
 
-        # Validar que el programa tenga instructor asignado
-        if not programa.instructor_id_instructor:
-            flash('El programa no tiene instructor asignado. Asigne un instructor al programa antes de registrar aprendices.', 'danger')
+        # Determinar sede_id de la ficha
+        sede_id = ficha.sede_id
+        logging.info(f"Sede_id determinado: {sede_id}")
+        logging.info(f"Instructor asignado posteriormente por admin, no desde programa")
+        if sede_id != current_user.sede_id:
+            flash('La ficha pertenece a una sede diferente. No puede registrar aprendices para esta ficha.', 'danger')
             return redirect(url_for('adm_sede_bp.registrar_aprendiz'))
-
-        instructor = programa.instructor_rel
-        if instructor.sede_id != current_user.sede_id:
-            flash('El programa pertenece a una sede diferente. No puede registrar aprendices para este programa.', 'danger')
-            return redirect(url_for('adm_sede_bp.registrar_aprendiz'))
-
-        sede_id = instructor.sede_id
 
         # Verificar unicidad
         documento_existe = (Aprendiz.query.filter_by(documento=documento).first() or
@@ -729,6 +727,8 @@ def registrar_aprendiz():
 
         hashed_password = generate_password_hash(password)
 
+        logging.info(f"Registrando aprendiz: ficha={numero_ficha_int}, sede_id={sede_id}, programa_id={programa.id_programa}, instructor_id=None (asignado posteriormente)")
+
         nuevo_aprendiz = Aprendiz(
             nombre=nombre,
             apellido=apellido,
@@ -739,7 +739,7 @@ def registrar_aprendiz():
             jornada=jornada,
             password_aprendiz=hashed_password,
             programa_id=programa.id_programa,
-            instructor_id=programa.instructor_id_instructor,
+            instructor_id=None,  # Instructor asignado posteriormente por admin
             sede_id=sede_id
         )
 
@@ -777,6 +777,8 @@ def editar_aprendiz(id):
         numero_ficha = request.form.get('numero_ficha').strip()
         jornada = request.form.get('jornada')
 
+        logging.info(f"Editando aprendiz id={id}, numero_ficha={numero_ficha}, current_user.sede_id={current_user.sede_id}")
+
         if not all([nombre, apellido, documento, correo, celular, numero_ficha, jornada]):
             flash('Faltan campos obligatorios.', 'warning')
             return redirect(url_for('adm_sede_bp.editar_aprendiz', id=id))
@@ -790,26 +792,33 @@ def editar_aprendiz(id):
         # Validar que la ficha exista
         ficha = Ficha.query.filter_by(numero_ficha=numero_ficha_int).first()
         if not ficha:
+            logging.error(f"Ficha {numero_ficha_int} no encontrada")
             flash('Error: Ficha no encontrada.', 'danger')
             return redirect(url_for('adm_sede_bp.editar_aprendiz', id=id))
+
+        logging.info(f"Ficha encontrada: id={ficha.id_ficha}, sede_id={ficha.sede_id}")
 
         # Obtener programa de la ficha
         programa = Programa.query.filter_by(ficha_id=ficha.id_ficha).first()
         if not programa:
+            logging.error(f"Programa no encontrado para ficha {ficha.id_ficha}")
             flash('Error: La ficha no tiene un programa asignado.', 'danger')
             return redirect(url_for('adm_sede_bp.editar_aprendiz', id=id))
 
-        # Validar que el programa tenga instructor asignado
-        if not programa.instructor_id_instructor:
-            flash('El programa no tiene instructor asignado. Asigne un instructor al programa antes de editar aprendices.', 'danger')
+        logging.info(f"Programa encontrado: id={programa.id_programa}, instructor_id={programa.instructor_id_instructor}")
+
+        # Log current instructor_id before assignment
+        logging.info(f"Instructor_id actual del aprendiz: {aprendiz.instructor_id}")
+        logging.info(f"Instructor_id del programa: {programa.instructor_id_instructor}")
+
+        # Check sede
+        if ficha.sede_id != current_user.sede_id:
+            logging.error(f"Ficha sede {ficha.sede_id} != current_user.sede_id {current_user.sede_id}")
+            flash('La ficha pertenece a una sede diferente. No puede editar aprendices para esta ficha.', 'danger')
             return redirect(url_for('adm_sede_bp.editar_aprendiz', id=id))
 
-        instructor = programa.instructor_rel
-        if instructor.sede_id != current_user.sede_id:
-            flash('El programa pertenece a una sede diferente. No puede editar aprendices para este programa.', 'danger')
-            return redirect(url_for('adm_sede_bp.editar_aprendiz', id=id))
-
-        sede_id = instructor.sede_id
+        sede_id = ficha.sede_id
+        logging.info(f"Sede_id determinado: {sede_id}")
 
         # Verificar unicidad
         existing = Aprendiz.query.filter(
@@ -826,9 +835,9 @@ def editar_aprendiz(id):
         aprendiz.correo = correo
         aprendiz.celular = celular
         aprendiz.programa_id = programa.id_programa
-        aprendiz.instructor_id = programa.instructor_id_instructor
         aprendiz.sede_id = sede_id
         aprendiz.jornada = jornada
+        logging.info(f"Instructor_id mantiene {aprendiz.instructor_id} al cambiar ficha")
         if password:
             aprendiz.password_aprendiz = generate_password_hash(password)
 
@@ -878,16 +887,22 @@ def asignar_instructor(aprendiz_id):
 
     if request.method == 'POST':
         instructor_id = request.form.get('instructor_id')
+        logging.info(f"Asignando instructor a aprendiz id={aprendiz_id}, instructor_id={instructor_id}, current_user.sede_id={current_user.sede_id}")
+        logging.info(f"Aprendiz sede_id actual: {aprendiz.sede_id}")
         if instructor_id:
             instructor = Instructor.query.get(int(instructor_id))
+            logging.info(f"Instructor encontrado: id={instructor.id_instructor if instructor else None}, sede_id={instructor.sede_id if instructor else None}, admin_sede_id={instructor.administrador_sede_id if instructor else None}")
             if instructor and instructor.administrador_sede_id == current_user.id_admin_sede:
                 aprendiz.instructor_id = int(instructor_id)
-                aprendiz.sede_id = instructor.sede_id
+                # No cambiar sede_id, ya que se determina por la ficha
+                logging.info(f"Asignación exitosa: aprendiz.instructor_id={aprendiz.instructor_id}, sede_id permanece {aprendiz.sede_id}")
                 db.session.commit()
                 flash('Instructor asignado correctamente.', 'success')
             else:
+                logging.warning(f"Instructor no válido o no pertenece al admin de sede")
                 flash('Instructor no válido.', 'danger')
         else:
+            logging.warning(f"No se proporcionó instructor_id")
             flash('No se puede remover el instructor, ya que la sede es obligatoria.', 'danger')
         return redirect(url_for('adm_sede_bp.dashboard'))
 

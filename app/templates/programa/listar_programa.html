@@ -47,7 +47,6 @@
                             <th class="border p-3 text-left">Nombre</th>
                             <th class="border p-3 text-left">Título</th>
                             <th class="border p-3 text-left">Ficha</th>
-                            <th class="border p-3 text-center">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -57,15 +56,17 @@
                             <td class="border p-3">{{ programa.nombre_programa }}</td>
                             <td class="border p-3">{{ programa.titulo }}</td>
                             <td class="border p-3">{{ programa.ficha }}</td>
+                            {% if current_user.__class__.__name__ != 'Aprendiz' %}
                             <td class="border p-3 text-center">
                                 <div class="flex justify-center space-x-4">
-                                    {% if current_user.__class__.__name__ == 'Aprendiz' and current_user.programa == programa %}
+                                    {% if current_user.programa == programa %}
                                     <a href="{{ url_for('programa_bp.editar_programa', id=programa.id_programa) }}" class="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 transition">Editar</a>
                                     {% else %}
                                     <span class="text-gray-500">—</span>
                                     {% endif %}
                                 </div>
                             </td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
