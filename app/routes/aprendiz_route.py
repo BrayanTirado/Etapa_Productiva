@@ -105,6 +105,8 @@ def registro():
             flash('Error: Ficha no encontrada.', 'danger')
             return render_template('aprendiz.html', sedes=sedes, now=datetime.now())
 
+        print(f"Debug: Ficha encontrada - numero_ficha: {ficha.numero_ficha}, sede_id: {ficha.sede_id}")
+
         # Obtener programa de la ficha
         programa = Programa.query.filter_by(ficha_id=ficha.id_ficha).first()
         if not programa:
